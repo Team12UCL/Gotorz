@@ -1,0 +1,242 @@
+﻿@page "/"
+@using Shared.Models
+@using Client.Services
+@using System.Diagnostics
+@inject HttpClient HttpClient
+@inject TravelPackageService PackageService
+@rendermode InteractiveServer
+
+<h3>Flight Offers</h3>
+
+<div>
+    <div>
+        <label for="origin">Origin:</label>
+        <input type="text" @bind="originLocationCode" id="origin" placeholder="Enter origin airport code" />
+    </div>
+    <div>
+        <label for="destination">Destination:</label>
+        <input type="text" @bind="destinationLocationCode" id="destination" placeholder="Enter destination airport code" />
+    </div>
+    <div>
+        <label for="departureDate">Departure Date:</label>
+        <input type="date" @bind="departureDate" id="departureDate" />
+    </div>
+    <div>
+        <label for="adults">Number of Adults:</label>
+        <input type="number" @bind="adults" id="adults" min="1" max="10" />
+    </div>
+    <button @onclick="FetchFlightData">Get Flight Offers</button>
+</div>
+
+@if (flightOffers?.Data != null && flightOffers.Data.Any())
+{
+    <div style="display: flex; gap: 30px;">
+        <!-- Flights -->
+        <div style="flex: 1;">
+            <h4>✈️ Flights</h4>
+            <table class="flight-table">
+                <thead>
+                    <tr>
+                        <th>Flight ID</th>
+                        <th>Duration</th>
+                        <th>Price</th>
+                        <th>Route</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var flight in flightOffers.Data)
+                    {
+                        <tr>
+                            <td>
+                                <input type="radio" name="flight" value="@flight" @onchange="@(() => selectedFlight = flight)" checked="@(selectedFlight == flight)" />
+                            </td>
+                            <td>@flight.Id</td>
+                            <td>@flight.Itineraries[0].Duration</td>
+                            <td>@flight.Price.Currency @flight.Price.Total</td>
+                            <td>
+                                @foreach (var segment in flight.Itineraries[0].Segments)
+                                {
+                                    <div>
+                                        @segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)")
+                                        ➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Hotels -->
+        <div style="flex: 1;">
+            <h4>🏨 Hotels</h4>
+            @if (hotelOffers?.Data != null && hotelOffers.Data.Any())
+            {
+                <ul>
+                    @foreach (var hotel in hotelOffers.Data)
+                    {
+                        <li style="margin-bottom: 10px;">
+                            <input type="radio" name="hotel" value="@hotel" @onchange="@(() => selectedHotel = hotel)" checked="@(selectedHotel == hotel)" />
+                            <strong>@hotel.Hotel.Name</strong><br />
+                            @hotel.Hotel.Address?.CityName<br />
+                            @hotel.Offers?.FirstOrDefault()?.Price?.Total @hotel.Offers?.FirstOrDefault()?.Price?.Currency
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p>No hotel offers available.</p>
+            }
+        </div>
+    </div>
+
+    <button @onclick="CreatePackage" disabled="@(!CanCreatePackage)">Opret Pakke</button>
+}
+else
+{
+    <p>No flight offers available.</p>
+
+
+    <style>
+
+        /* Add some space between elements */
+        div {
+        margin-bottom: 15px;
+        }
+
+        /* Style the flight table */
+        .flight-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        }
+
+        .flight-table th, .flight-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+        }
+
+        /* Style table headers */
+        .flight-table th {
+        background-color: #f4f4f4;
+        font-weight: bold;
+        color: #333;
+        }
+
+        /* Style table rows on hover */
+        .flight-table tr:hover {
+        background-color: #f1f1f1;
+        }
+
+        /* Style for the buttons */
+        button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        }
+
+        button:hover {
+        background-color: #45a049;
+        }
+
+        /* Style input fields */
+        input[type="date"], input[type="number"], select {
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        }
+
+        select:focus, input:focus {
+        border-color: #4CAF50;
+        }
+
+        /* Style the label */
+        label {
+        font-weight: bold;
+        font-size: 16px;
+        display: block;
+        margin-bottom: 5px;
+        }
+    </style>
+
+
+    @code {
+    private FlightOfferRootModel? flightOffers;
+    private HotelOfferRootModel? hotelOffers;
+    private string originLocationCode = "";
+    private string destinationLocationCode = "";
+    private DateTime? departureDate;
+    private int adults = 1;
+
+    private FlightOffer? selectedFlight;
+    private HotelData? selectedHotel;
+    private List<TravelPackage> travelPackages = new();
+
+    private async Task FetchFlightData()
+    {
+        Debug.WriteLine("Du klikkede");
+        try
+        {
+            if (string.IsNullOrWhiteSpace(originLocationCode) ||
+                string.IsNullOrWhiteSpace(destinationLocationCode) ||
+                !departureDate.HasValue)
+            {
+                return;
+            }
+
+            string url = $"api/flight/search?originLocationCode={originLocationCode}&destinationLocationCode={destinationLocationCode}&departureDate={departureDate:yyyy-MM-dd}&adults={adults}";
+            var response = await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(url);
+            flightOffers = response;
+
+            await FetchHotelData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching flight offers: {ex.Message}");
+            flightOffers = new FlightOfferRootModel { Data = new List<FlightOffer>() };
+        }
+    }
+    private async Task FetchHotelData()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(destinationLocationCode) || !departureDate.HasValue)
+                return;
+
+            string url = $"api/hotel/search?cityCode={destinationLocationCode}&departureDate={departureDate:yyyy-MM-dd}&adults={adults}";
+            var response = await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(url);
+            hotelOffers = response;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching hotel offers: {ex.Message}");
+            hotelOffers = new HotelOfferRootModel { Data = new List<HotelData>() };
+        }
+    }
+
+    private void CreatePackage()
+    {
+        if (selectedFlight != null && selectedHotel != null && departureDate.HasValue)
+        {
+            PackageService.Packages.Add(new TravelPackage
+                {
+                    Flight = selectedFlight,
+                    Hotel = selectedHotel,
+                    DepartureDate = departureDate.Value
+                });
+
+            selectedFlight = null;
+            selectedHotel = null;
+        }
+    }
+
+    private bool CanCreatePackage => selectedFlight != null && selectedHotel != null;
+}
+}

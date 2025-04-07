@@ -1,0 +1,23 @@
+﻿@page "/flightsearch"
+@using Shared.Models
+@inject Client.Services.TravelPackageService PackageService
+
+<h3>Packages</h3>
+
+@if (PackageService.Packages.Count == 0)
+{
+    <p>No packages has been created</p>
+}
+else
+{
+    <ul>
+        @foreach (var pkg in PackageService.Packages)
+        {
+            <li style="margin-bottom: 20px;">
+                <strong>Flight:</strong> @pkg.Flight?.Id — @pkg.Flight?.Price?.Currency @pkg.Flight?.Price?.Total <br />
+                <strong>Hotel:</strong> @pkg.Hotel?.Hotel?.Name — @pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Total @pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Currency <br />
+                <strong>Departure date:</strong> @pkg.DepartureDate.ToString("yyyy-MM-dd")
+            </li>
+        }
+    </ul>
+}
