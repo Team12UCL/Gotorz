@@ -214,5 +214,85 @@
       "CityName": "BANGKOK",
       "CountryName": "THAILAND"
     }
+  },
+  {
+    "Name": "FRANKFURT INTL",
+    "IataCode": "FRA",
+    "Address": {
+      "CityName": "FRANKFURT",
+      "CountryName": "GERMANY"
+    }
+  },
+  {
+    "Name": "SAN FRANCISCO INTL",
+    "IataCode": "SFO",
+    "Address": {
+      "CityName": "SAN FRANCISCO",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "HAHN AIRPORT",
+    "IataCode": "HHN",
+    "Address": {
+      "CityName": "FRANKFURT",
+      "CountryName": "GERMANY"
+    }
+  },
+  {
+    "Name": "FRANCISCO SARABIA INTL",
+    "IataCode": "TRC",
+    "Address": {
+      "CityName": "TORREON",
+      "CountryName": "MEXICO"
+    }
+  },
+  {
+    "Name": "ST. FRANCIS OF ASSISI",
+    "IataCode": "PEG",
+    "Address": {
+      "CityName": "PERUGIA",
+      "CountryName": "ITALY"
+    }
+  },
+  {
+    "Name": "VENANGO REGIONAL",
+    "IataCode": "FKL",
+    "Address": {
+      "CityName": "FRANKLIN",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "CAPITAL CITY",
+    "IataCode": "FFT",
+    "Address": {
+      "CityName": "FRANKFORT",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "MUNICIPAL-JOHN B. ROSE",
+    "IataCode": "FKN",
+    "Address": {
+      "CityName": "FRANKLIN",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "FRANCIS S GABRESKI",
+    "IataCode": "FOK",
+    "Address": {
+      "CityName": "WESTHAMPTON BEACH",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "FRANK WILEY FIELD",
+    "IataCode": "MLS",
+    "Address": {
+      "CityName": "MILES CITY",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
   }
 ]

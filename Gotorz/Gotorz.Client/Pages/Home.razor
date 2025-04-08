@@ -6,6 +6,7 @@
 @inject HttpClient HttpClient
 @inject TravelPackageService PackageService
 @rendermode InteractiveWebAssembly
+@inject ILogger<Home> Logger
 
 <h3>Flight Offers</h3>
 
@@ -106,7 +107,7 @@
         </div>
     </div>
 
-    @* <button @onclick="CreatePackage" disabled="@(!CanCreatePackage)">Opret Pakke</button> *@
+    <button @onclick="CreatePackage" disabled="@(!CanCreatePackage)">Opret Pakke</button>
 }
 else
 {
@@ -116,101 +117,101 @@ else
 <style>
     /* Add some space between elements */
     div {
-        margin-bottom: 15px;
+    margin-bottom: 15px;
     }
 
     /* Style the flight table */
     .flight-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
     }
 
-        .flight-table th, .flight-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
+    .flight-table th, .flight-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    }
 
-        /* Style table headers */
-        .flight-table th {
-            background-color: #f4f4f4;
-            font-weight: bold;
-            color: #333;
-        }
+    /* Style table headers */
+    .flight-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    color: #333;
+    }
 
-        /* Style table rows on hover */
-        .flight-table tr:hover {
-            background-color: #f1f1f1;
-        }
+    /* Style table rows on hover */
+    .flight-table tr:hover {
+    background-color: #f1f1f1;
+    }
 
     /* Style for the buttons */
     button {
-        background-color: #4CAF50;
-        color: white;
-        padding: 10px 15px;
-        border: none;
-        cursor: pointer;
-        font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
     }
 
-        button:hover {
-            background-color: #45a049;
-        }
+    button:hover {
+    background-color: #45a049;
+    }
 
     /* Style input fields */
     input[type="date"], input[type="number"], select {
-        padding: 10px;
-        font-size: 16px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
     }
 
-        select:focus, input:focus {
-            border-color: #4CAF50;
-        }
+    select:focus, input:focus {
+    border-color: #4CAF50;
+    }
 
     /* Style the label */
     label {
-        font-weight: bold;
-        font-size: 16px;
-        display: block;
-        margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 16px;
+    display: block;
+    margin-bottom: 5px;
     }
 
     /* Autocompletion CSS */
     .autocomplete-container {
-        position: relative;
-        display: inline-block;
+    position: relative;
+    display: inline-block;
     }
 
     .autocomplete-input {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
     }
 
     .autocomplete-dropdown {
-        position: absolute;
-        background-color: white;
-        border: 1px solid #ccc;
-        border-top: none;
-        width: 100%;
-        max-height: 200px;
-        overflow-y: auto;
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
     }
 
     .autocomplete-item {
-        padding: 1px;
-        cursor: pointer;
+    padding: 1px;
+    cursor: pointer;
     }
 
-        .autocomplete-item:hover {
-            background-color: #f1f1f1;
-        }
+    .autocomplete-item:hover {
+    background-color: #f1f1f1;
+    }
 </style>
 
 @code {
@@ -280,6 +281,7 @@ else
 
     private async Task FetchFlightData()
     {
+        Logger.LogWarning("Someone has clicked me!");
         try
         {
             if (string.IsNullOrWhiteSpace(originLocationCode) ||
@@ -303,10 +305,12 @@ else
 
     private async Task FetchHotelData()
     {
+        Logger.LogWarning("Someone has clicked me hotels!");
         try
         {
             if (flightOffers?.Data != null && flightOffers.Data.Any())
             {
+                Debug.WriteLine(destinationLocationCode);
                 string url = $"api/hotel/search?location={destinationLocationCode}&checkinDate={departureDate:yyyy-MM-dd}&adults={adults}";
                 var response = await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(url);
                 hotelOffers = response;
@@ -318,20 +322,21 @@ else
         }
     }
 
-    // private bool CanCreatePackage => selectedFlight != null && selectedHotel != null;
+    private bool CanCreatePackage => selectedFlight != null && selectedHotel != null;
 
-    // private async Task CreatePackage()
-    // {
-    //     if (CanCreatePackage)
-    //     {
-    //         var travelPackage = new TravelPackage
-    //             {
-    //                 Flight = selectedFlight,
-    //                 Hotel = selectedHotel
-    //             };
+    private void CreatePackage()
+    {
+        if (selectedFlight != null && selectedHotel != null && departureDate.HasValue)
+        {
+            PackageService.Packages.Add(new TravelPackage
+                {
+                    Flight = selectedFlight,
+                    Hotel = selectedHotel,
+                    DepartureDate = departureDate.Value
+                });
 
-    //         await PackageService.CreatePackage(travelPackage);
-    //         Debug.WriteLine("Package created successfully!");
-    //     }
-    // }
+            selectedFlight = null;
+            selectedHotel = null;
+        }
+    }
 }
