@@ -294,5 +294,13 @@
       "CityName": "MILES CITY",
       "CountryName": "UNITED STATES OF AMERICA"
     }
+  },
+  {
+    "Name": "CHARLES DE GAULLE",
+    "IataCode": "CDG",
+    "Address": {
+      "CityName": "PARIS",
+      "CountryName": "FRANCE"
+    }
   }
 ]

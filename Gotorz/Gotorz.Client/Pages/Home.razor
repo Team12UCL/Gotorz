@@ -32,6 +32,12 @@
         </div>
     </div>
     <div>
+        <div class="autocomplete-container">
+            <label for="thirdInput">City:</label>
+            <input type="text" @bind="destinationCityCode" id="thirdInput" placeholder="Enter city (IATA) for stay" class="autocomplete-input" />
+        </div>
+    </div>
+    <div>
         <label for="departureDate">Departure Date:</label>
         <input type="date" @bind="departureDate" id="departureDate" />
     </div>
@@ -218,7 +224,8 @@ else
     private FlightOfferRootModel? flightOffers;
     private HotelOfferRootModel? hotelOffers;
     private string originLocationCode = "";
-    private string destinationLocationCode = "";
+    private string destinationLocationCode = "PAR"; // Sat for testing
+	private string destinationCityCode = "";
     private DateTime? departureDate;
     private int adults = 1;
 
@@ -281,7 +288,7 @@ else
 
     private async Task FetchFlightData()
     {
-        Logger.LogWarning("Someone has clicked me!");
+        Logger.LogInformation("Fetching flights.");
         try
         {
             if (string.IsNullOrWhiteSpace(originLocationCode) ||
@@ -305,20 +312,20 @@ else
 
     private async Task FetchHotelData()
     {
-        Logger.LogWarning("Someone has clicked me hotels!");
+        Logger.LogWarning($"Fetching hotels with destination {destinationCityCode}.");
         try
         {
-            if (flightOffers?.Data != null && flightOffers.Data.Any())
-            {
-                Debug.WriteLine(destinationLocationCode);
-                string url = $"api/hotel/search?location={destinationLocationCode}&checkinDate={departureDate:yyyy-MM-dd}&adults={adults}";
-                var response = await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(url);
-                hotelOffers = response;
-            }
+            if (string.IsNullOrWhiteSpace(destinationCityCode) || !departureDate.HasValue)
+                return;
+
+            string url = $"api/hotel/search?cityCode={destinationCityCode}&departureDate={departureDate:yyyy-MM-dd}&adults={adults}";
+            var response = await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(url);
+            hotelOffers = response;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error fetching hotel offers: {ex.Message}");
+            hotelOffers = new HotelOfferRootModel { Data = new List<HotelData>() };
         }
     }
 

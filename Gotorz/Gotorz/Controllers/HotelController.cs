@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Server.Services;
 
 namespace Server.Controllers
@@ -8,10 +9,12 @@ namespace Server.Controllers
     public class HotelController : ControllerBase
     {
         private readonly HotelService _hotelService;
+        private readonly ILogger<HotelController> _logger;
 
-        public HotelController(HotelService hotelService)
+        public HotelController(HotelService hotelService, ILogger<HotelController> logger)
         {
             _hotelService = hotelService;
+            _logger = logger;
         }
 
         // GET: api/hotel/search?cityCode=PAR
@@ -20,6 +23,8 @@ namespace Server.Controllers
                                                         [FromQuery] string departureDate,
                                                         [FromQuery] int adults = 1)
         {
+            _logger.LogInformation($"Fetching hotel offers for city: {cityCode}, date: {departureDate}, adults: {adults}");
+
             if (string.IsNullOrWhiteSpace(departureDate))
                 departureDate = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd");
 

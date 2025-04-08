@@ -16,5 +16,6 @@ builder.Services.AddScoped(sp => new HttpClient
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddSingleton<AuthenticationStateProvider, PersistentAuthenticationStateProvider>();
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 await builder.Build().RunAsync();
