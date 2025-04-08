@@ -30,6 +30,7 @@ builder.Services.AddHttpClient<AmadeusAuthService>();
 builder.Services.AddScoped<TravelPackageService>();
 builder.Services.AddScoped<FlightService>();
 builder.Services.AddScoped<HotelService>();
+builder.Services.AddSingleton<AirportService>();
 
 builder.Services.AddCors(options =>
 {

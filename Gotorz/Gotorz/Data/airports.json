@@ -1,0 +1,218 @@
+[
+  {
+    "Name": "JOHN F KENNEDY INTL",
+    "IataCode": "JFK",
+    "Address": {
+      "CityName": "NEW YORK",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "BRANDENBURG",
+    "IataCode": "BER",
+    "Address": {
+      "CityName": "BERLIN",
+      "CountryName": "GERMANY"
+    }
+  },
+  {
+    "Name": "TEGEL",
+    "IataCode": "TXL",
+    "Address": {
+      "CityName": "BERLIN",
+      "CountryName": "GERMANY"
+    }
+  },
+  {
+    "Name": "AUSTIN-BERGSTROM INTL",
+    "IataCode": "AUS",
+    "Address": {
+      "CityName": "AUSTIN",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "BERGAMO ORIO AL SERIO",
+    "IataCode": "BGY",
+    "Address": {
+      "CityName": "MILAN",
+      "CountryName": "ITALY"
+    }
+  },
+  {
+    "Name": "ROUMANIERE",
+    "IataCode": "EGC",
+    "Address": {
+      "CityName": "BERGERAC",
+      "CountryName": "FRANCE"
+    }
+  },
+  {
+    "Name": "COASTAL CAROLINA RGNL",
+    "IataCode": "EWN",
+    "Address": {
+      "CityName": "NEW BERN",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "BERT MOONEY",
+    "IataCode": "BTM",
+    "Address": {
+      "CityName": "BUTTE",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "REGIONAL",
+    "IataCode": "BML",
+    "Address": {
+      "CityName": "BERLIN",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "BINDLACHER BERG",
+    "IataCode": "BYU",
+    "Address": {
+      "CityName": "BAYREUTH",
+      "CountryName": "GERMANY"
+    }
+  },
+  {
+    "Name": "INTERNATIONAL",
+    "IataCode": "SBD",
+    "Address": {
+      "CityName": "SAN BERNARDINO",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "ADOLFO SUAREZ BARAJAS",
+    "IataCode": "MAD",
+    "Address": {
+      "CityName": "MADRID",
+      "CountryName": "SPAIN"
+    }
+  },
+  {
+    "Name": "DANE COUTY REGIO",
+    "IataCode": "MSN",
+    "Address": {
+      "CityName": "MADISON",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "MADURAI",
+    "IataCode": "IXM",
+    "Address": {
+      "CityName": "MADURAI",
+      "CountryName": "INDIA"
+    }
+  },
+  {
+    "Name": "MIGUEL DE LA MADRID",
+    "IataCode": "CLQ",
+    "Address": {
+      "CityName": "COLIMA",
+      "CountryName": "MEXICO"
+    }
+  },
+  {
+    "Name": "BRUCE CAMPBELL FIELD",
+    "IataCode": "DXE",
+    "Address": {
+      "CityName": "MADISON",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "DATIA",
+    "IataCode": "DPP",
+    "Address": {
+      "CityName": "MADHYA PRADESH",
+      "CountryName": "INDIA"
+    }
+  },
+  {
+    "Name": "FORT MADISON MNPL",
+    "IataCode": "FMS",
+    "Address": {
+      "CityName": "FORT MADISON",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "MUNICIPAL",
+    "IataCode": "MAE",
+    "Address": {
+      "CityName": "MADERA",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "MUNICIPAL",
+    "IataCode": "MDJ",
+    "Address": {
+      "CityName": "MADRAS",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "MUNICIPAL",
+    "IataCode": "MDN",
+    "Address": {
+      "CityName": "MADISON",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "GERALD R FORD INTL",
+    "IataCode": "GRR",
+    "Address": {
+      "CityName": "GRAND RAPIDS",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "JAYAPRAKASH NARAYAN",
+    "IataCode": "PAT",
+    "Address": {
+      "CityName": "PATNA",
+      "CountryName": "INDIA"
+    }
+  },
+  {
+    "Name": "NARATHIWAT",
+    "IataCode": "NAW",
+    "Address": {
+      "CityName": "NARATHIWAT",
+      "CountryName": "THAILAND"
+    }
+  },
+  {
+    "Name": "TACOMA NARROWS",
+    "IataCode": "TIW",
+    "Address": {
+      "CityName": "TACOMA",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "NARTRON FIELD",
+    "IataCode": "RCT",
+    "Address": {
+      "CityName": "REED CITY",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "SUVARNABHUMI INTL",
+    "IataCode": "BKK",
+    "Address": {
+      "CityName": "BANGKOK",
+      "CountryName": "THAILAND"
+    }
+  }
+]

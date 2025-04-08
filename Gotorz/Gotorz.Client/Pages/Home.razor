@@ -2,6 +2,7 @@
 @using Shared.Models
 @using Client.Services
 @using System.Diagnostics
+@using Shared.Models.AirportRootModel
 @inject HttpClient HttpClient
 @inject TravelPackageService PackageService
 @rendermode InteractiveWebAssembly
@@ -9,13 +10,25 @@
 <h3>Flight Offers</h3>
 
 <div>
-    <div>
+    <div class="autocomplete-container">
         <label for="origin">Origin:</label>
-        <input type="text" @bind="originLocationCode" id="origin" placeholder="Enter origin airport code" />
+        <input type="text" @bind="originSearchQuery" @oninput="OnOriginSearchChanged" id="origin" placeholder="Enter origin airport" class="autocomplete-input" />
+        <div class="autocomplete-dropdown" style="display: @(originSuggestions.Any() ? "block" : "none")">
+            @foreach (var airport in originSuggestions)
+            {
+                <div class="autocomplete-item" @onclick="() => SelectOriginAirport(airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
+            }
+        </div>
     </div>
-    <div>
+    <div class="autocomplete-container">
         <label for="destination">Destination:</label>
-        <input type="text" @bind="destinationLocationCode" id="destination" placeholder="Enter destination airport code" />
+        <input type="text" @bind="destinationSearchQuery" @oninput="OnDestinationSearchChanged" id="destination" placeholder="Enter destination airport" class="autocomplete-input" />
+        <div class="autocomplete-dropdown" style="display: @(destinationSuggestions.Any() ? "block" : "none")">
+            @foreach (var airport in destinationSuggestions)
+            {
+                <div class="autocomplete-item" @onclick="() => SelectDestinationAirport(airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
+            }
+        </div>
     </div>
     <div>
         <label for="departureDate">Departure Date:</label>
@@ -26,6 +39,7 @@
         <input type="number" @bind="adults" id="adults" min="1" max="10" />
     </div>
     <button @onclick="FetchFlightData">Get Flight Offers</button>
+    <button @onclick="SearchAirports">Add Airports</button>
 </div>
 
 @if (flightOffers?.Data != null && flightOffers.Data.Any())
@@ -92,82 +106,114 @@
         </div>
     </div>
 
-    <button @onclick="CreatePackage" disabled="@(!CanCreatePackage)">Opret Pakke</button>
+    @* <button @onclick="CreatePackage" disabled="@(!CanCreatePackage)">Opret Pakke</button> *@
 }
 else
 {
     <p>No flight offers available.</p>
+}
 
-
-    <style>
-
-        /* Add some space between elements */
-        div {
+<style>
+    /* Add some space between elements */
+    div {
         margin-bottom: 15px;
-        }
+    }
 
-        /* Style the flight table */
-        .flight-table {
+    /* Style the flight table */
+    .flight-table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
-        }
+    }
 
         .flight-table th, .flight-table td {
-        padding: 12px;
-        text-align: left;
-        border-bottom: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
         }
 
         /* Style table headers */
         .flight-table th {
-        background-color: #f4f4f4;
-        font-weight: bold;
-        color: #333;
+            background-color: #f4f4f4;
+            font-weight: bold;
+            color: #333;
         }
 
         /* Style table rows on hover */
         .flight-table tr:hover {
-        background-color: #f1f1f1;
+            background-color: #f1f1f1;
         }
 
-        /* Style for the buttons */
-        button {
+    /* Style for the buttons */
+    button {
         background-color: #4CAF50;
         color: white;
         padding: 10px 15px;
         border: none;
         cursor: pointer;
         font-size: 16px;
-        }
+    }
 
         button:hover {
-        background-color: #45a049;
+            background-color: #45a049;
         }
 
-        /* Style input fields */
-        input[type="date"], input[type="number"], select {
+    /* Style input fields */
+    input[type="date"], input[type="number"], select {
         padding: 10px;
         font-size: 16px;
         border: 1px solid #ccc;
         border-radius: 4px;
-        }
+    }
 
         select:focus, input:focus {
-        border-color: #4CAF50;
+            border-color: #4CAF50;
         }
 
-        /* Style the label */
-        label {
+    /* Style the label */
+    label {
         font-weight: bold;
         font-size: 16px;
         display: block;
         margin-bottom: 5px;
+    }
+
+    /* Autocompletion CSS */
+    .autocomplete-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .autocomplete-input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .autocomplete-dropdown {
+        position: absolute;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-top: none;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+    }
+
+    .autocomplete-item {
+        padding: 1px;
+        cursor: pointer;
+    }
+
+        .autocomplete-item:hover {
+            background-color: #f1f1f1;
         }
-    </style>
+</style>
 
-
-    @code {
+@code {
     private FlightOfferRootModel? flightOffers;
     private HotelOfferRootModel? hotelOffers;
     private string originLocationCode = "";
@@ -177,11 +223,63 @@ else
 
     private FlightOffer? selectedFlight;
     private HotelData? selectedHotel;
-    private List<TravelPackage> travelPackages = new();
+    private List<Location> originSuggestions = new();
+    private List<Location> destinationSuggestions = new();
+    private string originSearchQuery = "";
+    private string destinationSearchQuery = "";
+
+    private async Task OnOriginSearchChanged(ChangeEventArgs e)
+    {
+        originSearchQuery = e.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(originSearchQuery))
+        {
+            originSuggestions = await HttpClient.GetFromJsonAsync<List<Location>>($"api/airport/suggest-airports?query={originSearchQuery}");
+        }
+        else
+        {
+            originSuggestions.Clear();
+        }
+    }
+
+    private async Task OnDestinationSearchChanged(ChangeEventArgs e)
+    {
+        destinationSearchQuery = e.Value?.ToString() ?? "";
+        if (!string.IsNullOrWhiteSpace(destinationSearchQuery))
+        {
+            destinationSuggestions = await HttpClient.GetFromJsonAsync<List<Location>>($"api/airport/suggest-airports?query={destinationSearchQuery}");
+        }
+        else
+        {
+            destinationSuggestions.Clear();
+        }
+    }
+
+    private void SelectOriginAirport(Location airport)
+    {
+        originLocationCode = airport.IataCode;
+        originSearchQuery = $"{airport.Name} ({airport.IataCode})";
+        originSuggestions.Clear();
+    }
+
+    private void SelectDestinationAirport(Location airport)
+    {
+        destinationLocationCode = airport.IataCode;
+        destinationSearchQuery = $"{airport.Name} ({airport.IataCode})";
+        destinationSuggestions.Clear();
+    }
+
+    private async Task SearchAirports()
+    {
+        if (!string.IsNullOrWhiteSpace(originSearchQuery))
+        {
+            await HttpClient.PostAsJsonAsync("api/airport/add-airports", originSearchQuery);
+        }
+
+        await InvokeAsync(StateHasChanged); // Force UI update
+    }
 
     private async Task FetchFlightData()
     {
-        Debug.WriteLine("Du klikkede");
         try
         {
             if (string.IsNullOrWhiteSpace(originLocationCode) ||
@@ -200,43 +298,40 @@ else
         catch (Exception ex)
         {
             Console.WriteLine($"Error fetching flight offers: {ex.Message}");
-            flightOffers = new FlightOfferRootModel { Data = new List<FlightOffer>() };
         }
     }
+
     private async Task FetchHotelData()
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(destinationLocationCode) || !departureDate.HasValue)
-                return;
-
-            string url = $"api/hotel/search?cityCode={destinationLocationCode}&departureDate={departureDate:yyyy-MM-dd}&adults={adults}";
-            var response = await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(url);
-            hotelOffers = response;
+            if (flightOffers?.Data != null && flightOffers.Data.Any())
+            {
+                string url = $"api/hotel/search?location={destinationLocationCode}&checkinDate={departureDate:yyyy-MM-dd}&adults={adults}";
+                var response = await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(url);
+                hotelOffers = response;
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error fetching hotel offers: {ex.Message}");
-            hotelOffers = new HotelOfferRootModel { Data = new List<HotelData>() };
         }
     }
 
-    private void CreatePackage()
-    {
-        if (selectedFlight != null && selectedHotel != null && departureDate.HasValue)
-        {
-            PackageService.Packages.Add(new TravelPackage
-                {
-                    Flight = selectedFlight,
-                    Hotel = selectedHotel,
-                    DepartureDate = departureDate.Value
-                });
+    // private bool CanCreatePackage => selectedFlight != null && selectedHotel != null;
 
-            selectedFlight = null;
-            selectedHotel = null;
-        }
-    }
+    // private async Task CreatePackage()
+    // {
+    //     if (CanCreatePackage)
+    //     {
+    //         var travelPackage = new TravelPackage
+    //             {
+    //                 Flight = selectedFlight,
+    //                 Hotel = selectedHotel
+    //             };
 
-    private bool CanCreatePackage => selectedFlight != null && selectedHotel != null;
-}
+    //         await PackageService.CreatePackage(travelPackage);
+    //         Debug.WriteLine("Package created successfully!");
+    //     }
+    // }
 }
