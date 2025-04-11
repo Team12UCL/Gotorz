@@ -8,342 +8,811 @@
 @rendermode InteractiveWebAssembly
 @inject ILogger<Home> Logger
 
-<h3>Flight Offers</h3>
+<PageTitle>Create Travel Package</PageTitle>
 
-<div>
-    <div class="autocomplete-container">
-        <label for="origin">Origin:</label>
-        <input type="text" @bind="originSearchQuery" @oninput="OnOriginSearchChanged" id="origin" placeholder="Enter origin airport" class="autocomplete-input" />
-        <div class="autocomplete-dropdown" style="display: @(originSuggestions.Any() ? "block" : "none")">
-            @foreach (var airport in originSuggestions)
-            {
-                <div class="autocomplete-item" @onclick="() => SelectOriginAirport(airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
-            }
-        </div>
-    </div>
-    <div class="autocomplete-container">
-        <label for="destination">Destination:</label>
-        <input type="text" @bind="destinationSearchQuery" @oninput="OnDestinationSearchChanged" id="destination" placeholder="Enter destination airport" class="autocomplete-input" />
-        <div class="autocomplete-dropdown" style="display: @(destinationSuggestions.Any() ? "block" : "none")">
-            @foreach (var airport in destinationSuggestions)
-            {
-                <div class="autocomplete-item" @onclick="() => SelectDestinationAirport(airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
-            }
-        </div>
-    </div>
-    <div>
-        <div class="autocomplete-container">
-            <label for="thirdInput">City:</label>
-            <input type="text" @bind="destinationCityCode" id="thirdInput" placeholder="Enter city (IATA) for stay" class="autocomplete-input" />
-        </div>
-    </div>
-    <div>
-        <label for="departureDate">Departure Date:</label>
-        <input type="date" @bind="departureDate" id="departureDate" />
-    </div>
-    <div>
-        <label for="adults">Number of Adults:</label>
-        <input type="number" @bind="adults" id="adults" min="1" max="10" />
-    </div>
-    <button @onclick="FetchFlightData">Get Flight Offers</button>
-    <button @onclick="SearchAirports">Add Airports</button>
+<h3>Create Travel Package</h3>
+
+<div class="booking-container">
+	<!-- Main search and results area -->
+	<div class="search-results-area">
+		<!-- Search panel -->
+		<div class="search-panel">
+			<!-- Departure Search -->
+			<div class="autocomplete-container">
+				<label for="origin">Origin:</label>
+				<input type="text" @bind="originSearchQuery" @oninput="e => OnSearchQueryChanged(e, true)" id="origin" placeholder="Enter origin airport" class="autocomplete-input" />
+				<div class="autocomplete-dropdown" style="display: @(originAirportSuggestions.Any() ? "block" : "none")">
+					@foreach (var airport in originAirportSuggestions)
+					{
+						<div class="autocomplete-item" @onclick="() => SelectAirport(ref originLocationCode, ref originSearchQuery, originAirportSuggestions, airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
+					}
+				</div>
+			</div>
+			<!-- Destination Search -->
+			<div class="autocomplete-container">
+				<label for="destination">Destination:</label>
+				<input type="text" @bind="destinationSearchQuery" @oninput="e => OnSearchQueryChanged(e, false)" id="destination" placeholder="Enter destination airport" class="autocomplete-input" />
+				<div class="autocomplete-dropdown" style="display: @(destinationAirportSuggestions.Any() ? "block" : "none")">
+					@foreach (var airport in destinationAirportSuggestions)
+					{
+						<div class="autocomplete-item" @onclick="() => SelectAirport(ref destinationLocationCode, ref destinationSearchQuery, destinationAirportSuggestions, airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
+					}
+				</div>
+			</div>
+			<!-- City Search -->
+			<div class="autocomplete-container">
+				<label for="city">City for Hotel:</label>
+				<input type="text" @bind="destinationCityCode" id="city" placeholder="Enter city (CityCode) for stay" class="autocomplete-input" />
+			</div>
+			<!-- Dates and Adults Options -->
+			<div class="form-container">
+				<div>
+					<label for="departureDate">Departure Date:</label>
+					<input type="date" @bind="departureDate" id="departureDate" />
+				</div>
+				<div>
+					<label for="returnDate">Return Date:</label>
+					<input type="date" @bind="returnDate" id="returnDate" min="@NewDate" />
+				</div>
+				<div>
+					<label for="adults">Number of Adults:</label>
+					<input type="number" @bind="adults" id="adults" min="1" max="10" />
+				</div>
+			</div>
+
+			<!-- Search Buttons -->
+			<div class="action-buttons">
+				<button @onclick="SearchFlights" disabled="@isSearchingFlights">
+					<span>@(isSearchingFlights ? "Searching..." : "Search Flights")</span>
+				</button>
+				<button @onclick="SearchHotels" disabled="@(!CanSearchHotels() || isSearchingHotels)">
+					<span>@(isSearchingHotels ? "Searching..." : "Search Hotels")</span>
+				</button>
+			</div>
+
+			@if (searchError)
+			{
+				<div class="error-message">
+					Please fill in all required fields: Origin, Destination, and Dates.
+				</div>
+			}
+		</div>
+
+		<!-- Results area (Flights or Hotels) -->
+		<div class="results-area">
+			@if (currentSearchMode == SearchMode.Flights)
+			{
+				<div class="flight-results">
+					<!-- Outbound Flights -->
+					<div class="outbound-flights">
+						<h4>✈️ Outbound Flights</h4>
+						@if (isLoadingFlights)
+						{
+							<div class="loading-container">
+								<div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+								<p>Searching for outbound flights...</p>
+							</div>
+						}
+						else if (flightError)
+						{
+							<div class="error-message">
+								Error loading flight data. Please try again.
+							</div>
+						}
+						else if (outboundFlights.Count() == 0)
+						{
+							<div class="error-message">
+								No flight offers found. Please change your search.
+							</div>
+						}
+						else if (outboundFlights?.Any() == true)
+						{
+							<table class="results-table">
+								<thead>
+									<tr>
+										<th></th>
+										<th>Carrier</th>
+										<th>Duration</th>
+										<th>Price</th>
+										<th>Route</th>
+									</tr>
+								</thead>
+								<tbody>
+									@foreach (var flight in outboundFlights)
+									{
+										<tr class="@(selectedOutboundFlight == flight ? "selected-row" : "")">
+											<td>
+												<input type="radio" name="outboundFlight" value="@flight"
+												@onchange="@(() => SelectOutboundFlight(flight))"
+												checked="@(selectedOutboundFlight == flight)" />
+											</td>
+											<td>@flight.Itineraries[0].Segments[0].CarrierCode</td>
+											<td>@flight.Itineraries[0].Duration.Replace("PT", "")</td>
+											<td>@flight.Price.Currency @flight.Price.Total</td>
+											<td>
+												@foreach (var segment in flight.Itineraries[0].Segments)
+												{
+													<div>
+														@segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
+														➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+													</div>
+												}
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						}
+						else
+						{
+							<p>No outbound flight offers available.</p>
+						}
+					</div>
+
+					<!-- Return Flights -->
+					<div class="return-flights">
+						<h4>✈️ Return Flights</h4>
+						@if (isLoadingFlights)
+						{
+							<div class="loading-container">
+								<div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+								<p>Searching for return flights...</p>
+							</div>
+						}
+						else if (flightError)
+						{
+							<div class="error-message">
+								Error loading flight data. Please try again.
+							</div>
+						}
+						else if (returnFlights.Count() == 0)
+						{
+							<div class="error-message">
+								No flight offers found. Please change your search.
+							</div>
+						}
+						else if (returnFlights?.Any() == true)
+						{
+							<table class="results-table">
+								<thead>
+									<tr>
+										<th></th>
+										<th>Carrier</th>
+										<th>Duration</th>
+										<th>Price</th>
+										<th>Route</th>
+									</tr>
+								</thead>
+								<tbody>
+									@foreach (var flight in returnFlights)
+									{
+										<tr class="@(selectedReturnFlight == flight ? "selected-row" : "")">
+											<td>
+												<input type="radio" name="returnFlight" value="@flight"
+												@onchange="@(() => SelectReturnFlight(flight))"
+												checked="@(selectedReturnFlight == flight)" />
+											</td>
+											<td>@flight.Itineraries[0].Segments[0].CarrierCode</td>
+											<td>@flight.Itineraries[0].Duration.Replace("PT", "")</td>
+											<td>@flight.Price.Currency @flight.Price.Total</td>
+											<td>
+												@foreach (var segment in flight.Itineraries[0].Segments)
+												{
+													<div>
+														@segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
+														➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+													</div>
+												}
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						}
+						else if (!isLoadingFlights && returnDate.HasValue)
+						{
+							<p>No return flight offers available.</p>
+						}
+						else if (!returnDate.HasValue)
+						{
+							<p>One-way trip selected (no return date).</p>
+						}
+					</div>
+				</div>
+			}
+			else if (currentSearchMode == SearchMode.Hotels)
+			{
+				<div class="hotel-results">
+					<h4>🏨 Available Hotels</h4>
+					@if (isLoadingHotels)
+					{
+						<div class="loading-container">
+							<div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+							<p>Searching for hotels...</p>
+						</div>
+					}
+					else if (hotelError)
+					{
+						<div class="error-message">
+							Error loading hotel data. Please try again.
+						</div>
+					}
+					else if (hotelOffers?.Data?.Any() == true)
+					{
+						<table class="results-table">
+							<thead>
+								<tr>
+									<th></th>
+									<th>Hotel Name</th>
+									<th>Price</th>
+									<th>Details</th>
+								</tr>
+							</thead>
+							<tbody>
+								@foreach (var hotel in hotelOffers.Data)
+								{
+									<tr class="@(selectedHotel == hotel ? "selected-row" : "")">
+										<td>
+											<input type="radio" name="hotel" value="@hotel"
+											@onchange="@(() => SelectHotel(hotel))"
+											checked="@(selectedHotel == hotel)" />
+										</td>
+										<td>
+											<strong>
+												<a href="https://www.google.com/search?q=@Uri.EscapeDataString(hotel.Hotel.Name)" target="_blank">
+													@hotel.Hotel.Name
+												</a>
+											</strong>
+										</td>
+										<td>@hotel.Offers?.FirstOrDefault()?.Price?.Total @hotel.Offers?.FirstOrDefault()?.Price?.Currency</td>
+										<td>
+											@if (hotel.Offers?.FirstOrDefault()?.BoardType != null)
+											{
+												<div>Board: @hotel.Offers.FirstOrDefault().BoardType</div>
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					}
+					else
+					{
+						<p>No hotel offers available.</p>
+					}
+				</div>
+			}
+		</div>
+	</div>
+
+	<!-- Booking Summary Panel -->
+	<div class="booking-summary">
+		<h4>Booking Summary</h4>
+		<div class="summary-content">
+			@if (selectedOutboundFlight != null || selectedReturnFlight != null || selectedHotel != null)
+			{
+				<div class="summary-section">
+					<h5>Selected Flights</h5>
+					@if (selectedOutboundFlight != null)
+					{
+						<div class="summary-item">
+							<strong>Outbound:</strong> @selectedOutboundFlight.Itineraries[0].Segments[0].Departure.IataCode to
+							@selectedOutboundFlight.Itineraries[0].Segments[^1].Arrival.IataCode
+							<div class="summary-detail">
+								<span>Departs: @selectedOutboundFlight.Itineraries[0].Segments[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
+								<span>@selectedOutboundFlight.Price.Total @selectedOutboundFlight.Price.Currency</span>
+							</div>
+						</div>
+					}
+
+					@if (selectedReturnFlight != null)
+					{
+						<div class="summary-item">
+							<strong>Return:</strong> @selectedReturnFlight.Itineraries[0].Segments[0].Departure.IataCode to
+							@selectedReturnFlight.Itineraries[0].Segments[^1].Arrival.IataCode
+							<div class="summary-detail">
+								<span>Departs: @selectedReturnFlight.Itineraries[0].Segments[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
+								<span>@selectedReturnFlight.Price.Total @selectedReturnFlight.Price.Currency</span>
+							</div>
+						</div>
+					}
+				</div>
+
+				@if (selectedHotel != null)
+				{
+					<div class="summary-section">
+						<h5>Selected Hotel</h5>
+						<div class="summary-item">
+							<strong>@selectedHotel.Hotel.Name</strong>
+							<div class="summary-detail">
+								<span>Period: @selectedHotel.Offers?.FirstOrDefault()?.CheckInDate to @selectedHotel.Offers?.FirstOrDefault()?.CheckOutDate</span>
+								<span>@selectedHotel.Offers?.FirstOrDefault()?.Price?.Total @selectedHotel.Offers?.FirstOrDefault()?.Price?.Currency</span>
+							</div>
+						</div>
+					</div>
+				}
+
+				@if (CalculateTotalPrice() > 0)
+				{
+					<div class="summary-total">
+						<strong>Total Price:</strong> @CalculateTotalPrice() EUR
+					</div>
+				}
+
+				<button class="summary-button" @onclick="CreatePackage" disabled="@(!CanCreatePackage())">
+					Complete Package
+				</button>
+			}
+			else
+			{
+				<p>No items selected yet</p>
+				<p class="hint-text">Select flights first, then accommodations to complete the package.</p>
+			}
+		</div>
+	</div>
 </div>
 
-@if (flightOffers?.Data != null && flightOffers.Data.Any())
-{
-    <div style="display: flex; gap: 30px;">
-        <!-- Flights -->
-        <div style="flex: 1;">
-            <h4>✈️ Flights</h4>
-            <table class="flight-table">
-                <thead>
-                    <tr>
-                        <th>Flight ID</th>
-                        <th>Duration</th>
-                        <th>Price</th>
-                        <th>Route</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var flight in flightOffers.Data)
-                    {
-                        <tr>
-                            <td>
-                                <input type="radio" name="flight" value="@flight" @onchange="@(() => selectedFlight = flight)" checked="@(selectedFlight == flight)" />
-                            </td>
-                            <td>@flight.Id</td>
-                            <td>@flight.Itineraries[0].Duration</td>
-                            <td>@flight.Price.Currency @flight.Price.Total</td>
-                            <td>
-                                @foreach (var segment in flight.Itineraries[0].Segments)
-                                {
-                                    <div>
-                                        @segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)")
-                                        ➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
-                                    </div>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+@code {
+	private enum SearchMode { None, Flights, Hotels }
+	private SearchMode currentSearchMode = SearchMode.None;
 
-        <!-- Hotels -->
-        <div style="flex: 1;">
-            <h4>🏨 Hotels</h4>
-            @if (hotelOffers?.Data != null && hotelOffers.Data.Any())
-            {
-                <ul>
-                    @foreach (var hotel in hotelOffers.Data)
-                    {
-                        <li style="margin-bottom: 10px;">
-                            <input type="radio" name="hotel" value="@hotel" @onchange="@(() => selectedHotel = hotel)" checked="@(selectedHotel == hotel)" />
-                            <strong>@hotel.Hotel.Name</strong><br />
-                            @hotel.Hotel.Address?.CityName<br />
-                            @hotel.Offers?.FirstOrDefault()?.Price?.Total @hotel.Offers?.FirstOrDefault()?.Price?.Currency
-                        </li>
-                    }
-                </ul>
-            }
-            else
-            {
-                <p>No hotel offers available.</p>
-            }
-        </div>
-    </div>
+	// Data models
+	private FlightOfferRootModel? flightOffers;
+	private List<FlightOffer> outboundFlights = new();
+	private List<FlightOffer> returnFlights = new();
+	private FlightOffer? selectedOutboundFlight;
+	private FlightOffer? selectedReturnFlight;
 
-    <button @onclick="CreatePackage" disabled="@(!CanCreatePackage)">Opret Pakke</button>
-}
-else
-{
-    <p>No flight offers available.</p>
+	private HotelOfferRootModel? hotelOffers;
+	private HotelData? selectedHotel;
+
+	// Search parameters
+	private string originSearchQuery = "";
+	private string destinationSearchQuery = "";
+	private string originLocationCode = "";
+	private string destinationLocationCode = "";
+	private string destinationCityCode = "";
+	private DateTime? departureDate;
+	private DateTime? returnDate;
+	private string NewDate = DateTime.Now.ToString("yyyy-MM-dd");
+	private int adults = 1;
+
+	// UI states
+	private List<Location> originAirportSuggestions = new();
+	private List<Location> destinationAirportSuggestions = new();
+	// Controls the loading indicator while flight data is being fetched from the API
+	private bool isLoadingFlights = false;
+	// Controls the loading indicator while hotel data is being fetched from the API
+	private bool isLoadingHotels = false;
+	// Tracks if a flight search operation is in progress to disable the search button
+	private bool isSearchingFlights = false;
+	// Tracks if a hotel search operation is in progress to disable the search button
+	private bool isSearchingHotels = false;
+	// Indicates if an error occurred during flight data retrieval
+	private bool flightError = false;
+	// Indicates if an error occurred during hotel data retrieval
+	private bool hotelError = false;
+	// Indicates if the search form has validation errors (missing required fields)
+	private bool searchError = false;
+
+	// private bool CanSearchFlights() => true; Maybe set bools for only using auto-complete suggestions, disable direct input?
+	private bool CanSearchHotels() => true; // Can extend this if needed for specific validation
+
+	private bool CanCreatePackage() =>
+		selectedOutboundFlight != null &&
+		(!returnDate.HasValue || selectedReturnFlight != null) &&
+		selectedHotel != null &&
+		departureDate.HasValue;
+
+	private decimal CalculateTotalPrice()
+	{
+		decimal total = 0;
+		total += TryParsePrice(selectedOutboundFlight?.Price?.Total);
+		total += TryParsePrice(selectedReturnFlight?.Price?.Total);
+		total += TryParsePrice(selectedHotel?.Offers?.FirstOrDefault()?.Price?.Total);
+		return total;
+	}
+
+	private decimal TryParsePrice(string? price) =>
+		decimal.TryParse(price, out var result) ? result : 0;
+
+	// Finds airport suggestions for origin or destination based on user input
+	private async Task OnSearchQueryChanged(ChangeEventArgs e, bool isOrigin)
+	{
+		var query = e.Value?.ToString() ?? "";
+		if (isOrigin)
+		{
+			originSearchQuery = query;
+			originAirportSuggestions = await FetchAirportSuggestions(query);
+		}
+		else
+		{
+			destinationSearchQuery = query;
+			destinationAirportSuggestions = await FetchAirportSuggestions(query);
+		}
+	}
+
+	// Fetches airport suggestions based on the user's input
+	private async Task<List<Location>> FetchAirportSuggestions(string query) =>
+		string.IsNullOrWhiteSpace(query)
+			? new List<Location>()
+			: await HttpClient.GetFromJsonAsync<List<Location>>($"api/airport/suggest-airports?query={query}");
+
+	private void SelectAirport(ref string locationCode, ref string searchQuery, List<Location> suggestions, Location airport)
+	{
+		locationCode = airport.IataCode;
+		searchQuery = $"{airport.Address.CountryName} - {airport.Name} ({airport.IataCode})";
+		suggestions.Clear();
+
+		// Auto-fill city code when selecting destination (might not work since it's AITA)
+		// if (locationCode == destinationLocationCode && string.IsNullOrEmpty(destinationCityCode))
+		// {
+		// 	destinationCityCode = airport.IataCode;
+		// }
+	}
+
+	// Selectors set the selected flight or hotel from results
+	private void SelectOutboundFlight(FlightOffer flight) => selectedOutboundFlight = flight;
+	private void SelectReturnFlight(FlightOffer flight) => selectedReturnFlight = flight;
+	private void SelectHotel(HotelData hotel) => selectedHotel = hotel;
+
+	// Search functions for flights and hotels with validation and SearchMode
+	private async Task SearchFlights()
+	{
+		if (string.IsNullOrWhiteSpace(originLocationCode) || string.IsNullOrWhiteSpace(destinationLocationCode) || !departureDate.HasValue)
+		{
+			searchError = true;
+			return;
+		}
+
+		searchError = false;
+		flightError = false;
+		currentSearchMode = SearchMode.Flights;
+		isSearchingFlights = true;
+
+		try
+		{
+			await FetchFlightData();
+		}
+		finally
+		{
+			isSearchingFlights = false;
+
+			// Change this to a more appropriate method of adding airports !
+			// Change this to a more appropriate method of adding airports !
+			// Change this to a more appropriate method of adding airports !
+			await HttpClient.PostAsJsonAsync("api/airport/add-airports", originSearchQuery);
+		}
+	}
+
+	private async Task SearchHotels()
+	{
+		if (string.IsNullOrWhiteSpace(destinationCityCode) || !departureDate.HasValue)
+		{
+			searchError = true;
+			return;
+		}
+
+		searchError = false;
+		hotelError = false;
+		currentSearchMode = SearchMode.Hotels;
+		isSearchingHotels = true;
+
+		try
+		{
+			await FetchHotelData();
+		}
+		finally
+		{
+			isSearchingHotels = false;
+		}
+	}
+
+	private async Task FetchFlightData()
+	{
+		isLoadingFlights = true;
+		flightError = false;
+		outboundFlights.Clear();
+		returnFlights.Clear();
+
+		try
+		{
+			Logger.LogInformation($"Fetching flights from {originLocationCode} to {destinationLocationCode} on {departureDate}");
+			var outboundUrl = $"api/flight/search?originLocationCode={originLocationCode}&destinationLocationCode={destinationLocationCode}&departureDate={departureDate:yyyy-MM-dd}&adults={adults}";
+			outboundFlights = (await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(outboundUrl))?.Data ?? new List<FlightOffer>();
+
+			if (returnDate.HasValue)
+			{
+				Logger.LogInformation($"Fetching return flights from {destinationLocationCode} to {originLocationCode} on {returnDate}");
+				var returnUrl = $"api/flight/search?originLocationCode={destinationLocationCode}&destinationLocationCode={originLocationCode}&departureDate={returnDate:yyyy-MM-dd}&adults={adults}";
+				returnFlights = (await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(returnUrl))?.Data ?? new List<FlightOffer>();
+			}
+		}
+		catch (Exception ex)
+		{
+			Logger.LogError($"Error fetching flight offers: {ex.Message}");
+			flightError = true;
+		}
+		finally
+		{
+			isLoadingFlights = false;
+		}
+	}
+
+	private async Task FetchHotelData()
+	{
+		isLoadingHotels = true;
+		hotelError = false;
+
+		Logger.LogInformation($"Fetching hotels in {destinationCityCode}");
+		try
+		{
+			var checkInDate = departureDate?.ToString("yyyy-MM-dd") ?? "";
+			var checkOutDate = returnDate?.ToString("yyyy-MM-dd") ?? "";
+
+			hotelOffers = await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(
+				$"api/hotel/search?cityCode={destinationCityCode}&departureDate={departureDate:yyyy-MM-dd}&checkInDate={checkInDate}&checkOutDate={checkOutDate}&adults={adults}");
+		}
+		catch (Exception ex)
+		{
+			Logger.LogError($"Error fetching hotel offers: {ex.Message}");
+			hotelError = true;
+			hotelOffers = new HotelOfferRootModel { Data = new List<HotelData>() };
+		}
+		finally
+		{
+			isLoadingHotels = false;
+		}
+	}
+
+	private void CreatePackage()
+	{
+		if (selectedOutboundFlight != null && selectedHotel != null && departureDate.HasValue)
+		{
+			var package = new TravelPackage
+				{
+					OutboundFlight = selectedOutboundFlight,
+					ReturnFlight = selectedReturnFlight, // May be null for one-way trips
+					Hotel = selectedHotel,
+					DepartureDate = departureDate.Value,
+					ReturnDate = returnDate ?? DateTime.MinValue,
+					Adults = adults
+				};
+
+			PackageService.Packages.Add(package);
+
+			// Reset selections
+			selectedOutboundFlight = null;
+			selectedReturnFlight = null;
+			selectedHotel = null;
+
+			// Reset search mode
+			currentSearchMode = SearchMode.None;
+		}
+	}
 }
 
 <style>
-    /* Add some space between elements */
-    div {
-    margin-bottom: 15px;
-    }
+	/* Layout */
+	.booking-container {
+		display: flex;
+		gap: 20px;
+	}
 
-    /* Style the flight table */
-    .flight-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    }
+	.search-results-area {
+		flex: 3;
+		display: flex;
+		flex-direction: column;
+	}
 
-    .flight-table th, .flight-table td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-    }
+	.booking-summary {
+		flex: 1;
+		background-color: #f9f9f9;
+		border-radius: 8px;
+		padding: 15px;
+		border: 1px solid #ddd;
+		height: fit-content;
+		position: sticky;
+		top: 60px;
+	}
 
-    /* Style table headers */
-    .flight-table th {
-    background-color: #f4f4f4;
-    font-weight: bold;
-    color: #333;
-    }
+	.flight-results {
+		display: flex;
+		gap: 20px;
+	}
 
-    /* Style table rows on hover */
-    .flight-table tr:hover {
-    background-color: #f1f1f1;
-    }
+	.outbound-flights, .return-flights {
+		flex: 1;
+	}
 
-    /* Style for the buttons */
-    button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    }
+	/* Form elements */
+	.search-panel {
+		background-color: #f4f4f4;
+		padding: 15px;
+		border-radius: 8px;
+		margin-bottom: 20px;
+	}
 
-    button:hover {
-    background-color: #45a049;
-    }
+	.action-buttons {
+		display: flex;
+		gap: 10px;
+		margin-top: 10px;
+	}
 
-    /* Style input fields */
-    input[type="date"], input[type="number"], select {
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    }
+	.form-container {
+		display: flex;
+		justify-content: space-between;
+		gap: 20px;
+	}
 
-    select:focus, input:focus {
-    border-color: #4CAF50;
-    }
+		.form-container div {
+			display: flex;
+			flex-direction: column;
+			flex-grow: 1;
+		}
 
-    /* Style the label */
-    label {
-    font-weight: bold;
-    font-size: 16px;
-    display: block;
-    margin-bottom: 5px;
-    }
+	/* Autocomplete styling */
+	.autocomplete-container {
+		position: relative;
+		margin-bottom: 15px;
+	}
 
-    /* Autocompletion CSS */
-    .autocomplete-container {
-    position: relative;
-    display: inline-block;
-    }
+	.autocomplete-input {
+		width: 100%;
+		padding: 8px;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+	}
 
-    .autocomplete-input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    }
+	.autocomplete-dropdown {
+		position: absolute;
+		background-color: white;
+		border: 1px solid #ccc;
+		border-top: none;
+		width: 100%;
+		max-height: 200px;
+		overflow-y: auto;
+		box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+		z-index: 1000;
+	}
 
-    .autocomplete-dropdown {
-    position: absolute;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-top: none;
-    width: 100%;
-    max-height: 200px;
-    overflow-y: auto;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    }
+	.autocomplete-item {
+		padding: 8px;
+		cursor: pointer;
+	}
 
-    .autocomplete-item {
-    padding: 1px;
-    cursor: pointer;
-    }
+		.autocomplete-item:hover {
+			background-color: #f1f1f1;
+		}
 
-    .autocomplete-item:hover {
-    background-color: #f1f1f1;
-    }
+	/* Input styles */
+	input[type="date"], input[type="number"], input[type="text"] {
+		padding: 8px;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+		width: 100%;
+	}
+
+	label {
+		font-weight: bold;
+		display: block;
+		margin-bottom: 5px;
+	}
+
+	/* Button styles */
+	button {
+		background-color: #4CAF50;
+		color: white;
+		padding: 10px 15px;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 16px;
+		transition: background-color 0.3s;
+	}
+
+		button:hover:not(:disabled) {
+			background-color: #45a049;
+		}
+
+		button:disabled {
+			background-color: #cccccc;
+			cursor: not-allowed;
+		}
+
+	/* Results table */
+	.results-table {
+		width: 100%;
+		border-collapse: collapse;
+		margin-top: 10px;
+	}
+
+		.results-table th, .results-table td {
+			padding: 8px;
+			text-align: left;
+			border-bottom: 1px solid #ddd;
+		}
+
+		.results-table th {
+			background-color: #f4f4f4;
+			font-weight: bold;
+		}
+
+		.results-table tr:hover {
+			background-color: #f9f9f9;
+		}
+
+	.selected-row {
+		background-color: #e7f3e8;
+	}
+
+	/* Summary panel styles */
+	.summary-content {
+		display: flex;
+		flex-direction: column;
+		gap: 15px;
+	}
+
+	.summary-section {
+		border-bottom: 1px solid #ddd;
+		padding-bottom: 10px;
+	}
+
+		.summary-section h5 {
+			margin-top: 0;
+			margin-bottom: 10px;
+			color: #333;
+		}
+
+	.summary-item {
+		padding: 8px;
+		background-color: #fff;
+		border-radius: 4px;
+		margin-bottom: 5px;
+	}
+
+	.summary-detail {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.9em;
+		color: #666;
+		margin-top: 5px;
+	}
+
+	.summary-total {
+		font-size: 1.2em;
+		text-align: right;
+		padding: 10px 0;
+	}
+
+	.summary-button {
+		background-color: #007bff;
+		width: 100%;
+	}
+
+		.summary-button:hover:not(:disabled) {
+			background-color: #0056b3;
+		}
+
+	.hint-text {
+		color: #666;
+		font-style: italic;
+		font-size: 0.9em;
+	}
+
+	/* Error styles */
+	.error-message {
+		color: #721c24;
+		background-color: #f8d7da;
+		border: 1px solid #f5c6cb;
+		padding: 10px;
+		border-radius: 4px;
+		margin-top: 10px;
+	}
+
+	/* Loading animation */
+	.loading-container {
+		text-align: center;
+		padding: 20px;
+	}
 </style>
-
-@code {
-    private FlightOfferRootModel? flightOffers;
-    private HotelOfferRootModel? hotelOffers;
-    private string originLocationCode = "";
-    private string destinationLocationCode = "PAR"; // Sat for testing
-	private string destinationCityCode = "";
-    private DateTime? departureDate;
-    private int adults = 1;
-
-    private FlightOffer? selectedFlight;
-    private HotelData? selectedHotel;
-    private List<Location> originSuggestions = new();
-    private List<Location> destinationSuggestions = new();
-    private string originSearchQuery = "";
-    private string destinationSearchQuery = "";
-
-    private async Task OnOriginSearchChanged(ChangeEventArgs e)
-    {
-        originSearchQuery = e.Value?.ToString() ?? "";
-        if (!string.IsNullOrWhiteSpace(originSearchQuery))
-        {
-            originSuggestions = await HttpClient.GetFromJsonAsync<List<Location>>($"api/airport/suggest-airports?query={originSearchQuery}");
-        }
-        else
-        {
-            originSuggestions.Clear();
-        }
-    }
-
-    private async Task OnDestinationSearchChanged(ChangeEventArgs e)
-    {
-        destinationSearchQuery = e.Value?.ToString() ?? "";
-        if (!string.IsNullOrWhiteSpace(destinationSearchQuery))
-        {
-            destinationSuggestions = await HttpClient.GetFromJsonAsync<List<Location>>($"api/airport/suggest-airports?query={destinationSearchQuery}");
-        }
-        else
-        {
-            destinationSuggestions.Clear();
-        }
-    }
-
-    private void SelectOriginAirport(Location airport)
-    {
-        originLocationCode = airport.IataCode;
-        originSearchQuery = $"{airport.Name} ({airport.IataCode})";
-        originSuggestions.Clear();
-    }
-
-    private void SelectDestinationAirport(Location airport)
-    {
-        destinationLocationCode = airport.IataCode;
-        destinationSearchQuery = $"{airport.Name} ({airport.IataCode})";
-        destinationSuggestions.Clear();
-    }
-
-    private async Task SearchAirports()
-    {
-        if (!string.IsNullOrWhiteSpace(originSearchQuery))
-        {
-            await HttpClient.PostAsJsonAsync("api/airport/add-airports", originSearchQuery);
-        }
-
-        await InvokeAsync(StateHasChanged); // Force UI update
-    }
-
-    private async Task FetchFlightData()
-    {
-        Logger.LogInformation("Fetching flights.");
-        try
-        {
-            if (string.IsNullOrWhiteSpace(originLocationCode) ||
-                string.IsNullOrWhiteSpace(destinationLocationCode) ||
-                !departureDate.HasValue)
-            {
-                return;
-            }
-
-            string url = $"api/flight/search?originLocationCode={originLocationCode}&destinationLocationCode={destinationLocationCode}&departureDate={departureDate:yyyy-MM-dd}&adults={adults}";
-            var response = await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(url);
-            flightOffers = response;
-
-            await FetchHotelData();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching flight offers: {ex.Message}");
-        }
-    }
-
-    private async Task FetchHotelData()
-    {
-        Logger.LogWarning($"Fetching hotels with destination {destinationCityCode}.");
-        try
-        {
-            if (string.IsNullOrWhiteSpace(destinationCityCode) || !departureDate.HasValue)
-                return;
-
-            string url = $"api/hotel/search?cityCode={destinationCityCode}&departureDate={departureDate:yyyy-MM-dd}&adults={adults}";
-            var response = await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(url);
-            hotelOffers = response;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching hotel offers: {ex.Message}");
-            hotelOffers = new HotelOfferRootModel { Data = new List<HotelData>() };
-        }
-    }
-
-    private bool CanCreatePackage => selectedFlight != null && selectedHotel != null;
-
-    private void CreatePackage()
-    {
-        if (selectedFlight != null && selectedHotel != null && departureDate.HasValue)
-        {
-            PackageService.Packages.Add(new TravelPackage
-                {
-                    Flight = selectedFlight,
-                    Hotel = selectedHotel,
-                    DepartureDate = departureDate.Value
-                });
-
-            selectedFlight = null;
-            selectedHotel = null;
-        }
-    }
-}

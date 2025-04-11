@@ -9,26 +9,21 @@ namespace Server.Controllers
     public class HotelController : ControllerBase
     {
         private readonly HotelService _hotelService;
-        private readonly ILogger<HotelController> _logger;
 
-        public HotelController(HotelService hotelService, ILogger<HotelController> logger)
+        public HotelController(HotelService hotelService)
         {
             _hotelService = hotelService;
-            _logger = logger;
         }
 
         // GET: api/hotel/search?cityCode=PAR
         [HttpGet("search")]
         public async Task<IActionResult> GetHotelOffers([FromQuery] string cityCode,
-                                                        [FromQuery] string departureDate,
+                                                        [FromQuery] string checkInDate,
+                                                        [FromQuery] string checkOutDate,
                                                         [FromQuery] int adults = 1)
         {
-            _logger.LogInformation($"Fetching hotel offers for city: {cityCode}, date: {departureDate}, adults: {adults}");
 
-            if (string.IsNullOrWhiteSpace(departureDate))
-                departureDate = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd");
-
-            var hotelOffers = await _hotelService.GetHotelOffersAsync(cityCode, departureDate, adults);
+            var hotelOffers = await _hotelService.GetHotelOffersAsync(cityCode, checkInDate, checkOutDate, adults);
 
             if (hotelOffers == null)
             {

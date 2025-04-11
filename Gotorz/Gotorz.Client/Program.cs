@@ -9,7 +9,7 @@ builder.Services.AddSingleton<TravelPackageService>();
 
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("https://localhost:7063") // <- Serverens port
+    BaseAddress = new Uri("https://localhost:7063") // Server port
 });
 
 

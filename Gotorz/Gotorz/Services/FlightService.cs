@@ -6,20 +6,16 @@ using System.Text.Json;
 
 namespace Server.Services
 {
-
     public class FlightService
     {
         private readonly HttpClient _httpClient;
         private readonly AmadeusAuthService _authService;
-        public readonly string _baseUrl; // Exposed for use in other methods
+        public readonly string _baseUrl;
 
         public FlightService(IHttpClientFactory httpClientFactory, AmadeusAuthService authService, IConfiguration configuration)
         {
-            // Use the named HttpClient pattern as in your working example
             _httpClient = httpClientFactory.CreateClient("AmadeusClient");
             _authService = authService;
-
-            // Get base URL from configuration
             _baseUrl = configuration["AmadeusAPI:FlightOffersUrl"]!;
         }
 
@@ -53,7 +49,6 @@ namespace Server.Services
 
                 // Build the full request URL
                 string requestUrl = $"{_baseUrl}?originLocationCode={originLocationCode}&destinationLocationCode={destinationLocationCode}&departureDate={departureDate}&adults={adults}";
-                Debug.WriteLine($"Request URL: {requestUrl}");
 
                 // Make the API call
                 var response = await _httpClient.GetAsync(requestUrl);
@@ -83,6 +78,13 @@ namespace Server.Services
                 {
                     Debug.WriteLine($"Successfully deserialized flight offers with {flightOffers.Data?.Count ?? 0} items.");
                 }
+
+                // For viewing info about the first JSON object in console
+                //if (flightOffers.Data != null && flightOffers.Data.Count > 0)
+                //{
+                //    var firstFlight = flightOffers.Data[0];
+                //    Debug.WriteLine($"First flight data: {JsonSerializer.Serialize(firstFlight)}");
+                //}
 
                 return flightOffers;
             }
