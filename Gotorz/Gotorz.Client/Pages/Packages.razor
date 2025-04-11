@@ -1,0 +1,60 @@
+﻿@page "/packages"
+@using Shared.Models
+@inject Client.Services.TravelPackageService PackageService
+@rendermode InteractiveWebAssembly
+
+<h3>Find din rejse</h3>
+
+<!-- Filtersektion -->
+<div style="display: flex; gap: 20px; margin-bottom: 20px;">
+    <div>
+        <label>Fly from</label>
+        <input placeholder="Search with auto-complete" disabled />
+    </div>
+    <div>
+        <label>Destination</label>
+        <input placeholder="Search with auto-complete" disabled />
+    </div>
+    <div>
+        <label>When</label>
+        <input type="date" @bind="departureDate" />
+    </div>
+    <div>
+        <label>Return</label>
+        <input type="date" @bind="returnDate" />
+    </div>
+    <div>
+        <label>Number of travelers</label>
+        <select @bind="travelers">
+            @for (int i = 1; i <= 10; i++)
+            {
+                <option value="@i">@i</option>
+            }
+        </select>
+    </div>
+</div>
+
+<p>@FilteredPackages.Count() packages found:</p>
+
+<!-- Pakker -->
+@foreach (var pkg in FilteredPackages)
+{
+    <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+        <strong>Destination:</strong> @pkg.Flight?.Itineraries?[0].Segments?.LastOrDefault()?.Arrival?.IataCode <br />
+        <strong>Dates:</strong> @pkg.DepartureDate.ToString("yyyy-MM-dd") <br />
+        <strong>Price:</strong> @pkg.Flight?.Price?.Currency @pkg.Flight?.Price?.Total + @pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Total <br />
+        <button>Book</button>
+    </div>
+}
+
+@code {
+    private DateTime? departureDate;
+    private DateTime? returnDate;
+    private int travelers = 1;
+
+    private IEnumerable<TravelPackage> FilteredPackages =>
+        PackageService.Packages.Where(p =>
+            (!departureDate.HasValue || p.DepartureDate >= departureDate.Value) &&
+            (!returnDate.HasValue || p.DepartureDate <= returnDate.Value)
+        );
+}

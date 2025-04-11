@@ -120,6 +120,7 @@ else
     <p>No flight offers available.</p>
 }
 
+
 <style>
     /* Add some space between elements */
     div {
@@ -236,6 +237,8 @@ else
     private string originSearchQuery = "";
     private string destinationSearchQuery = "";
 
+
+
     private async Task OnOriginSearchChanged(ChangeEventArgs e)
     {
         originSearchQuery = e.Value?.ToString() ?? "";
@@ -346,4 +349,5 @@ else
             selectedHotel = null;
         }
     }
+
 }
