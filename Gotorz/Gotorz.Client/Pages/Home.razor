@@ -48,11 +48,11 @@
 			<div class="form-container">
 				<div>
 					<label for="departureDate">Departure Date:</label>
-					<input type="date" @bind="departureDate" id="departureDate" />
+					<input type="date" @bind="departureDate" id="departureDate" min="@minTodaysDate" />
 				</div>
 				<div>
 					<label for="returnDate">Return Date:</label>
-					<input type="date" @bind="returnDate" id="returnDate" min="@NewDate" />
+					<input type="date" @bind="returnDate" id="returnDate" min="@minDepartureDate" />
 				</div>
 				<div>
 					<label for="adults">Number of Adults:</label>
@@ -380,7 +380,8 @@
 	private string destinationCityCode = "";
 	private DateTime? departureDate;
 	private DateTime? returnDate;
-	private string NewDate = DateTime.Now.ToString("yyyy-MM-dd");
+	private string minTodaysDate = DateTime.Now.ToString("yyyy-MM-dd");
+	private string minDepartureDate => ((departureDate ?? DateTime.Now).AddDays(1)).ToString("yyyy-MM-dd");
 	private int adults = 1;
 
 	// UI states
