@@ -302,5 +302,237 @@
       "CityName": "PARIS",
       "CountryName": "FRANCE"
     }
+  },
+  {
+    "Name": "HEATHROW",
+    "IataCode": "LHR",
+    "Address": {
+      "CityName": "LONDON",
+      "CountryName": "UNITED KINGDOM"
+    }
+  },
+  {
+    "Name": "GATWICK",
+    "IataCode": "LGW",
+    "Address": {
+      "CityName": "LONDON",
+      "CountryName": "UNITED KINGDOM"
+    }
+  },
+  {
+    "Name": "STANSTED",
+    "IataCode": "STN",
+    "Address": {
+      "CityName": "LONDON",
+      "CountryName": "UNITED KINGDOM"
+    }
+  },
+  {
+    "Name": "LUTON",
+    "IataCode": "LTN",
+    "Address": {
+      "CityName": "LONDON",
+      "CountryName": "UNITED KINGDOM"
+    }
+  },
+  {
+    "Name": "LONGDONGBAO INTL",
+    "IataCode": "KWE",
+    "Address": {
+      "CityName": "GUIYANG",
+      "CountryName": "CHINA"
+    }
+  },
+  {
+    "Name": "LONGJIA INTL",
+    "IataCode": "CGQ",
+    "Address": {
+      "CityName": "CHANGCHUN",
+      "CountryName": "CHINA"
+    }
+  },
+  {
+    "Name": "CITY AIRPORT",
+    "IataCode": "LCY",
+    "Address": {
+      "CityName": "LONDON",
+      "CountryName": "UNITED KINGDOM"
+    }
+  },
+  {
+    "Name": "DAUGHERTY FIELD",
+    "IataCode": "LGB",
+    "Address": {
+      "CityName": "LONG BEACH",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "LONDON ASHFORD",
+    "IataCode": "LYX",
+    "Address": {
+      "CityName": "LYDD",
+      "CountryName": "UNITED KINGDOM"
+    }
+  },
+  {
+    "Name": "LONG ISLAND MACARTHUR",
+    "IataCode": "ISP",
+    "Address": {
+      "CityName": "ISLIP",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "CARDIFF",
+    "IataCode": "CWL",
+    "Address": {
+      "CityName": "CARDIFF",
+      "CountryName": "UNITED KINGDOM"
+    }
+  },
+  {
+    "Name": "CARSAMBA AIRPORT",
+    "IataCode": "SZF",
+    "Address": {
+      "CityName": "SAMSUN",
+      "CountryName": "TURKIYE"
+    }
+  },
+  {
+    "Name": "INTL-CARL T.JONES FLD",
+    "IataCode": "HSV",
+    "Address": {
+      "CityName": "HUNTSVILLE",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "CARDAK",
+    "IataCode": "DNZ",
+    "Address": {
+      "CityName": "DENIZLI",
+      "CountryName": "TURKIYE"
+    }
+  },
+  {
+    "Name": "INTERNATIONAL",
+    "IataCode": "CME",
+    "Address": {
+      "CityName": "CIUDAD DEL CARMEN",
+      "CountryName": "MEXICO"
+    }
+  },
+  {
+    "Name": "MONTEREY REGIONAL",
+    "IataCode": "MRY",
+    "Address": {
+      "CityName": "MONTEREY CARMEL",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "SALVAZA",
+    "IataCode": "CCF",
+    "Address": {
+      "CityName": "CARCASSONNE",
+      "CountryName": "FRANCE"
+    }
+  },
+  {
+    "Name": "CARPIQUET",
+    "IataCode": "CFR",
+    "Address": {
+      "CityName": "CAEN",
+      "CountryName": "FRANCE"
+    }
+  },
+  {
+    "Name": "LAZARO CARDENAS",
+    "IataCode": "LZC",
+    "Address": {
+      "CityName": "LAZARO CARDENAS",
+      "CountryName": "MEXICO"
+    }
+  },
+  {
+    "Name": "BAIYUN INTL",
+    "IataCode": "CAN",
+    "Address": {
+      "CityName": "GUANGZHOU",
+      "CountryName": "CHINA"
+    }
+  },
+  {
+    "Name": "INTERNATIONAL",
+    "IataCode": "CUN",
+    "Address": {
+      "CityName": "CANCUN",
+      "CountryName": "MEXICO"
+    }
+  },
+  {
+    "Name": "GRAN CANARIA",
+    "IataCode": "LPA",
+    "Address": {
+      "CityName": "GRAN CANARIA",
+      "CountryName": "SPAIN"
+    }
+  },
+  {
+    "Name": "REGIONAL",
+    "IataCode": "CAK",
+    "Address": {
+      "CityName": "AKRON CANTON",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "GRAND CANYON WEST",
+    "IataCode": "GCW",
+    "Address": {
+      "CityName": "GRAND CANYON WEST",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "CANAKKALE",
+    "IataCode": "CKZ",
+    "Address": {
+      "CityName": "CANAKKALE",
+      "CountryName": "TURKIYE"
+    }
+  },
+  {
+    "Name": "FLAGSTAFF PULLIAM",
+    "IataCode": "FLG",
+    "Address": {
+      "CityName": "GRAND CANYON",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "NATIONAL PARK",
+    "IataCode": "GCN",
+    "Address": {
+      "CityName": "GRAND CANYON",
+      "CountryName": "UNITED STATES OF AMERICA"
+    }
+  },
+  {
+    "Name": "SERVANDO CANALES INTL",
+    "IataCode": "MAM",
+    "Address": {
+      "CityName": "MATAMOROS",
+      "CountryName": "MEXICO"
+    }
+  },
+  {
+    "Name": "WASHAN",
+    "IataCode": "CWJ",
+    "Address": {
+      "CityName": "CANGYUAN",
+      "CountryName": "CHINA"
+    }
   }
 ]

@@ -19,7 +19,7 @@ namespace Server.Services
             _httpClient = httpClientFactory.CreateClient("AmadeusClient");
             _authService = authService;
             _baseUrl = configuration["AmadeusAPI:AirportAndCitySearchUrl"]!;
-            Task.Run(InitializeAirportsAsync).Wait(); // Load existing data at startup
+            Task.Run(InitializeAirportsAsync).Wait();
         }
 
         private async Task InitializeAirportsAsync()

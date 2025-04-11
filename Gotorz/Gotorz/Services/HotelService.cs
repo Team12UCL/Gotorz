@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Diagnostics;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using Shared.Models;
 
@@ -19,10 +20,11 @@ namespace Server.Services
             _hotelsByCityBaseUrl = config["AmadeusAPI:HotelsByCityUrl"]!;
         }
 
-        public async Task<HotelOfferRootModel?> GetHotelOffersAsync(string cityCode, string departureDate, int adults)
+        public async Task<HotelOfferRootModel?> GetHotelOffersAsync(string cityCode, string checkInDate, string checkOutDate, int adults)
         {
             try
             {
+
                 var token = await _authService.GetAccessTokenAsync();
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -34,11 +36,9 @@ namespace Server.Services
                     return null;
                 }
 
-                var checkIn = DateTime.Parse(departureDate);
-                var checkOut = checkIn.AddDays(1);
                 var hotelIdsParam = string.Join(",", hotelIds.Take(20));
 
-                var url = $"{_hotelOffersBaseUrl}?hotelIds={hotelIdsParam}&checkInDate={checkIn:yyyy-MM-dd}&checkOutDate={checkOut:yyyy-MM-dd}&adults={adults}";
+                var url = $"{_hotelOffersBaseUrl}?hotelIds={hotelIdsParam}&&adults={adults}&checkInDate={checkInDate}&checkOutDate={checkOutDate}";
 
                 var response = await _httpClient.GetAsync(url);
                 var content = await response.Content.ReadAsStringAsync();

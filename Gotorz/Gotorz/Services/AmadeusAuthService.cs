@@ -17,7 +17,6 @@ namespace Server.Services
             _httpClient = httpClient;
             _configuration = configuration;
 
-            // Read values directly from appsettings.json
             _tokenUrl = _configuration["AmadeusAPI:TokenUrl"]!;
             _clientId = _configuration["AmadeusAPI:ClientId"]!;
             _clientSecret = _configuration["AmadeusAPI:ClientSecret"]!;
@@ -35,7 +34,7 @@ namespace Server.Services
             var response = await _httpClient.PostAsync(_tokenUrl, requestContent);
             if (!response.IsSuccessStatusCode)
             {
-                return null; // Handle failure appropriately
+                return null;
             }
 
             Debug.WriteLine("Token retrieved");

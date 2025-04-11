@@ -4,6 +4,11 @@ namespace Gotorz.Client.Services
 {
     public class TravelPackageService
     {
-        public List<TravelPackage> Packages { get; set; } = new();
+        private static List<TravelPackage> _packages = new();
+        public List<TravelPackage> Packages
+        {
+            get => _packages;
+            set => _packages = value;
+        }
     }
 }

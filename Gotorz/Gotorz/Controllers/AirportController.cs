@@ -25,7 +25,6 @@ namespace Gotorz.Controllers
             if (string.IsNullOrWhiteSpace(query))
                 return BadRequest("Query cannot be empty.");
 
-            // Wait for the operation to complete
             await _airportService.PersistAirportsToJsonAsync(query);
 
             return Ok("Airports added.");
