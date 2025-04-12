@@ -521,7 +521,6 @@
                 ProcessedDate = status == "Pending" ? null : requestDate.AddDays(random.Next(1, 5))
             });
         }
-        
         return requests.OrderByDescending(r => r.RequestDate).ToList();
     }
 
