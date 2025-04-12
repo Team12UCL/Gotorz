@@ -20,6 +20,7 @@ namespace Shared.Models
         public ContactInformation ContactInfo { get; set; }
         public List<BookingNote> Notes { get; set; } = new List<BookingNote>();
         public List<BookingAddon> Addons { get; set; } = new List<BookingAddon>();
+
     }
 
     public class Passenger
@@ -75,11 +76,4 @@ namespace Shared.Models
         Refunded
     }
 
-    public enum PaymentStatus
-    {
-        Pending,
-        Paid,
-        Failed,
-        Refunded
-    }
 }

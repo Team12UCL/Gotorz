@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Server.Services;
+using Gotorz.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,10 +27,15 @@ builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 builder.Services.AddHttpClient<AmadeusAuthService>();
 
-builder.Services.AddScoped<TravelPackageService>();
+// Explicitly specify namespace for server-side services
+builder.Services.AddScoped<Gotorz.Services.TravelPackageService>();
 builder.Services.AddScoped<FlightService>();
 builder.Services.AddScoped<HotelService>();
 builder.Services.AddSingleton<AirportService>();
+builder.Services.AddScoped<Gotorz.Client.Services.ActivityLogService>();
+
+// Add SignalR for real-time chat
+builder.Services.AddSignalR();
 
 builder.Services.AddCors(options =>
 {
@@ -38,7 +44,7 @@ builder.Services.AddCors(options =>
             .WithOrigins("https://localhost:7216") // Client port
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .SetIsOriginAllowed(origin => true));
+            .AllowCredentials());
 });
 
 
@@ -91,6 +97,17 @@ app.MapRazorComponents<App>()
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
+// Map SignalR hub for chat functionality
+app.MapHub<ChatHub>("/chathub");
+
 app.UseCors("AllowBlazorClient");
 app.MapControllers();
+
+// Apply migrations at startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    dbContext.Database.Migrate();
+}
+
 app.Run();

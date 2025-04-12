@@ -1,0 +1,212 @@
+@page "/admin/dashboard"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Gotorz.Services
+@using System.Text.Json
+@using Shared.Models
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ILogger<AdminDashboard> Logger
+@inject ActivityLogService ActivityLogService
+
+<PageTitle>GodTur - Admin Dashboard</PageTitle>
+
+<div class="admin-dashboard">
+    <h1 class="mb-4">Admin Dashboard</h1>
+
+    @if (_isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Users</h5>
+                        <h2 class="display-4">@_stats.TotalUsers</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Bookings</h5>
+                        <h2 class="display-4">@_stats.TotalBookings</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Sales</h5>
+                        <h2 class="display-4">@_stats.TotalSales.ToString("C")</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Active Users (30d)</h5>
+                        <h2 class="display-4">@_stats.ActiveUsers</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Bookings</h5>
+                        <a href="/admin/bookings" class="btn btn-sm btn-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        @if (_stats.RecentBookings != null && _stats.RecentBookings.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Reference</th>
+                                            <th>Package</th>
+                                            <th>Date</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var booking in _stats.RecentBookings)
+                                        {
+                                            <tr>
+                                                <td><a href="/admin/bookings/@booking.Id">@booking.BookingReference</a></td>
+                                                <td>@booking.TravelPackage?.Name</td>
+                                                <td>@booking.BookingDate.ToShortDateString()</td>
+                                                <td>@booking.TotalPrice.ToString("C")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p>No recent bookings found.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Activity</h5>
+                        <a href="/admin/activity-logs" class="btn btn-sm btn-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        @if (_recentActivity != null && _recentActivity.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>User ID</th>
+                                            <th>Activity</th>
+                                            <th>Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var activity in _recentActivity)
+                                        {
+                                            <tr>
+                                                <td>@activity.UserId</td>
+                                                <td>@activity.Description</td>
+                                                <td>@activity.Timestamp.ToLocalTime().ToString("g")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p>No recent activity found.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="/admin/users" class="btn btn-outline-primary">Manage Users</a>
+                            <a href="/admin/roles" class="btn btn-outline-secondary">Manage Roles</a>
+                            <a href="/admin/bookings" class="btn btn-outline-success">View Bookings</a>
+                            <a href="/admin/activity-logs" class="btn btn-outline-info">View Activity Logs</a>
+                            <a href="/admin/export-data" class="btn btn-outline-warning">Export Data</a>
+                            <a href="/admin/settings" class="btn btn-outline-dark">System Settings</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private AdminDashboardStats _stats = new();
+    private List<ActivityLog> _recentActivity = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadDashboardData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading admin dashboard data");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        // Load dashboard statistics
+        var response = await Http.GetAsync("api/admin/dashboard-stats");
+        
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            _stats = JsonSerializer.Deserialize<AdminDashboardStats>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? new AdminDashboardStats();
+        }
+
+        // Load recent activity logs
+        _recentActivity = await ActivityLogService.GetAllActivityLogsAsync(take: 10);
+    }
+
+    private class AdminDashboardStats
+    {
+        public int TotalUsers { get; set; }
+        public int TotalBookings { get; set; }
+        public decimal TotalSales { get; set; }
+        public int ActiveUsers { get; set; }
+        public List<Booking> RecentBookings { get; set; } = new();
+    }
+}

@@ -1,0 +1,250 @@
+@page "/sales-agent/dashboard"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Gotorz.Services
+@using System.Text.Json
+@using Shared.Models
+@attribute [Authorize(Roles = "SalesAgent")]
+@inject HttpClient Http
+@inject ILogger<SalesAgentDashboard> Logger
+
+<PageTitle>GodTur - Sales Agent Dashboard</PageTitle>
+
+<div class="agent-dashboard">
+    <h1 class="mb-4">Sales Agent Dashboard</h1>
+
+    @if (_isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Customers</h5>
+                        <h2 class="display-4">@_stats.CustomersCount</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Assisted Bookings</h5>
+                        <h2 class="display-4">@_stats.AssistedBookings</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Monthly Bookings</h5>
+                        <h2 class="display-4">@_stats.MonthlyBookings</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Monthly Sales</h5>
+                        <h2 class="display-4">@_stats.MonthlySales.ToString("C")</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Open Support Tickets</h5>
+                        <a href="/sales-agent/support-tickets" class="btn btn-sm btn-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        @if (_supportTickets != null && _supportTickets.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Customer</th>
+                                            <th>Subject</th>
+                                            <th>Status</th>
+                                            <th>Created</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var ticket in _supportTickets)
+                                        {
+                                            <tr>
+                                                <td><a href="/sales-agent/support-tickets/@ticket.Id">@ticket.Id.ToString().Substring(0, 8)</a></td>
+                                                <td>@ticket.CustomerName</td>
+                                                <td>@ticket.Subject</td>
+                                                <td><span class="badge @GetStatusBadgeClass(ticket.Status)">@ticket.Status</span></td>
+                                                <td>@ticket.CreatedAt.ToLocalTime().ToString("g")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p>No open support tickets found.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Customers</h5>
+                        <a href="/sales-agent/customers" class="btn btn-sm btn-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        @if (_recentCustomers != null && _recentCustomers.Any())
+                        {
+                            <div class="list-group">
+                                @foreach (var customer in _recentCustomers)
+                                {
+                                    <a href="/sales-agent/customers/@customer.Id" class="list-group-item list-group-item-action">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h5 class="mb-1">@customer.FirstName @customer.LastName</h5>
+                                            <small>@customer.Email</small>
+                                        </div>
+                                        <small>@customer.PhoneNumber</small>
+                                    </a>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p>No customers found.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="/sales-agent/customers" class="btn btn-outline-primary">View Customers</a>
+                            <a href="/sales-agent/support-tickets" class="btn btn-outline-secondary">Support Tickets</a>
+                            <a href="/sales-agent/bookings" class="btn btn-outline-success">View Bookings</a>
+                            <a href="/sales-agent/travel-guides" class="btn btn-outline-info">Travel Guides</a>
+                            <a href="/chat" class="btn btn-outline-warning">Chat Support</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private SalesAgentDashboardStats _stats = new();
+    private List<SupportTicket> _supportTickets = new();
+    private List<CustomerInfo> _recentCustomers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadDashboardData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading sales agent dashboard data");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            // Load dashboard statistics
+            var statsResponse = await Http.GetAsync("api/salesagent/dashboard-stats");
+            if (statsResponse.IsSuccessStatusCode)
+            {
+                var content = await statsResponse.Content.ReadAsStringAsync();
+                _stats = JsonSerializer.Deserialize<SalesAgentDashboardStats>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new SalesAgentDashboardStats();
+            }
+
+            // Load open support tickets
+            var ticketsResponse = await Http.GetAsync("api/salesagent/support-tickets?status=Open&take=5");
+            if (ticketsResponse.IsSuccessStatusCode)
+            {
+                var content = await ticketsResponse.Content.ReadAsStringAsync();
+                _supportTickets = JsonSerializer.Deserialize<List<SupportTicket>>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new List<SupportTicket>();
+            }
+
+            // Load recent customers
+            var customersResponse = await Http.GetAsync("api/salesagent/customers?take=5");
+            if (customersResponse.IsSuccessStatusCode)
+            {
+                var content = await customersResponse.Content.ReadAsStringAsync();
+                _recentCustomers = JsonSerializer.Deserialize<List<CustomerInfo>>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new List<CustomerInfo>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fetching dashboard data");
+        }
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "open" => "bg-danger",
+            "in progress" => "bg-warning",
+            "pending" => "bg-info",
+            "resolved" => "bg-success",
+            "closed" => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+
+    private class SalesAgentDashboardStats
+    {
+        public int CustomersCount { get; set; }
+        public int AssistedBookings { get; set; }
+        public int MonthlyBookings { get; set; }
+        public decimal MonthlySales { get; set; }
+    }
+
+    private class CustomerInfo
+    {
+        public string Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Email { get; set; }
+        public string PhoneNumber { get; set; }
+    }
+}
