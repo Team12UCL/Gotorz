@@ -84,7 +84,7 @@
                                         {
                                             <tr>
                                                 <td><a href="/sales-agent/support-tickets/@ticket.Id">@ticket.Id.ToString().Substring(0, 8)</a></td>
-                                                <td>@ticket.CustomerName</td>
+                                                <td>@ticket.UserId</td>
                                                 <td>@ticket.Subject</td>
                                                 <td><span class="badge @GetStatusBadgeClass(ticket.Status)">@ticket.Status</span></td>
                                                 <td>@ticket.CreatedAt.ToLocalTime().ToString("g")</td>

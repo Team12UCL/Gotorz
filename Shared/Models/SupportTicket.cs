@@ -9,6 +9,7 @@ namespace Shared.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         public string UserId { get; set; }
+
         public Guid? BookingId { get; set; } // Optional, may not be related to a specific booking
 
         [Required]
