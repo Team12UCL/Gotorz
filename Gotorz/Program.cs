@@ -53,6 +53,11 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 // Register HTTP clients
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("AmadeusClient", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["AmadeusAPI:BaseUrl"] ?? "https://test.api.amadeus.com/v1");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
 builder.Services.AddHttpClient<AmadeusAuthService>();
 builder.Services.AddHttpClient<AirportService>();
 builder.Services.AddHttpClient<FlightService>();

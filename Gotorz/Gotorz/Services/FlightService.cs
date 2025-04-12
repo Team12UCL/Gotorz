@@ -46,9 +46,13 @@ namespace Server.Services
 
                 // Set the authorization header
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                _httpClient.DefaultRequestHeaders.Accept.Clear();
+                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                // Build the full request URL
-                string requestUrl = $"{_baseUrl}?originLocationCode={originLocationCode}&destinationLocationCode={destinationLocationCode}&departureDate={departureDate}&adults={adults}";
+                // Build the full request URL with parameters
+                string requestUrl = $"{_baseUrl}?originLocationCode={originLocationCode}&destinationLocationCode={destinationLocationCode}&departureDate={departureDate}&adults={adults}&max=10&currencyCode=EUR";
+
+                Debug.WriteLine($"Requesting flights: {requestUrl}");
 
                 // Make the API call
                 var response = await _httpClient.GetAsync(requestUrl);
@@ -67,26 +71,8 @@ namespace Server.Services
                 {
                     PropertyNameCaseInsensitive = true
                 };
-                var flightOffers = JsonSerializer.Deserialize<FlightOfferRootModel>(content, options);
 
-                // Log deserialization results
-                if (flightOffers == null)
-                {
-                    Debug.WriteLine("Deserialization returned null.");
-                }
-                else
-                {
-                    Debug.WriteLine($"Successfully deserialized flight offers with {flightOffers.Data?.Count ?? 0} items.");
-                }
-
-                // For viewing info about the first JSON object in console
-                //if (flightOffers.Data != null && flightOffers.Data.Count > 0)
-                //{
-                //    var firstFlight = flightOffers.Data[0];
-                //    Debug.WriteLine($"First flight data: {JsonSerializer.Serialize(firstFlight)}");
-                //}
-
-                return flightOffers;
+                return JsonSerializer.Deserialize<FlightOfferRootModel>(content, options);
             }
             catch (Exception ex)
             {

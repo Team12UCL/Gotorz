@@ -9,13 +9,15 @@ namespace Server.Controllers
     public class FlightController : ControllerBase
     {
         private readonly FlightService _flightService;
+        private readonly ILogger<FlightController> _logger;
 
-        public FlightController(FlightService flightService)
+        public FlightController(FlightService flightService, ILogger<FlightController> logger)
         {
             _flightService = flightService;
+            _logger = logger;
         }
 
-        // GET: api/flight/search
+        // GET: api/flight/search?originLocationCode=CDG&destinationLocationCode=MAD&departureDate=2023-12-01&adults=2
         [HttpGet("search")]
         public async Task<IActionResult> GetFlightOffers(
             [FromQuery] string originLocationCode,
@@ -23,6 +25,20 @@ namespace Server.Controllers
             [FromQuery] string departureDate,
             [FromQuery] int adults = 1)
         {
+            _logger.LogInformation($"Searching flights from {originLocationCode} to {destinationLocationCode} on {departureDate} for {adults} adults");
+
+            if (string.IsNullOrWhiteSpace(originLocationCode) || string.IsNullOrWhiteSpace(destinationLocationCode))
+            {
+                _logger.LogWarning("Missing origin or destination in flight search request");
+                return BadRequest("Origin and destination location codes are required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(departureDate))
+            {
+                _logger.LogWarning("Missing departure date in flight search request");
+                return BadRequest("Departure date is required.");
+            }
+
             var flightOffers = await _flightService.GetFlightOffersAsync(
                 originLocationCode,
                 destinationLocationCode,
@@ -31,8 +47,11 @@ namespace Server.Controllers
 
             if (flightOffers == null)
             {
+                _logger.LogWarning($"Failed to retrieve flight offers from {originLocationCode} to {destinationLocationCode}");
                 return BadRequest("Could not fetch flight offers.");
             }
+
+            _logger.LogInformation($"Found {flightOffers.Data?.Count ?? 0} flight offers from {originLocationCode} to {destinationLocationCode}");
             return Ok(flightOffers);
         }
     }

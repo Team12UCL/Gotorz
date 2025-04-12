@@ -2,7 +2,6 @@
 @using Shared.Models
 @using Client.Services
 @using System.Diagnostics
-@using Shared.Models.AirportRootModel
 @inject HttpClient HttpClient
 @inject TravelPackageService PackageService
 @rendermode InteractiveWebAssembly
@@ -11,6 +10,20 @@
 <PageTitle>Create Travel Package</PageTitle>
 
 <h3>Create Travel Package</h3>
+
+@if (!apiStatusChecked)
+{
+    <div class="api-status-checking">
+        <p>Checking Amadeus API credentials...</p>
+    </div>
+}
+else if (!apiCredentialsValid)
+{
+    <div class="api-status-error">
+        <p><strong>⚠️ Amadeus API Error:</strong> @apiStatusMessage</p>
+        <p>Please configure your Amadeus API credentials in the server's appsettings.json file.</p>
+    </div>
+}
 
 <div class="booking-container">
 	<!-- Main search and results area -->
@@ -24,7 +37,7 @@
 				<div class="autocomplete-dropdown" style="display: @(originAirportSuggestions.Any() ? "block" : "none")">
 					@foreach (var airport in originAirportSuggestions)
 					{
-						<div class="autocomplete-item" @onclick="() => SelectAirport(ref originLocationCode, ref originSearchQuery, originAirportSuggestions, airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
+						<div class="autocomplete-item" @onclick="() => SelectAirport(ref originLocationCode, ref originSearchQuery, originAirportSuggestions, airport)">@airport.CountryName - @airport.Name (@airport.IataCode)</div>
 					}
 				</div>
 			</div>
@@ -35,7 +48,7 @@
 				<div class="autocomplete-dropdown" style="display: @(destinationAirportSuggestions.Any() ? "block" : "none")">
 					@foreach (var airport in destinationAirportSuggestions)
 					{
-						<div class="autocomplete-item" @onclick="() => SelectAirport(ref destinationLocationCode, ref destinationSearchQuery, destinationAirportSuggestions, airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
+						<div class="autocomplete-item" @onclick="() => SelectAirport(ref destinationLocationCode, ref destinationSearchQuery, destinationAirportSuggestions, airport)">@airport.CountryName - @airport.Name (@airport.IataCode)</div>
 					}
 				</div>
 			</div>
@@ -133,8 +146,8 @@
 												@foreach (var segment in flight.Itineraries[0].Segments)
 												{
 													<div>
-														@segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
-														➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+														@segment.Departure.IataCode at @FormatDateTime(segment.Departure.At) <br>
+														 ➝ @segment.Arrival.IataCode at @FormatDateTime(segment.Arrival.At)
 													</div>
 												}
 											</td>
@@ -199,8 +212,8 @@
 												@foreach (var segment in flight.Itineraries[0].Segments)
 												{
 													<div>
-														@segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
-														➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+														@segment.Departure.IataCode at @FormatDateTime(segment.Departure.At) <br>
+														 ➝ @segment.Arrival.IataCode at @FormatDateTime(segment.Arrival.At)
 													</div>
 												}
 											</td>
@@ -251,11 +264,11 @@
 							<tbody>
 								@foreach (var hotel in hotelOffers.Data)
 								{
-									<tr class="@(selectedHotel == hotel ? "selected-row" : "")">
+									<tr class="@(selectedHotel?.Id == hotel.Id ? "selected-row" : "")">
 										<td>
 											<input type="radio" name="hotel" value="@hotel"
 											@onchange="@(() => SelectHotel(hotel))"
-											checked="@(selectedHotel == hotel)" />
+											checked="@(selectedHotel?.Id == hotel.Id)" />
 										</td>
 										<td>
 											<strong>
@@ -266,9 +279,9 @@
 										</td>
 										<td>@hotel.Offers?.FirstOrDefault()?.Price?.Total @hotel.Offers?.FirstOrDefault()?.Price?.Currency</td>
 										<td>
-											@if (hotel.Offers?.FirstOrDefault()?.BoardType != null)
+											@if (hotel.Offers?.FirstOrDefault()?.Board?.FirstOrDefault()?.Description != null)
 											{
-												<div>Board: @hotel.Offers.FirstOrDefault().BoardType</div>
+												<div>Board: @(hotel.Offers?.FirstOrDefault()?.Board?.FirstOrDefault()?.Description ?? "Not specified")</div>
 											}
 										</td>
 									</tr>
@@ -299,8 +312,8 @@
 							<strong>Outbound:</strong> @selectedOutboundFlight.Itineraries[0].Segments[0].Departure.IataCode to
 							@selectedOutboundFlight.Itineraries[0].Segments[^1].Arrival.IataCode
 							<div class="summary-detail">
-								<span>Departs: @selectedOutboundFlight.Itineraries[0].Segments[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
-								<span>@selectedOutboundFlight.Price.Total @selectedOutboundFlight.Price.Currency</span>
+								<span>Departs: @FormatDateTime(selectedOutboundFlight.Itineraries[0].Segments[0].Departure.At)</span>
+								<span>@selectedOutboundFlight.Price.Currency @selectedOutboundFlight.Price.Total</span>
 							</div>
 						</div>
 					}
@@ -311,8 +324,8 @@
 							<strong>Return:</strong> @selectedReturnFlight.Itineraries[0].Segments[0].Departure.IataCode to
 							@selectedReturnFlight.Itineraries[0].Segments[^1].Arrival.IataCode
 							<div class="summary-detail">
-								<span>Departs: @selectedReturnFlight.Itineraries[0].Segments[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
-								<span>@selectedReturnFlight.Price.Total @selectedReturnFlight.Price.Currency</span>
+								<span>Departs: @FormatDateTime(selectedReturnFlight.Itineraries[0].Segments[0].Departure.At)</span>
+								<span>@selectedReturnFlight.Price.Currency @selectedReturnFlight.Price.Total</span>
 							</div>
 						</div>
 					}
@@ -364,7 +377,7 @@
 	private FlightOffer? selectedReturnFlight;
 
 	private HotelOfferRootModel? hotelOffers;
-	private HotelData? selectedHotel;
+	private HotelOffer? selectedHotel;
 
 	// Search parameters
 	private string originSearchQuery = "";
@@ -378,8 +391,8 @@
 	private int adults = 1;
 
 	// UI states
-	private List<Location> originAirportSuggestions = new();
-	private List<Location> destinationAirportSuggestions = new();
+	private List<Airport> originAirportSuggestions = new();
+	private List<Airport> destinationAirportSuggestions = new();
 	// Controls the loading indicator while flight data is being fetched from the API
 	private bool isLoadingFlights = false;
 	// Controls the loading indicator while hotel data is being fetched from the API
@@ -395,6 +408,48 @@
 	// Indicates if the search form has validation errors (missing required fields)
 	private bool searchError = false;
 
+	// API status check
+	private bool apiStatusChecked = false;
+	private bool apiCredentialsValid = false;
+	private string apiStatusMessage = "";
+
+	protected override async Task OnInitializedAsync()
+	{
+		await CheckApiStatus();
+	}
+
+	private async Task CheckApiStatus()
+	{
+		try
+		{
+			var response = await HttpClient.GetFromJsonAsync<ApiStatusResponse>("api/amadeusstatus/check");
+			apiStatusChecked = true;
+
+			if (response?.Status == "success")
+			{
+				apiCredentialsValid = true;
+			}
+			else
+			{
+				apiCredentialsValid = false;
+				apiStatusMessage = response?.Message ?? "Unable to check Amadeus API credentials";
+			}
+		}
+		catch (Exception ex)
+		{
+			apiStatusChecked = true;
+			apiCredentialsValid = false;
+			apiStatusMessage = $"Error checking API status: {ex.Message}";
+			Logger.LogError($"Error checking Amadeus API status: {ex.Message}");
+		}
+	}
+
+	private class ApiStatusResponse
+	{
+		public string Status { get; set; } = string.Empty;
+		public string Message { get; set; } = string.Empty;
+	}
+
 	// private bool CanSearchFlights() => true; Maybe set bools for only using auto-complete suggestions, disable direct input?
 	private bool CanSearchHotels() => true; // Can extend this if needed for specific validation
 
@@ -407,14 +462,25 @@
 	private decimal CalculateTotalPrice()
 	{
 		decimal total = 0;
-		total += TryParsePrice(selectedOutboundFlight?.Price?.Total);
-		total += TryParsePrice(selectedReturnFlight?.Price?.Total);
-		total += TryParsePrice(selectedHotel?.Offers?.FirstOrDefault()?.Price?.Total);
+		
+		// Add outbound flight price
+		if (selectedOutboundFlight != null)
+			total += selectedOutboundFlight.Price.Total;
+			
+		// Add return flight price
+		if (selectedReturnFlight != null)
+			total += selectedReturnFlight.Price.Total;
+			
+		// Add hotel price
+		if (selectedHotel?.Offers?.FirstOrDefault()?.Price?.Total != null)
+		{
+			var priceString = selectedHotel?.Offers?.FirstOrDefault()?.Price?.Total;
+			if (priceString != null && decimal.TryParse(priceString, out var hotelPrice))
+				total += hotelPrice;
+		}
+		
 		return total;
 	}
-
-	private decimal TryParsePrice(string? price) =>
-		decimal.TryParse(price, out var result) ? result : 0;
 
 	// Finds airport suggestions for origin or destination based on user input
 	private async Task OnSearchQueryChanged(ChangeEventArgs e, bool isOrigin)
@@ -433,28 +499,32 @@
 	}
 
 	// Fetches airport suggestions based on the user's input
-	private async Task<List<Location>> FetchAirportSuggestions(string query) =>
-		string.IsNullOrWhiteSpace(query)
-			? new List<Location>()
-			: await HttpClient.GetFromJsonAsync<List<Location>>($"api/airport/suggest-airports?query={query}");
+	private async Task<List<Airport>> FetchAirportSuggestions(string query)
+	{
+		if (string.IsNullOrWhiteSpace(query))
+			return new List<Airport>();
+        
+		var airports = await HttpClient.GetFromJsonAsync<List<Airport>>($"api/airport/suggest-airports?query={query}");
+		return airports ?? new List<Airport>();
+	}
 
-	private void SelectAirport(ref string locationCode, ref string searchQuery, List<Location> suggestions, Location airport)
+	private void SelectAirport(ref string locationCode, ref string searchQuery, List<Airport> suggestions, Airport airport)
 	{
 		locationCode = airport.IataCode;
-		searchQuery = $"{airport.Address.CountryName} - {airport.Name} ({airport.IataCode})";
+		searchQuery = $"{airport.CountryName} - {airport.Name} ({airport.IataCode})";
 		suggestions.Clear();
 
-		// Auto-fill city code when selecting destination (might not work since it's AITA)
-		// if (locationCode == destinationLocationCode && string.IsNullOrEmpty(destinationCityCode))
-		// {
-		// 	destinationCityCode = airport.IataCode;
-		// }
+		// Auto-fill city code when selecting destination airport
+		if (locationCode == destinationLocationCode && string.IsNullOrEmpty(destinationCityCode))
+		{
+			destinationCityCode = airport.IataCode;
+		}
 	}
 
 	// Selectors set the selected flight or hotel from results
 	private void SelectOutboundFlight(FlightOffer flight) => selectedOutboundFlight = flight;
 	private void SelectReturnFlight(FlightOffer flight) => selectedReturnFlight = flight;
-	private void SelectHotel(HotelData hotel) => selectedHotel = hotel;
+	private void SelectHotel(HotelOffer hotel) => selectedHotel = hotel;
 
 	// Search functions for flights and hotels with validation and SearchMode
 	private async Task SearchFlights()
@@ -557,7 +627,7 @@
 		{
 			Logger.LogError($"Error fetching hotel offers: {ex.Message}");
 			hotelError = true;
-			hotelOffers = new HotelOfferRootModel { Data = new List<HotelData>() };
+			hotelOffers = new HotelOfferRootModel { Data = new List<HotelOffer>() };
 		}
 		finally
 		{
@@ -571,12 +641,22 @@
 		{
 			var package = new TravelPackage
 				{
-					OutboundFlight = selectedOutboundFlight,
-					ReturnFlight = selectedReturnFlight, // May be null for one-way trips
-					Hotel = selectedHotel,
+					Name = $"Trip to {destinationLocationCode}",
+					Description = $"Flight from {originLocationCode} to {destinationLocationCode} with hotel stay",
+					TotalPrice = CalculateTotalPrice(),
 					DepartureDate = departureDate.Value,
 					ReturnDate = returnDate ?? DateTime.MinValue,
-					Adults = adults
+					DurationInDays = returnDate.HasValue ? (int)(returnDate.Value - departureDate.Value).TotalDays : 0,
+					OriginAirport = originLocationCode,
+					DestinationAirport = destinationLocationCode,
+					Airline = selectedOutboundFlight.Itineraries[0].Segments[0].CarrierCode,
+					FlightNumber = selectedOutboundFlight.Itineraries[0].Segments[0].Number,
+					HotelName = selectedHotel.Hotel.Name,
+					HotelAddress = selectedHotel.Hotel.CityCode,
+					HotelRating = selectedHotel.Hotel.Rating,
+					RoomType = selectedHotel.Offers?.FirstOrDefault()?.RoomType ?? "Standard",
+					Status = "Created",
+					CreatedAt = DateTime.UtcNow
 				};
 
 			PackageService.Packages.Add(package);
@@ -589,6 +669,21 @@
 			// Reset search mode
 			currentSearchMode = SearchMode.None;
 		}
+	}
+
+	private string FormatDateTime(string dateTimeString)
+	{
+		if (string.IsNullOrEmpty(dateTimeString))
+			return "N/A";
+            
+		// Try to parse the date string, different formats possible from API
+		if (DateTime.TryParse(dateTimeString, out DateTime dateTime))
+		{
+			return $"{dateTime.ToString("HH:mm")} ({dateTime.ToString("yyyy-MM-dd")})";
+		}
+		
+		// Fallback - just return the original string if parsing fails
+		return dateTimeString;
 	}
 }
 
@@ -814,5 +909,24 @@
 	.loading-container {
 		text-align: center;
 		padding: 20px;
+	}
+
+	/* API status styles */
+	.api-status-checking {
+		color: #0056b3;
+		background-color: #e7f3ff;
+		border: 1px solid #b3d7ff;
+		padding: 10px;
+		border-radius: 4px;
+		margin-bottom: 20px;
+	}
+
+	.api-status-error {
+		color: #721c24;
+		background-color: #f8d7da;
+		border: 1px solid #f5c6cb;
+		padding: 10px;
+		border-radius: 4px;
+		margin-bottom: 20px;
 	}
 </style>
