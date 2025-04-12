@@ -33,6 +33,14 @@ namespace Gotorz.Services
                                       $"departure: {departureDate:yyyy-MM-dd}, return: {returnDate:yyyy-MM-dd}");
 
                 var token = await _authService.GetAccessToken();
+
+                // Check if token retrieval was successful
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogError("Failed to retrieve authentication token from Amadeus API");
+                    throw new InvalidOperationException("Authentication failed. Unable to retrieve access token.");
+                }
+
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
                 var formattedDeparture = departureDate.ToString("yyyy-MM-dd");
@@ -49,38 +57,80 @@ namespace Gotorz.Services
 
                 _logger.LogInformation($"Making request to Amadeus API: {url}");
 
-                var response = await _httpClient.GetAsync(url);
+                // Add a timeout to prevent hanging requests
+                var timeoutCts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30));
 
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError($"Error searching flights. Status: {response.StatusCode}, Content: {errorContent}");
-                    throw new HttpRequestException($"Error searching flights. Status: {response.StatusCode}, Content: {errorContent}");
+                    var response = await _httpClient.GetAsync(url, timeoutCts.Token);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        _logger.LogError($"Error searching flights. Status: {response.StatusCode}, Content: {errorContent}");
+
+                        // Provide more specific error messages based on status code
+                        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                        {
+                            throw new UnauthorizedAccessException("API authentication failed. Please check your credentials.");
+                        }
+                        else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            throw new KeyNotFoundException("Flight route not found. Please check airport codes.");
+                        }
+                        else
+                        {
+                            throw new HttpRequestException($"Error searching flights: {response.StatusCode}. Please try again later.");
+                        }
+                    }
+
+                    var content = await response.Content.ReadAsStringAsync();
+                    _logger.LogDebug($"Received flight search response: {content}");
+
+                    var jsonOptions = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+
+                    var flightRoot = JsonSerializer.Deserialize<FlightOfferRootModel>(content, jsonOptions);
+
+                    if (flightRoot == null)
+                    {
+                        throw new JsonException("Failed to deserialize flight offers response");
+                    }
+
+                    return flightRoot;
                 }
-
-                response.EnsureSuccessStatusCode();
-
-                var content = await response.Content.ReadAsStringAsync();
-                _logger.LogDebug($"Received flight search response: {content}");
-
-                var jsonOptions = new JsonSerializerOptions
+                catch (TaskCanceledException)
                 {
-                    PropertyNameCaseInsensitive = true
-                };
-
-                var flightRoot = JsonSerializer.Deserialize<FlightOfferRootModel>(content, jsonOptions);
-
-                if (flightRoot == null)
-                {
-                    throw new JsonException("Failed to deserialize flight offers response");
+                    _logger.LogError("Request to Amadeus API timed out after 30 seconds");
+                    throw new TimeoutException("Flight search request timed out. Please try again later.");
                 }
-
-                return flightRoot;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Authentication error with Amadeus API");
+                throw;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Error parsing flight data response");
+                throw;
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP error when calling Amadeus API");
+                throw;
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogError(ex, "Timeout when calling Amadeus API");
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error searching flights");
-                throw;
+                _logger.LogError(ex, "Unexpected error searching flights");
+                throw new Exception("An unexpected error occurred while searching for flights. Please try again later.", ex);
             }
         }
 

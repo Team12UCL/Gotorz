@@ -1,5 +1,9 @@
+@page "/admin/packages"
 @using Shared.Models
 @inject NavigationManager NavigationManager
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin - Manage Travel Packages</PageTitle>
 
 <div class="card shadow mb-4">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -141,6 +145,8 @@
 }
 
 @code {
+    @using Microsoft.AspNetCore.Authorization;
+
     private List<TravelPackage> allPackages = new List<TravelPackage>();
     private List<TravelPackage> filteredPackages = new List<TravelPackage>();
     private bool loading = true;

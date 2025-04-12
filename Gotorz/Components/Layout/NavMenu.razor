@@ -30,13 +30,14 @@
                 <i class="bi bi-tag-fill me-2"></i> Special Deals
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="my-bookings">
-                <i class="bi bi-briefcase-fill me-2"></i> My Bookings
-            </NavLink>
-        </div>
+        
         <AuthorizeView>
             <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="my-bookings">
+                        <i class="bi bi-briefcase-fill me-2"></i> My Bookings
+                    </NavLink>
+                </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="account">
                         <i class="bi bi-person-circle me-2"></i> My Account
@@ -47,6 +48,35 @@
                         <i class="bi bi-box-arrow-right me-2"></i> Logout
                     </NavLink>
                 </div>
+                
+                @* Admin section - only shown to admin users *@
+                <AuthorizeView Roles="Admin">
+                    <div class="nav-item px-3 mt-3">
+                        <div class="admin-section-header">
+                            <i class="bi bi-shield-lock me-2"></i> Admin
+                        </div>
+                    </div>
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="admin/dashboard">
+                            <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                        </NavLink>
+                    </div>
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="admin/packages">
+                            <i class="bi bi-bag-plus me-2"></i> Manage Packages
+                        </NavLink>
+                    </div>
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="admin/bookings">
+                            <i class="bi bi-calendar-check me-2"></i> Manage Bookings
+                        </NavLink>
+                    </div>
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="admin/users">
+                            <i class="bi bi-people me-2"></i> Manage Users
+                        </NavLink>
+                    </div>
+                </AuthorizeView>
             </Authorized>
             <NotAuthorized>
                 <div class="nav-item px-3">
@@ -76,6 +106,16 @@
         </div>
     </nav>
 </div>
+
+<style>
+    .admin-section-header {
+        color: #ff6a00;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+</style>
 
 @code {
     private bool collapseNavMenu = true;

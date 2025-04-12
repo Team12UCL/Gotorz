@@ -70,6 +70,16 @@
         </div>
     </div>
 }
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="container my-5 text-center">
+        <div class="alert alert-danger">
+            <h4><i class="bi bi-exclamation-triangle me-2"></i>Error</h4>
+            <p>@errorMessage</p>
+            <button @onclick="() => errorMessage = null" class="btn btn-outline-danger mt-2">Try Again</button>
+        </div>
+    </div>
+}
 else if (packages != null && packages.Any())
 {
     <div class="container my-5">
@@ -160,6 +170,7 @@ else
     private List<TravelPackage> packages;
     private bool isLoading;
     private bool searched;
+    private string errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -171,17 +182,21 @@ else
     {
         try
         {
+            // Validate inputs
             if (string.IsNullOrWhiteSpace(OriginAirport) || string.IsNullOrWhiteSpace(DestinationAirport))
             {
+                errorMessage = "Please enter both origin and destination airports.";
                 return;
             }
 
             if (ReturnDate <= DepartureDate)
             {
-                // Show validation error
+                errorMessage = "Return date must be after departure date.";
                 return;
             }
 
+            // Clear previous error
+            errorMessage = null;
             isLoading = true;
             searched = true;
             StateHasChanged();
@@ -189,12 +204,25 @@ else
             var url = $"api/TravelPackage/search?originCode={OriginAirport}&destinationCode={DestinationAirport}" +
                       $"&departureDate={DepartureDate:yyyy-MM-dd}&returnDate={ReturnDate:yyyy-MM-dd}&adults={Adults}";
             
-            packages = await Http.GetFromJsonAsync<List<TravelPackage>>(url);
+            try
+            {
+                packages = await Http.GetFromJsonAsync<List<TravelPackage>>(url);
+            }
+            catch (HttpRequestException ex)
+            {
+                Logger.LogError(ex, "HTTP error searching travel packages");
+                errorMessage = "Unable to connect to the server. Please check your connection and try again.";
+            }
+            catch (JsonException ex)
+            {
+                Logger.LogError(ex, "JSON parsing error for travel packages");
+                errorMessage = "Error processing the data. Please try again later.";
+            }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error searching travel packages");
-            packages = new List<TravelPackage>();
+            errorMessage = "An unexpected error occurred. Please try again later.";
         }
         finally
         {
