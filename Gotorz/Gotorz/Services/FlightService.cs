@@ -23,7 +23,12 @@ namespace Server.Services
             string originLocationCode,
             string destinationLocationCode,
             string departureDate,
-            int adults)
+            int adults = 1,
+            string? returnDate = null,
+            string travelClass = "ECONOMY",
+            bool nonStop = false,
+            string currencyCode = "EUR",
+            int max = 10)
         {
             try
             {
@@ -50,7 +55,33 @@ namespace Server.Services
                 _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
                 // Build the full request URL with parameters
-                string requestUrl = $"{_baseUrl}?originLocationCode={originLocationCode}&destinationLocationCode={destinationLocationCode}&departureDate={departureDate}&adults={adults}&max=10&currencyCode=EUR";
+                var requestParams = new List<string>
+                {
+                    $"originLocationCode={originLocationCode}",
+                    $"destinationLocationCode={destinationLocationCode}",
+                    $"departureDate={departureDate}",
+                    $"adults={adults}",
+                    $"max={max}",
+                    $"currencyCode={currencyCode}"
+                };
+
+                // Add optional parameters if provided
+                if (!string.IsNullOrWhiteSpace(returnDate))
+                {
+                    requestParams.Add($"returnDate={returnDate}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(travelClass) && travelClass != "ECONOMY")
+                {
+                    requestParams.Add($"travelClass={travelClass}");
+                }
+
+                if (nonStop)
+                {
+                    requestParams.Add("nonStop=true");
+                }
+
+                string requestUrl = $"{_baseUrl}?{string.Join("&", requestParams)}";
 
                 Debug.WriteLine($"Requesting flights: {requestUrl}");
 

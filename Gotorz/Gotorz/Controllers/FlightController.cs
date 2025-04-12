@@ -17,13 +17,18 @@ namespace Server.Controllers
             _logger = logger;
         }
 
-        // GET: api/flight/search?originLocationCode=CDG&destinationLocationCode=MAD&departureDate=2023-12-01&adults=2
+        // GET: api/flight/search?originLocationCode=CDG&destinationLocationCode=MAD&departureDate=2023-12-01&returnDate=2023-12-08&adults=2&travelClass=BUSINESS&nonStop=true
         [HttpGet("search")]
         public async Task<IActionResult> GetFlightOffers(
             [FromQuery] string originLocationCode,
             [FromQuery] string destinationLocationCode,
             [FromQuery] string departureDate,
-            [FromQuery] int adults = 1)
+            [FromQuery] string? returnDate = null,
+            [FromQuery] int adults = 1,
+            [FromQuery] string travelClass = "ECONOMY",
+            [FromQuery] bool nonStop = false,
+            [FromQuery] string currencyCode = "EUR",
+            [FromQuery] int max = 10)
         {
             _logger.LogInformation($"Searching flights from {originLocationCode} to {destinationLocationCode} on {departureDate} for {adults} adults");
 
@@ -43,7 +48,12 @@ namespace Server.Controllers
                 originLocationCode,
                 destinationLocationCode,
                 departureDate,
-                adults);
+                adults,
+                returnDate,
+                travelClass,
+                nonStop,
+                currencyCode,
+                max);
 
             if (flightOffers == null)
             {
