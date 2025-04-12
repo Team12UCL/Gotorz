@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shared.Models;
+using Gotorz.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gotorz.Services
 {
@@ -11,16 +13,46 @@ namespace Gotorz.Services
     {
         private readonly FlightService _flightService;
         private readonly HotelService _hotelService;
+        private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<TravelPackageService> _logger;
 
         public TravelPackageService(
             FlightService flightService,
             HotelService hotelService,
+            ApplicationDbContext dbContext,
             ILogger<TravelPackageService> logger)
         {
             _flightService = flightService;
             _hotelService = hotelService;
+            _dbContext = dbContext;
             _logger = logger;
+        }
+
+        public async Task<TravelPackage> GetTravelPackageById(Guid id)
+        {
+            return await _dbContext.TravelPackages
+                .FirstOrDefaultAsync(p => p.Id == id);
+        }
+
+        public async Task<List<TravelPackage>> GetAllTravelPackages()
+        {
+            return await _dbContext.TravelPackages.ToListAsync();
+        }
+
+        public async Task<TravelPackage> SaveTravelPackage(TravelPackage package)
+        {
+            if (package.Id == Guid.Empty)
+            {
+                package.Id = Guid.NewGuid();
+                await _dbContext.TravelPackages.AddAsync(package);
+            }
+            else
+            {
+                _dbContext.TravelPackages.Update(package);
+            }
+
+            await _dbContext.SaveChangesAsync();
+            return package;
         }
 
         public async Task<List<TravelPackage>> SearchTravelPackages(
@@ -32,6 +64,21 @@ namespace Gotorz.Services
         {
             try
             {
+                // First check if we have packages in the database matching these criteria
+                var existingPackages = await _dbContext.TravelPackages
+                    .Where(p => p.OriginAirport == originCode &&
+                                p.DestinationAirport == destinationCode &&
+                                p.DepartureDate.Date == departureDate.Date &&
+                                p.ReturnDate.Date == returnDate.Date &&
+                                p.Status == "Available")
+                    .ToListAsync();
+
+                if (existingPackages.Any())
+                {
+                    return existingPackages;
+                }
+
+                // If no matching packages in database, search external APIs
                 // Get flights
                 var flightOffers = await _flightService.SearchFlights(
                     originCode,
@@ -70,6 +117,9 @@ namespace Gotorz.Services
                     {
                         var package = CreateTravelPackage(flight, hotel, departureDate, returnDate);
                         travelPackages.Add(package);
+
+                        // Save to database for future queries
+                        await SaveTravelPackage(package);
                     }
                 }
 
@@ -97,6 +147,7 @@ namespace Gotorz.Services
 
             return new TravelPackage
             {
+                Id = Guid.NewGuid(),
                 Name = packageName,
                 Description = $"Round-trip flight from {flightDeparture?.IataCode} to {flightArrival?.IataCode} with {flight.ValidatingAirlineCodes.FirstOrDefault()} and {durationInDays} nights at {hotel.Hotel.Name}",
                 TotalPrice = flightPrice + hotelPrice,
@@ -112,8 +163,22 @@ namespace Gotorz.Services
                 HotelRating = hotel.Hotel.Rating,
                 RoomType = hotelOffer?.RoomType,
                 Status = "Available",
-                ImageUrl = hotel.Hotel.Media?.FirstOrDefault()?.Uri ?? "/images/default-hotel.jpg"
+                ImageUrl = hotel.Hotel.Media?.FirstOrDefault()?.Uri ?? "/images/default-hotel.jpg",
+                CreatedDate = DateTime.UtcNow
             };
+        }
+
+        public async Task<bool> DeleteTravelPackage(Guid id)
+        {
+            var package = await _dbContext.TravelPackages.FindAsync(id);
+            if (package == null)
+            {
+                return false;
+            }
+
+            _dbContext.TravelPackages.Remove(package);
+            await _dbContext.SaveChangesAsync();
+            return true;
         }
     }
 }

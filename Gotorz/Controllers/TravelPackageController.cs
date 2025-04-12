@@ -23,6 +23,21 @@ namespace Gotorz.Controllers
             _logger = logger;
         }
 
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<TravelPackage>>> GetAllTravelPackages()
+        {
+            try
+            {
+                var packages = await _travelPackageService.GetAllTravelPackages();
+                return Ok(packages);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all travel packages");
+                return StatusCode(500, "An error occurred while retrieving travel packages.");
+            }
+        }
+
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<TravelPackage>>> SearchTravelPackages(
             [FromQuery] string originCode,
@@ -50,11 +65,90 @@ namespace Gotorz.Controllers
         }
 
         [HttpGet("{id}")]
-        public ActionResult<TravelPackage> GetTravelPackage(Guid id)
+        public async Task<ActionResult<TravelPackage>> GetTravelPackage(Guid id)
         {
-            // In a real implementation, this would fetch from a database
-            // For now, return a placeholder message
-            return NotFound($"Package with ID {id} not found. Database implementation pending.");
+            try
+            {
+                var package = await _travelPackageService.GetTravelPackageById(id);
+
+                if (package == null)
+                {
+                    return NotFound($"Package with ID {id} not found.");
+                }
+
+                return Ok(package);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving travel package with ID {id}");
+                return StatusCode(500, "An error occurred while retrieving the travel package.");
+            }
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<TravelPackage>> CreateTravelPackage([FromBody] TravelPackage package)
+        {
+            try
+            {
+                if (package == null)
+                {
+                    return BadRequest("Travel package data is required.");
+                }
+
+                var savedPackage = await _travelPackageService.SaveTravelPackage(package);
+                return CreatedAtAction(nameof(GetTravelPackage), new { id = savedPackage.Id }, savedPackage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating travel package");
+                return StatusCode(500, "An error occurred while creating the travel package.");
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTravelPackage(Guid id, [FromBody] TravelPackage package)
+        {
+            try
+            {
+                if (package == null || id != package.Id)
+                {
+                    return BadRequest("Invalid travel package data or ID mismatch.");
+                }
+
+                var existingPackage = await _travelPackageService.GetTravelPackageById(id);
+                if (existingPackage == null)
+                {
+                    return NotFound($"Package with ID {id} not found.");
+                }
+
+                await _travelPackageService.SaveTravelPackage(package);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating travel package with ID {id}");
+                return StatusCode(500, "An error occurred while updating the travel package.");
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTravelPackage(Guid id)
+        {
+            try
+            {
+                var result = await _travelPackageService.DeleteTravelPackage(id);
+                if (!result)
+                {
+                    return NotFound($"Package with ID {id} not found.");
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting travel package with ID {id}");
+                return StatusCode(500, "An error occurred while deleting the travel package.");
+            }
         }
     }
 }

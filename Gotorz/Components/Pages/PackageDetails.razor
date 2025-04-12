@@ -2,8 +2,9 @@
 @using Shared.Models
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
+@inject ILogger<PackageDetails> Logger
 
-<PageTitle>Package Details - GodTur Travel</PageTitle>
+<PageTitle>Package Details - Gotorz Travel</PageTitle>
 
 @if (package == null)
 {
@@ -171,45 +172,75 @@ else
     private string phone;
     private bool showBookingConfirmation;
     private string bookingReference;
+    private bool isLoading = true;
+    private string errorMessage;
     
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // In a real implementation, this would fetch from the API/database
-            // For demo purposes, we'll create a sample package
-            package = new TravelPackage
+            isLoading = true;
+            // Get the package details from the API
+            package = await Http.GetFromJsonAsync<TravelPackage>($"api/TravelPackage/{Id}");
+            
+            if (package == null)
             {
-                Id = Id,
-                Name = "New York to Los Angeles Package",
-                Description = "Enjoy a round-trip flight from JFK to LAX with American Airlines and 7 nights at the Marriott Los Angeles Downtown.",
-                TotalPrice = 1299.99m,
-                DepartureDate = DateTime.Today.AddDays(30),
-                ReturnDate = DateTime.Today.AddDays(37),
-                DurationInDays = 7,
-                OriginAirport = "JFK",
-                DestinationAirport = "LAX",
-                Airline = "AA",
-                FlightNumber = "AA123",
-                HotelName = "Marriott Los Angeles Downtown",
-                HotelAddress = "123 Main St, Los Angeles, CA 90012",
-                HotelRating = 4,
-                RoomType = "Deluxe King",
-                Status = "Available",
-                ImageUrl = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8aG90ZWx8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60"
-            };
+                errorMessage = "Package not found.";
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading package: {ex.Message}");
+            Logger.LogError(ex, "Error loading travel package with ID {Id}", Id);
+            errorMessage = "Error loading the package details. Please try again.";
+        }
+        finally
+        {
+            isLoading = false;
         }
     }
     
-    private void BookPackage()
+    private async Task BookPackage()
     {
-        // In a real app, this would send the booking data to the server
-        bookingReference = $"GT-{DateTime.Now.ToString("yyyyMMdd")}-{new Random().Next(10000, 99999)}";
-        showBookingConfirmation = true;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(phone))
+            {
+                // Show validation message
+                return;
+            }
+            
+            // Create a booking object
+            var booking = new Booking
+            {
+                Id = Guid.NewGuid(),
+                TravelPackageId = package.Id,
+                UserId = "user-id", // In a real app, get from authentication
+                NumberOfTravelers = travelers,
+                ContactName = name,
+                ContactEmail = email,
+                ContactPhone = phone,
+                BookingDate = DateTime.UtcNow,
+                TotalAmount = package.TotalPrice * travelers,
+                Status = "Confirmed"
+            };
+            
+            // In a real app, send the booking to the server
+            // var response = await Http.PostAsJsonAsync("api/Booking", booking);
+            // if (response.IsSuccessStatusCode)
+            // {
+            //     var createdBooking = await response.Content.ReadFromJsonAsync<Booking>();
+            //     bookingReference = createdBooking.Id.ToString();
+            // }
+            
+            // For now, just create a booking reference
+            bookingReference = $"GT-{DateTime.Now.ToString("yyyyMMdd")}-{new Random().Next(10000, 99999)}";
+            showBookingConfirmation = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating booking");
+            // Show error message
+        }
     }
     
     private void CloseModal()

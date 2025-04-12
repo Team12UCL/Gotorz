@@ -3,8 +3,9 @@
 @using System.Text.Json
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
+@inject ILogger<Home> Logger
 
-<PageTitle>GodTur Travel Platform</PageTitle>
+<PageTitle>Gotorz Travel Platform</PageTitle>
 
 <div class="hero-section">
     <div class="container">
@@ -111,6 +112,44 @@ else if (searched)
         </div>
     </div>
 }
+else
+{
+    <div class="container my-5">
+        <h2 class="mb-4">Popular Destinations</h2>
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card destination-card">
+                    <img src="https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80" 
+                         class="card-img" alt="New York">
+                    <div class="card-img-overlay d-flex flex-column justify-content-end">
+                        <h4 class="card-title text-white">New York</h4>
+                        <button class="btn btn-light" @onclick="() => QuickSearch('JFK')">View Packages</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card destination-card">
+                    <img src="https://images.unsplash.com/photo-1581373449483-37449f962b6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80" 
+                         class="card-img" alt="Los Angeles">
+                    <div class="card-img-overlay d-flex flex-column justify-content-end">
+                        <h4 class="card-title text-white">Los Angeles</h4>
+                        <button class="btn btn-light" @onclick="() => QuickSearch('LAX')">View Packages</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card destination-card">
+                    <img src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?ixlib=rb-4.0.3&auto=format&fit=crop&w=1471&q=80" 
+                         class="card-img" alt="Miami">
+                    <div class="card-img-overlay d-flex flex-column justify-content-end">
+                        <h4 class="card-title text-white">Miami</h4>
+                        <button class="btn btn-light" @onclick="() => QuickSearch('MIA')">View Packages</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private string OriginAirport { get; set; } = "JFK";
@@ -132,6 +171,17 @@ else if (searched)
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(OriginAirport) || string.IsNullOrWhiteSpace(DestinationAirport))
+            {
+                return;
+            }
+
+            if (ReturnDate <= DepartureDate)
+            {
+                // Show validation error
+                return;
+            }
+
             isLoading = true;
             searched = true;
             StateHasChanged();
@@ -143,7 +193,7 @@ else if (searched)
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error searching packages: {ex.Message}");
+            Logger.LogError(ex, "Error searching travel packages");
             packages = new List<TravelPackage>();
         }
         finally
@@ -151,5 +201,11 @@ else if (searched)
             isLoading = false;
             StateHasChanged();
         }
+    }
+
+    private async Task QuickSearch(string destinationCode)
+    {
+        DestinationAirport = destinationCode;
+        await SearchPackages();
     }
 }
