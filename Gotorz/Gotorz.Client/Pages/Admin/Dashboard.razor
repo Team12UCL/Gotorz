@@ -1,5 +1,6 @@
 @page "/admin/dashboard"
 @attribute [Authorize(Roles = "Admin")]
+@using Microsoft.AspNetCore.Authorization
 @using Shared.Models
 @using System.Globalization
 @inject HttpClient HttpClient
