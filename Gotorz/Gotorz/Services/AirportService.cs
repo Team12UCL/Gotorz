@@ -1,167 +1,92 @@
-﻿using Shared.Models;
-using System.Text.Json;
-using System.Diagnostics;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Gotorz.Services;
+using Microsoft.Extensions.Logging;
+using Shared.Models;
 
-namespace Server.Services
+namespace Gotorz.Services
 {
     public class AirportService
     {
         private readonly HttpClient _httpClient;
         private readonly AmadeusAuthService _authService;
-        private readonly string _baseUrl;
-        private readonly string _jsonFilePath = "Data/airports.json";
-        private List<Airport> Airports = new();
         private readonly ILogger<AirportService> _logger;
+        private List<Airport> _cachedAirports;
 
-        public AirportService(IHttpClientFactory httpClientFactory, AmadeusAuthService authService, IConfiguration configuration, ILogger<AirportService> logger)
+        public AirportService(HttpClient httpClient, AmadeusAuthService authService, ILogger<AirportService> logger)
         {
-            _httpClient = httpClientFactory.CreateClient("AmadeusClient");
+            _httpClient = httpClient;
             _authService = authService;
-            _baseUrl = configuration["AmadeusAPI:AirportAndCitySearchUrl"]!;
             _logger = logger;
-            Task.Run(InitializeAirportsAsync).Wait();
         }
 
-        private async Task InitializeAirportsAsync()
+        public async Task<List<Airport>> SearchAirports(string keyword)
         {
-            if (File.Exists(_jsonFilePath))
+            if (_cachedAirports == null)
             {
-                try
-                {
-                    var json = await File.ReadAllTextAsync(_jsonFilePath);
-                    Airports = JsonSerializer.Deserialize<List<Airport>>(json) ?? new List<Airport>();
-                    Debug.WriteLine($"Loaded {Airports.Count} airports from JSON.");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error loading airports: {ex.Message}");
-                    Airports = new List<Airport>();
-                }
+                await LoadAirportsFromFile();
             }
-            else
+
+            if (_cachedAirports != null)
             {
-                Debug.WriteLine($"Airport data file does not exist. Creating an empty airport list.");
-                Airports = new List<Airport>();
+                // Search in the cached airports
+                var result = new List<Airport>();
+                var lowercaseKeyword = keyword.ToLower();
 
-                // Create the Data directory if it doesn't exist
-                var dataDirectory = Path.GetDirectoryName(_jsonFilePath);
-                if (!string.IsNullOrEmpty(dataDirectory) && !Directory.Exists(dataDirectory))
+                foreach (var airport in _cachedAirports)
                 {
-                    Directory.CreateDirectory(dataDirectory);
-                }
-
-                // Create an empty JSON file
-                await SaveAirportsToJsonAsync();
-            }
-        }
-
-        private async Task SaveAirportsToJsonAsync()
-        {
-            try
-            {
-                var json = JsonSerializer.Serialize(Airports);
-                await File.WriteAllTextAsync(_jsonFilePath, json);
-                Debug.WriteLine($"Saved {Airports.Count} airports to JSON.");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error saving airports: {ex.Message}");
-            }
-        }
-
-        public async Task<List<Airport>> PersistAirportsToJsonAsync(string cityOrAirportIATA)
-        {
-            try
-            {
-                _logger.LogInformation($"Airports before: {Airports.Count()}");
-
-                if (string.IsNullOrWhiteSpace(cityOrAirportIATA)) return new List<Airport>();
-
-                var token = await _authService.GetAccessTokenAsync();
-                if (token == null) return new List<Airport>();
-
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                _logger.LogDebug($"Using token: {token.Substring(0, Math.Min(10, token.Length))}...");
-
-                _httpClient.DefaultRequestHeaders.Accept.Clear();
-                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                // Clean up the query string to avoid problematic characters
-                string cleanQuery = cityOrAirportIATA.Trim();
-                if (cleanQuery.StartsWith("-"))
-                {
-                    cleanQuery = cleanQuery.TrimStart('-').Trim();
-                }
-
-                string requestUrl = $"{_baseUrl}?keyword={Uri.EscapeDataString(cleanQuery)}&subType=AIRPORT,CITY&page[limit]=10";
-                _logger.LogInformation($"Requesting airports/cities: {requestUrl}");
-
-                var response = await _httpClient.GetAsync(requestUrl);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError($"Error fetching airports: {response.StatusCode}. Response: {errorContent}");
-                    return new List<Airport>();
-                }
-
-                var content = await response.Content.ReadAsStringAsync();
-                _logger.LogDebug($"Received airport data: {content.Substring(0, Math.Min(200, content.Length))}...");
-
-                var model = JsonSerializer.Deserialize<AirportRootModel>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (model?.Data == null || !model.Data.Any())
-                {
-                    _logger.LogWarning("No airports found in the response.");
-                    return new List<Airport>();
-                }
-
-                // Add new items to the airports collection
-                foreach (var airport in model.Data)
-                {
-                    if (!Airports.Any(a => a.IataCode == airport.IataCode))
+                    if (airport.Name.ToLower().Contains(lowercaseKeyword) ||
+                        airport.CityName.ToLower().Contains(lowercaseKeyword) ||
+                        airport.CountryName.ToLower().Contains(lowercaseKeyword) ||
+                        airport.IataCode.ToLower().Contains(lowercaseKeyword))
                     {
-                        Airports.Add(airport);
+                        result.Add(airport);
                     }
                 }
 
-                await SaveAirportsToJsonAsync();
-                _logger.LogInformation($"Airports after: {Airports.Count()}");
+                return result;
+            }
 
-                return model.Data;
+            // If there's no cached data, call the API
+            var token = await _authService.GetAccessToken();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _httpClient.GetAsync($"https://test.api.amadeus.com/v1/reference-data/locations?subType=AIRPORT&keyword={keyword}");
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var airportRoot = JsonSerializer.Deserialize<AirportRootModel>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return airportRoot.Data;
+        }
+
+        private async Task LoadAirportsFromFile()
+        {
+            try
+            {
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "Data", "airports.json");
+                if (File.Exists(filePath))
+                {
+                    var json = await File.ReadAllTextAsync(filePath);
+                    var airportRoot = JsonSerializer.Deserialize<AirportRootModel>(json, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                    _cachedAirports = airportRoot.Data;
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Exception in PersistAirportsToJsonAsync: {ex.Message}");
-                return new List<Airport>();
+                _logger.LogError(ex, "Error loading airports from file");
+                _cachedAirports = null;
             }
-        }
-
-        public async Task<List<Airport>> SearchAirportsAsync(string query)
-        {
-            if (string.IsNullOrWhiteSpace(query)) return new List<Airport>();
-
-            // Only one Where clause needed
-            var localResults = Airports
-                .Where(a => (a.Name?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                           (a.IataCode?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                           (a.CityName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                           (a.CountryName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
-                .Take(5)
-                .ToList();
-
-            // If no results are found locally, try fetching from the API
-            if (!localResults.Any())
-            {
-                _logger.LogInformation($"No local results for '{query}', fetching from API...");
-                return await PersistAirportsToJsonAsync(query);
-            }
-
-            return localResults;
         }
     }
 }

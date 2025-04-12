@@ -1,258 +1,244 @@
-using Shared.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.SignalR.Client;
+using Shared.Models;
 
 namespace Gotorz.Client.Services
 {
     public class ChatService
     {
-        private static readonly List<ChatMessage> _messages = new List<ChatMessage>();
-        private static readonly List<ChatRoom> _chatRooms = new List<ChatRoom>();
-        private static int _nextMessageId = 1;
-        private static int _nextRoomId = 1;
+        private readonly HttpClient _httpClient;
+        private readonly NavigationManager _navigationManager;
+        private HubConnection _hubConnection;
+        private readonly List<ChatMessage> _messageHistory = new();
+        private string _currentChatRoomId;
 
-        // Event to notify subscribers when a new message is received
         public event Action<ChatMessage> OnMessageReceived;
+        public event Action<string> OnUserJoined;
+        public event Action<string> OnUserLeft;
+        public event Action<string> OnTypingStarted;
+        public event Action<string> OnTypingStopped;
+        public event Action<ChatRoom> OnChatRoomCreated;
+        public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
-        public ChatService()
+        public ChatService(HttpClient httpClient, NavigationManager navigationManager)
         {
-            // Add some predefined chat rooms if none exist
-            if (_chatRooms.Count == 0)
-            {
-                // Create general room
-                AddChatRoom(new ChatRoom
-                {
-                    Id = _nextRoomId++,
-                    Name = "General",
-                    Description = "General discussion for all travelers",
-                    Type = ChatRoomType.Public
-                });
-
-                // Create destination-specific rooms
-                AddChatRoom(new ChatRoom
-                {
-                    Id = _nextRoomId++,
-                    Name = "Paris Travelers",
-                    Description = "For travelers to Paris",
-                    Type = ChatRoomType.Destination
-                });
-
-                AddChatRoom(new ChatRoom
-                {
-                    Id = _nextRoomId++,
-                    Name = "Rome Travelers",
-                    Description = "For travelers to Rome",
-                    Type = ChatRoomType.Destination
-                });
-
-                // Create support room
-                AddChatRoom(new ChatRoom
-                {
-                    Id = _nextRoomId++,
-                    Name = "Customer Support",
-                    Description = "Get help from our travel agents",
-                    Type = ChatRoomType.Support
-                });
-            }
-
-            // Add some mock messages if none exist
-            if (_messages.Count == 0)
-            {
-                // Add messages to General room
-                AddChatMessage(new ChatMessage
-                {
-                    Id = _nextMessageId++,
-                    RoomId = 1,
-                    SenderId = "system",
-                    SenderName = "System",
-                    Content = "Welcome to the General chat!",
-                    Timestamp = DateTime.Now.AddHours(-5)
-                });
-
-                AddChatMessage(new ChatMessage
-                {
-                    Id = _nextMessageId++,
-                    RoomId = 1,
-                    SenderId = "user1",
-                    SenderName = "Alex",
-                    Content = "Hello everyone! I'm planning a trip to Paris next month.",
-                    Timestamp = DateTime.Now.AddHours(-4)
-                });
-
-                AddChatMessage(new ChatMessage
-                {
-                    Id = _nextMessageId++,
-                    RoomId = 1,
-                    SenderId = "user2",
-                    SenderName = "Maya",
-                    Content = "That sounds exciting! I was there last summer, it was beautiful.",
-                    Timestamp = DateTime.Now.AddHours(-4)
-                });
-
-                // Add messages to Customer Support room
-                AddChatMessage(new ChatMessage
-                {
-                    Id = _nextMessageId++,
-                    RoomId = 4,
-                    SenderId = "system",
-                    SenderName = "System",
-                    Content = "Welcome to Customer Support. An agent will be with you shortly.",
-                    Timestamp = DateTime.Now.AddHours(-2)
-                });
-
-                AddChatMessage(new ChatMessage
-                {
-                    Id = _nextMessageId++,
-                    RoomId = 4,
-                    SenderId = "agent1",
-                    SenderName = "Sarah (Agent)",
-                    Content = "Hello! How can I help you today?",
-                    Timestamp = DateTime.Now.AddHours(-1)
-                });
-            }
+            _httpClient = httpClient;
+            _navigationManager = navigationManager;
         }
 
-        // Get all chat rooms
-        public List<ChatRoom> GetChatRooms()
+        public async Task InitializeConnection(string userId)
         {
-            return _chatRooms.ToList();
-        }
-
-        // Get chat room by ID
-        public ChatRoom GetChatRoomById(int roomId)
-        {
-            return _chatRooms.FirstOrDefault(r => r.Id == roomId);
-        }
-
-        // Get messages for a specific room
-        public List<ChatMessage> GetMessagesForRoom(int roomId)
-        {
-            return _messages.Where(m => m.RoomId == roomId)
-                .OrderBy(m => m.Timestamp)
-                .ToList();
-        }
-
-        // Add a new chat room
-        public void AddChatRoom(ChatRoom room)
-        {
-            if (room.Id == 0)
+            if (_hubConnection != null)
             {
-                room.Id = _nextRoomId++;
+                return;
             }
 
-            _chatRooms.Add(room);
-        }
+            // Create the hub connection
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(_navigationManager.ToAbsoluteUri("/chatHub"))
+                .WithAutomaticReconnect()
+                .Build();
 
-        // Add a new chat message
-        public void AddChatMessage(ChatMessage message)
-        {
-            if (message.Id == 0)
+            // Register handlers for hub methods
+            _hubConnection.On<ChatMessage>("ReceiveMessage", (message) =>
             {
-                message.Id = _nextMessageId++;
-            }
-
-            if (message.Timestamp == default)
-            {
-                message.Timestamp = DateTime.Now;
-            }
-
-            _messages.Add(message);
-
-            // Notify subscribers
-            OnMessageReceived?.Invoke(message);
-        }
-
-        // Create a new private chat between two users
-        public ChatRoom CreatePrivateChat(string user1Id, string user2Id)
-        {
-            // Check if a private chat already exists
-            var existingRoom = _chatRooms.FirstOrDefault(r =>
-                r.Type == ChatRoomType.Private &&
-                r.Participants.Contains(user1Id) &&
-                r.Participants.Contains(user2Id));
-
-            if (existingRoom != null)
-            {
-                return existingRoom;
-            }
-
-            // Create new private chat room
-            var room = new ChatRoom
-            {
-                Id = _nextRoomId++,
-                Name = $"Private Chat",
-                Type = ChatRoomType.Private,
-                Participants = new List<string> { user1Id, user2Id }
-            };
-
-            _chatRooms.Add(room);
-
-            // Add a system message
-            AddChatMessage(new ChatMessage
-            {
-                RoomId = room.Id,
-                SenderId = "system",
-                SenderName = "System",
-                Content = "New private chat started.",
-                Timestamp = DateTime.Now
+                _messageHistory.Add(message);
+                OnMessageReceived?.Invoke(message);
             });
 
-            return room;
+            _hubConnection.On<string>("UserJoined", (username) =>
+            {
+                OnUserJoined?.Invoke(username);
+            });
+
+            _hubConnection.On<string>("UserLeft", (username) =>
+            {
+                OnUserLeft?.Invoke(username);
+            });
+
+            _hubConnection.On<string>("UserIsTyping", (username) =>
+            {
+                OnTypingStarted?.Invoke(username);
+            });
+
+            _hubConnection.On<string>("UserStoppedTyping", (username) =>
+            {
+                OnTypingStopped?.Invoke(username);
+            });
+
+            _hubConnection.On<ChatRoom>("ChatRoomCreated", (chatRoom) =>
+            {
+                OnChatRoomCreated?.Invoke(chatRoom);
+            });
+
+            // Start the connection
+            await _hubConnection.StartAsync();
+
+            // Set the user identity
+            await _hubConnection.SendAsync("SetUserIdentity", userId);
         }
 
-        // Simulate agent response (for mock purposes)
-        public async Task<ChatMessage> SimulateAgentResponse(int roomId, string userMessage)
+        public async Task JoinChatRoom(string chatRoomId)
         {
-            // Simulate typing delay
-            await Task.Delay(2000);
-
-            var room = GetChatRoomById(roomId);
-            if (room == null || room.Type != ChatRoomType.Support)
+            if (!IsConnected)
             {
-                return null;
+                throw new InvalidOperationException("Chat connection is not established");
             }
 
-            // Create agent response based on user message
-            string responseContent;
+            _currentChatRoomId = chatRoomId;
+            await _hubConnection.SendAsync("JoinChatRoom", chatRoomId);
 
-            if (userMessage.Contains("book", StringComparison.OrdinalIgnoreCase) ||
-                userMessage.Contains("reservation", StringComparison.OrdinalIgnoreCase))
+            // Load message history for this room
+            await LoadMessageHistory(chatRoomId);
+        }
+
+        public async Task LeaveChatRoom(string chatRoomId)
+        {
+            if (!IsConnected)
             {
-                responseContent = "I'd be happy to help you with your booking. Could you please provide your booking reference number?";
+                return;
             }
-            else if (userMessage.Contains("cancel", StringComparison.OrdinalIgnoreCase))
+
+            await _hubConnection.SendAsync("LeaveChatRoom", chatRoomId);
+            _currentChatRoomId = null;
+            _messageHistory.Clear();
+        }
+
+        public async Task SendMessage(string message, string userId, string username)
+        {
+            if (!IsConnected || string.IsNullOrEmpty(_currentChatRoomId))
             {
-                responseContent = "To cancel a booking, we'll need your booking reference number. Please note that cancellation fees may apply depending on how close you are to your travel date.";
+                throw new InvalidOperationException("Cannot send message: Not connected to chat room");
             }
-            else if (userMessage.Contains("refund", StringComparison.OrdinalIgnoreCase))
+
+            var chatMessage = new ChatMessage
             {
-                responseContent = "Refunds are typically processed within 5-7 business days after a cancellation is confirmed. Would you like me to check the status of your refund?";
+                Id = Guid.NewGuid().ToString(),
+                ChatRoomId = _currentChatRoomId,
+                SenderId = userId,
+                SenderName = username,
+                Content = message,
+                Timestamp = DateTime.UtcNow
+            };
+
+            await _hubConnection.SendAsync("SendMessage", chatMessage);
+        }
+
+        public async Task NotifyTyping(bool isTyping)
+        {
+            if (!IsConnected || string.IsNullOrEmpty(_currentChatRoomId))
+            {
+                return;
             }
-            else if (userMessage.Contains("flight", StringComparison.OrdinalIgnoreCase) &&
-                     userMessage.Contains("delay", StringComparison.OrdinalIgnoreCase))
+
+            if (isTyping)
             {
-                responseContent = "I'm sorry to hear about your flight delay. Please provide your booking details, and I'll check the latest status for you.";
+                await _hubConnection.SendAsync("NotifyTyping", _currentChatRoomId);
             }
             else
             {
-                responseContent = "Thank you for your message. How else can I assist you with your travel plans today?";
+                await _hubConnection.SendAsync("NotifyStoppedTyping", _currentChatRoomId);
             }
+        }
 
-            // Create and add the agent message
-            var message = new ChatMessage
+        public async Task<IEnumerable<ChatRoom>> GetAvailableChatRooms()
+        {
+            try
             {
-                RoomId = roomId,
-                SenderId = "agent1",
-                SenderName = "Sarah (Agent)",
-                Content = responseContent,
-                Timestamp = DateTime.Now
-            };
+                var chatRooms = await _httpClient.GetFromJsonAsync<List<ChatRoom>>("api/chat/rooms");
+                return chatRooms ?? new List<ChatRoom>();
+            }
+            catch (Exception)
+            {
+                // Log the error in a real app
+                return new List<ChatRoom>();
+            }
+        }
 
-            AddChatMessage(message);
+        public async Task<ChatRoom> CreateSupportChatRoom(string userId, string username, string issue)
+        {
+            try
+            {
+                var chatRoom = new ChatRoom
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = $"Support: {issue}",
+                    Type = "Support",
+                    CreatedById = userId,
+                    CreatedByName = username,
+                    CreatedAt = DateTime.UtcNow,
+                    IsClosed = false
+                };
 
-            return message;
+                var response = await _httpClient.PostAsJsonAsync("api/chat/rooms", chatRoom);
+                if (response.IsSuccessStatusCode)
+                {
+                    var createdRoom = await response.Content.ReadFromJsonAsync<ChatRoom>();
+                    return createdRoom;
+                }
+
+                return null;
+            }
+            catch (Exception)
+            {
+                // Log the error in a real app
+                return null;
+            }
+        }
+
+        public async Task<bool> CloseChatRoom(string chatRoomId)
+        {
+            try
+            {
+                var response = await _httpClient.PutAsync($"api/chat/rooms/{chatRoomId}/close", null);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception)
+            {
+                // Log the error in a real app
+                return false;
+            }
+        }
+
+        private async Task LoadMessageHistory(string chatRoomId)
+        {
+            try
+            {
+                var messages = await _httpClient.GetFromJsonAsync<List<ChatMessage>>($"api/chat/rooms/{chatRoomId}/messages");
+                if (messages != null)
+                {
+                    _messageHistory.Clear();
+                    _messageHistory.AddRange(messages);
+                }
+            }
+            catch (Exception)
+            {
+                // Log the error in a real app
+            }
+        }
+
+        public IReadOnlyList<ChatMessage> GetMessageHistory()
+        {
+            return _messageHistory.AsReadOnly();
+        }
+
+        public async Task DisposeAsync()
+        {
+            if (_hubConnection != null)
+            {
+                if (!string.IsNullOrEmpty(_currentChatRoomId))
+                {
+                    await LeaveChatRoom(_currentChatRoomId);
+                }
+
+                await _hubConnection.DisposeAsync();
+                _hubConnection = null;
+            }
         }
     }
 }

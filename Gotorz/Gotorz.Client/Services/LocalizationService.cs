@@ -1,183 +1,270 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Gotorz.Client.Services
 {
     public class LocalizationService
     {
-        private Dictionary<string, Dictionary<string, string>> _translations = new();
-        private string _currentLanguage = "en"; // Default language
+        private readonly Dictionary<string, Dictionary<string, string>> _translations = new();
+        private CultureInfo _currentCulture = CultureInfo.GetCultureInfo("en-US");
+        private readonly string[] _supportedLanguages = new[] { "en-US", "fr-FR", "de-DE", "es-ES", "it-IT" };
 
         public LocalizationService()
         {
-            // Initialize with English translations
-            var englishTranslations = new Dictionary<string, string>
+            // Initialize with sample translations
+            InitializeTranslations();
+        }
+
+        private void InitializeTranslations()
+        {
+            // English translations (default)
+            var enTranslations = new Dictionary<string, string>
             {
                 // Common
-                ["Welcome"] = "Welcome",
-                ["Search"] = "Search",
-                ["Book"] = "Book",
-                ["Cancel"] = "Cancel",
-                ["Confirm"] = "Confirm",
-                ["Login"] = "Login",
-                ["Register"] = "Register",
-                ["Logout"] = "Logout",
-                ["Profile"] = "Profile",
-
-                // Home page
-                ["SearchForDestination"] = "Search for your dream destination",
-                ["DepartureDate"] = "Departure date",
-                ["ReturnDate"] = "Return date",
-                ["Travelers"] = "Travelers",
-                ["FindPackages"] = "Find Packages",
-
+                { "app.name", "GodTur" },
+                { "app.tagline", "Discover the world with us" },
+                
+                // Navigation
+                { "nav.home", "Home" },
+                { "nav.packages", "Travel Packages" },
+                { "nav.flights", "Flights" },
+                { "nav.hotels", "Hotels" },
+                { "nav.bookings", "My Bookings" },
+                { "nav.account", "My Account" },
+                { "nav.support", "Support" },
+                
+                // Search
+                { "search.destination", "Where do you want to go?" },
+                { "search.dates", "When do you want to travel?" },
+                { "search.travelers", "How many travelers?" },
+                { "search.button", "Search" },
+                
+                // Package details
+                { "package.from", "from" },
+                { "package.night", "night" },
+                { "package.nights", "nights" },
+                { "package.includes", "What's included" },
+                { "package.book", "Book Now" },
+                { "package.customize", "Customize" },
+                
                 // Booking
-                ["BookingDetails"] = "Booking Details",
-                ["PaymentInformation"] = "Payment Information",
-                ["TravelerInformation"] = "Traveler Information",
-                ["FlightInformation"] = "Flight Information",
-                ["HotelInformation"] = "Hotel Information",
-                ["CompleteBooking"] = "Complete Booking",
-
-                // Order History
-                ["MyBookings"] = "My Bookings",
-                ["UpcomingTrips"] = "Upcoming Trips",
-                ["PastTrips"] = "Past Trips",
-                ["BookingReference"] = "Booking Reference",
-                ["BookingDate"] = "Booking Date",
-                ["TravelDates"] = "Travel Dates",
-                ["Destination"] = "Destination",
-                ["Status"] = "Status",
-                ["TotalAmount"] = "Total Amount",
-
-                // Chat
-                ["ChatRooms"] = "Chat Rooms",
-                ["CustomerSupport"] = "Customer Support",
-                ["SendMessage"] = "Send Message",
-                ["TypeMessage"] = "Type your message here...",
-
-                // GDPR
-                ["PersonalData"] = "Personal Data",
-                ["DownloadData"] = "Download My Data",
-                ["DeleteAccount"] = "Delete My Account",
-                ["PrivacySettings"] = "Privacy Settings"
+                { "booking.details", "Booking Details" },
+                { "booking.travelers", "Traveler Information" },
+                { "booking.payment", "Payment" },
+                { "booking.confirmation", "Confirmation" },
+                { "booking.complete", "Complete Booking" },
+                
+                // Account
+                { "account.profile", "Profile" },
+                { "account.password", "Password" },
+                { "account.payment", "Payment Methods" },
+                { "account.preferences", "Preferences" },
+                { "account.notifications", "Notifications" },
+                
+                // Footer
+                { "footer.about", "About Us" },
+                { "footer.terms", "Terms & Conditions" },
+                { "footer.privacy", "Privacy Policy" },
+                { "footer.contact", "Contact Us" },
+                { "footer.copyright", "© 2025 GodTur. All rights reserved." }
             };
 
-            // Arabic translations
-            var arabicTranslations = new Dictionary<string, string>
+            // French translations
+            var frTranslations = new Dictionary<string, string>
             {
                 // Common
-                ["Welcome"] = "مرحباً",
-                ["Search"] = "بحث",
-                ["Book"] = "حجز",
-                ["Cancel"] = "إلغاء",
-                ["Confirm"] = "تأكيد",
-                ["Login"] = "تسجيل الدخول",
-                ["Register"] = "التسجيل",
-                ["Logout"] = "تسجيل الخروج",
-                ["Profile"] = "الملف الشخصي",
-
-                // Home page
-                ["SearchForDestination"] = "ابحث عن وجهة أحلامك",
-                ["DepartureDate"] = "تاريخ المغادرة",
-                ["ReturnDate"] = "تاريخ العودة",
-                ["Travelers"] = "المسافرون",
-                ["FindPackages"] = "البحث عن العروض",
-
+                { "app.name", "GodTur" },
+                { "app.tagline", "Découvrez le monde avec nous" },
+                
+                // Navigation
+                { "nav.home", "Accueil" },
+                { "nav.packages", "Forfaits Voyage" },
+                { "nav.flights", "Vols" },
+                { "nav.hotels", "Hôtels" },
+                { "nav.bookings", "Mes Réservations" },
+                { "nav.account", "Mon Compte" },
+                { "nav.support", "Assistance" },
+                
+                // Search
+                { "search.destination", "Où voulez-vous aller ?" },
+                { "search.dates", "Quand voulez-vous voyager ?" },
+                { "search.travelers", "Combien de voyageurs ?" },
+                { "search.button", "Rechercher" },
+                
+                // Package details
+                { "package.from", "à partir de" },
+                { "package.night", "nuit" },
+                { "package.nights", "nuits" },
+                { "package.includes", "Ce qui est inclus" },
+                { "package.book", "Réserver Maintenant" },
+                { "package.customize", "Personnaliser" },
+                
                 // Booking
-                ["BookingDetails"] = "تفاصيل الحجز",
-                ["PaymentInformation"] = "معلومات الدفع",
-                ["TravelerInformation"] = "معلومات المسافر",
-                ["FlightInformation"] = "معلومات الرحلة",
-                ["HotelInformation"] = "معلومات الفندق",
-                ["CompleteBooking"] = "إتمام الحجز",
-
-                // Order History
-                ["MyBookings"] = "حجوزاتي",
-                ["UpcomingTrips"] = "الرحلات القادمة",
-                ["PastTrips"] = "الرحلات السابقة",
-                ["BookingReference"] = "رقم مرجع الحجز",
-                ["BookingDate"] = "تاريخ الحجز",
-                ["TravelDates"] = "تواريخ السفر",
-                ["Destination"] = "الوجهة",
-                ["Status"] = "الحالة",
-                ["TotalAmount"] = "المبلغ الإجمالي",
-
-                // Chat
-                ["ChatRooms"] = "غرف الدردشة",
-                ["CustomerSupport"] = "دعم العملاء",
-                ["SendMessage"] = "إرسال رسالة",
-                ["TypeMessage"] = "اكتب رسالتك هنا...",
-
-                // GDPR
-                ["PersonalData"] = "البيانات الشخصية",
-                ["DownloadData"] = "تنزيل بياناتي",
-                ["DeleteAccount"] = "حذف حسابي",
-                ["PrivacySettings"] = "إعدادات الخصوصية"
+                { "booking.details", "Détails de la Réservation" },
+                { "booking.travelers", "Informations sur les Voyageurs" },
+                { "booking.payment", "Paiement" },
+                { "booking.confirmation", "Confirmation" },
+                { "booking.complete", "Finaliser la Réservation" },
+                
+                // Account
+                { "account.profile", "Profil" },
+                { "account.password", "Mot de Passe" },
+                { "account.payment", "Méthodes de Paiement" },
+                { "account.preferences", "Préférences" },
+                { "account.notifications", "Notifications" },
+                
+                // Footer
+                { "footer.about", "À Propos de Nous" },
+                { "footer.terms", "Conditions Générales" },
+                { "footer.privacy", "Politique de Confidentialité" },
+                { "footer.contact", "Nous Contacter" },
+                { "footer.copyright", "© 2025 GodTur. Tous droits réservés." }
             };
 
-            // Store translations
-            _translations["en"] = englishTranslations;
-            _translations["ar"] = arabicTranslations;
+            // German translations
+            var deTranslations = new Dictionary<string, string>
+            {
+                // Common
+                { "app.name", "GodTur" },
+                { "app.tagline", "Entdecken Sie die Welt mit uns" },
+                
+                // Navigation
+                { "nav.home", "Startseite" },
+                { "nav.packages", "Reisepakete" },
+                { "nav.flights", "Flüge" },
+                { "nav.hotels", "Hotels" },
+                { "nav.bookings", "Meine Buchungen" },
+                { "nav.account", "Mein Konto" },
+                { "nav.support", "Support" },
+                
+                // Add more German translations as needed
+            };
+
+            // Spanish translations (partial)
+            var esTranslations = new Dictionary<string, string>
+            {
+                // Common
+                { "app.name", "GodTur" },
+                { "app.tagline", "Descubre el mundo con nosotros" },
+                
+                // Navigation
+                { "nav.home", "Inicio" },
+                { "nav.packages", "Paquetes de Viaje" },
+                { "nav.flights", "Vuelos" },
+                { "nav.hotels", "Hoteles" },
+                { "nav.bookings", "Mis Reservas" },
+                { "nav.account", "Mi Cuenta" },
+                { "nav.support", "Soporte" },
+                
+                // Add more Spanish translations as needed
+            };
+
+            // Italian translations (partial)
+            var itTranslations = new Dictionary<string, string>
+            {
+                // Common
+                { "app.name", "GodTur" },
+                { "app.tagline", "Scopri il mondo con noi" },
+                
+                // Navigation
+                { "nav.home", "Home" },
+                { "nav.packages", "Pacchetti Viaggio" },
+                { "nav.flights", "Voli" },
+                { "nav.hotels", "Hotel" },
+                { "nav.bookings", "Le Mie Prenotazioni" },
+                { "nav.account", "Il Mio Account" },
+                { "nav.support", "Supporto" },
+                
+                // Add more Italian translations as needed
+            };
+
+            // Add all translations to the main dictionary
+            _translations.Add("en-US", enTranslations);
+            _translations.Add("fr-FR", frTranslations);
+            _translations.Add("de-DE", deTranslations);
+            _translations.Add("es-ES", esTranslations);
+            _translations.Add("it-IT", itTranslations);
         }
 
-        // Get current language
-        public string GetCurrentLanguage()
+        // Get a translated string by key
+        public string GetString(string key)
         {
-            return _currentLanguage;
-        }
+            var cultureName = _currentCulture.Name;
 
-        // Set language
-        public void SetLanguage(string languageCode)
-        {
-            if (_translations.ContainsKey(languageCode))
+            // Try to get the string in the current culture
+            if (_translations.ContainsKey(cultureName) &&
+                _translations[cultureName].ContainsKey(key))
             {
-                _currentLanguage = languageCode;
-
-                // Update page direction for Arabic
-                if (languageCode == "ar")
-                {
-                    CultureInfo.CurrentCulture = new CultureInfo("ar-SA");
-                    CultureInfo.CurrentUICulture = new CultureInfo("ar-SA");
-                }
-                else
-                {
-                    CultureInfo.CurrentCulture = new CultureInfo("en-US");
-                    CultureInfo.CurrentUICulture = new CultureInfo("en-US");
-                }
-            }
-        }
-
-        // Get translation
-        public string GetTranslation(string key)
-        {
-            if (_translations.TryGetValue(_currentLanguage, out var translations) &&
-                translations.TryGetValue(key, out var translation))
-            {
-                return translation;
+                return _translations[cultureName][key];
             }
 
-            // Fallback to English
-            if (_currentLanguage != "en" &&
-                _translations.TryGetValue("en", out var englishTranslations) &&
-                englishTranslations.TryGetValue(key, out var englishTranslation))
+            // Fall back to English if the key doesn't exist in the current culture
+            if (_translations["en-US"].ContainsKey(key))
             {
-                return englishTranslation;
+                return _translations["en-US"][key];
             }
 
-            // Return the key itself if no translation found
+            // If all else fails, return the key itself
             return key;
         }
 
-        // Get all supported languages
-        public Dictionary<string, string> GetSupportedLanguages()
+        // Set the current culture
+        public void SetCulture(string cultureName)
         {
-            return new Dictionary<string, string>
+            if (_supportedLanguages.Contains(cultureName))
             {
-                ["en"] = "English",
-                ["ar"] = "العربية" // Arabic
-            };
+                _currentCulture = CultureInfo.GetCultureInfo(cultureName);
+                // In a real app, you might want to persist this choice
+                // and also update the thread culture
+                CultureInfo.CurrentCulture = _currentCulture;
+                CultureInfo.CurrentUICulture = _currentCulture;
+            }
+        }
+
+        // Get the current culture
+        public CultureInfo GetCurrentCulture()
+        {
+            return _currentCulture;
+        }
+
+        // Get all supported cultures
+        public IEnumerable<CultureInfo> GetSupportedCultures()
+        {
+            return _supportedLanguages.Select(CultureInfo.GetCultureInfo);
+        }
+
+        // Get a name for the language in its native form
+        public string GetLanguageNativeName(string cultureName)
+        {
+            return CultureInfo.GetCultureInfo(cultureName).NativeName;
+        }
+
+        // Format currency according to the current culture
+        public string FormatCurrency(decimal amount, string currencyCode = "USD")
+        {
+            return amount.ToString("C", new CultureInfo(_currentCulture.Name) { NumberFormat = { CurrencySymbol = GetCurrencySymbol(currencyCode) } });
+        }
+
+        // Format date according to the current culture
+        public string FormatDate(DateTime date, string format = "d")
+        {
+            return date.ToString(format, _currentCulture);
+        }
+
+        // Get currency symbol based on currency code
+        private string GetCurrencySymbol(string currencyCode)
+        {
+            switch (currencyCode)
+            {
+                case "USD": return "$";
+                case "EUR": return "€";
+                case "GBP": return "£";
+                case "JPY": return "¥";
+                default: return currencyCode;
+            }
         }
     }
 }

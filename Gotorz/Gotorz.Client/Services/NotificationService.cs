@@ -1,75 +1,126 @@
 using Shared.Models;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Gotorz.Client.Services
 {
     public class NotificationService
     {
-        // Simulate sending booking confirmation email
-        public async Task<bool> SendBookingConfirmation(Booking booking, string userEmail)
+        private readonly List<Notification> _notifications = new();
+
+        public NotificationService()
         {
-            // Simulate API delay
-            await Task.Delay(1000);
-
-            // In a real implementation, this would connect to an email service
-            Console.WriteLine($"[Mock] Sending booking confirmation to {userEmail} for booking {booking.ReferenceNumber}");
-
-            // Log this notification
-            AddNotification(booking.UserId, NotificationType.BookingConfirmation,
-                $"Your booking {booking.ReferenceNumber} has been confirmed.");
-
-            return true;
+            // Initialize with some sample notifications
+            AddSampleNotifications();
         }
 
-        // Simulate sending travel documents
-        public async Task<bool> SendTravelDocuments(Booking booking, string userEmail)
+        private void AddSampleNotifications()
         {
-            // Simulate API delay
-            await Task.Delay(1000);
+            _notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserId = "user1",
+                Type = NotificationType.BookingConfirmation,
+                Message = "Your booking to Paris has been confirmed",
+                Link = "/bookings/details/GDT-230412-1234",
+                CreatedAt = DateTime.Now.AddDays(-1),
+                IsRead = false
+            });
 
-            // In a real implementation, this would connect to an email service and generate PDFs
-            Console.WriteLine($"[Mock] Sending travel documents to {userEmail} for booking {booking.ReferenceNumber}");
+            _notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserId = "user1",
+                Type = NotificationType.PaymentConfirmation,
+                Message = "Payment of $1,250.00 was successful",
+                Link = "/payments/details/trx_12345678",
+                CreatedAt = DateTime.Now.AddDays(-1),
+                IsRead = true
+            });
 
-            // Log this notification
-            AddNotification(booking.UserId, NotificationType.TravelDocuments,
-                $"Your travel documents for booking {booking.ReferenceNumber} are ready.");
-
-            return true;
+            _notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserId = "user1",
+                Type = NotificationType.TravelReminder,
+                Message = "Your trip to Paris is just 30 days away!",
+                Link = "/bookings/details/GDT-230412-1234",
+                CreatedAt = DateTime.Now.AddHours(-5),
+                IsRead = false
+            });
         }
 
-        // Simulate sending travel guide
-        public async Task<bool> SendTravelGuide(Booking booking, string userEmail, string destination)
+        // Get all notifications for a user
+        public List<Notification> GetNotificationsForUser(string userId)
         {
-            // Simulate API delay
-            await Task.Delay(1000);
-
-            // In a real implementation, this would connect to an email service and attach destination guide
-            Console.WriteLine($"[Mock] Sending {destination} travel guide to {userEmail}");
-
-            // Log this notification
-            AddNotification(booking.UserId, NotificationType.TravelGuide,
-                $"Your travel guide for {destination} has been sent to your email.");
-
-            return true;
+            return _notifications
+                .Where(n => n.UserId == userId)
+                .OrderByDescending(n => n.CreatedAt)
+                .ToList();
         }
 
-        // Add a notification to the user's account
-        private void AddNotification(string userId, NotificationType type, string message)
+        // Get unread notifications count
+        public int GetUnreadNotificationsCount(string userId)
         {
-            // In a real implementation, this would save to a database
-            // For now, we'll just simulate the action
+            return _notifications
+                .Count(n => n.UserId == userId && !n.IsRead);
+        }
+
+        // Mark a notification as read
+        public void MarkNotificationAsRead(string notificationId)
+        {
+            var notification = _notifications.FirstOrDefault(n => n.Id == notificationId);
+            if (notification != null)
+            {
+                notification.IsRead = true;
+            }
+        }
+
+        // Mark all notifications as read for a user
+        public void MarkAllNotificationsAsRead(string userId)
+        {
+            foreach (var notification in _notifications.Where(n => n.UserId == userId))
+            {
+                notification.IsRead = true;
+            }
+        }
+
+        // Add a new notification
+        public Notification AddNotification(string userId, NotificationType type, string message, string link = null)
+        {
             var notification = new Notification
             {
                 Id = Guid.NewGuid().ToString(),
                 UserId = userId,
                 Type = type,
                 Message = message,
+                Link = link,
                 CreatedAt = DateTime.Now,
                 IsRead = false
             };
 
-            Console.WriteLine($"[Mock] Added notification: {notification.Message}");
+            _notifications.Add(notification);
+
+            return notification;
+        }
+
+        // Delete a notification
+        public bool DeleteNotification(string notificationId)
+        {
+            var notification = _notifications.FirstOrDefault(n => n.Id == notificationId);
+            if (notification != null)
+            {
+                return _notifications.Remove(notification);
+            }
+            return false;
+        }
+
+        // Clear all notifications for a user
+        public void ClearAllNotifications(string userId)
+        {
+            _notifications.RemoveAll(n => n.UserId == userId);
         }
     }
 }

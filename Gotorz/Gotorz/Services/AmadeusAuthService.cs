@@ -1,93 +1,85 @@
-﻿using System.Diagnostics;
+using System;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
-namespace Server.Services
+namespace Gotorz.Services
 {
     public class AmadeusAuthService
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
-        private readonly string _tokenUrl;
-        private readonly string _clientId;
-        private readonly string _clientSecret;
-        private string? _cachedToken;
+        private string _accessToken;
         private DateTime _tokenExpiration = DateTime.MinValue;
-        private readonly ILogger<AmadeusAuthService> _logger;
 
-        public AmadeusAuthService(HttpClient httpClient, IConfiguration configuration, ILogger<AmadeusAuthService> logger)
+        public AmadeusAuthService(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
             _configuration = configuration;
-            _logger = logger;
-
-            _tokenUrl = _configuration["AmadeusAPI:TokenUrl"]!;
-            _clientId = _configuration["AmadeusAPI:ClientId"]!;
-            _clientSecret = _configuration["AmadeusAPI:ClientSecret"]!;
         }
 
-        public async Task<string?> GetAccessTokenAsync()
+        public async Task<string> GetAccessToken()
         {
-            try
+            if (_accessToken != null && DateTime.UtcNow < _tokenExpiration)
             {
-                // Check if we have a cached token that's still valid (with 30 second buffer)
-                if (!string.IsNullOrEmpty(_cachedToken) && _tokenExpiration > DateTime.UtcNow.AddSeconds(30))
-                {
-                    _logger.LogDebug("Using cached Amadeus API token");
-                    return _cachedToken;
-                }
-
-                _logger.LogInformation("Getting new access token from Amadeus API");
-
-                // Check if credentials are properly configured
-                if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_clientSecret) ||
-                    _clientId == "YOUR_AMADEUS_API_KEY" || _clientSecret == "YOUR_AMADEUS_API_SECRET")
-                {
-                    _logger.LogError("Amadeus API credentials not configured. Please update appsettings.json");
-                    return null;
-                }
-
-                var requestContent = new StringContent(
-                    $"grant_type=client_credentials&" +
-                    $"client_id={_clientId}&" +
-                    $"client_secret={_clientSecret}",
-                    Encoding.UTF8,
-                    "application/x-www-form-urlencoded");
-
-                var response = await _httpClient.PostAsync(_tokenUrl, requestContent);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogError($"Error retrieving Amadeus token: {response.StatusCode}, {responseContent}");
-                    return null;
-                }
-
-                using var jsonDoc = JsonDocument.Parse(responseContent);
-
-                // Get the token and expiration time
-                _cachedToken = jsonDoc.RootElement.GetProperty("access_token").GetString();
-
-                // Calculate expiration time (default to 30 minutes if not provided)
-                if (jsonDoc.RootElement.TryGetProperty("expires_in", out var expiresIn))
-                {
-                    int secondsValid = expiresIn.GetInt32();
-                    _tokenExpiration = DateTime.UtcNow.AddSeconds(secondsValid);
-                    _logger.LogInformation($"Token retrieved, valid for {secondsValid} seconds");
-                }
-                else
-                {
-                    _tokenExpiration = DateTime.UtcNow.AddMinutes(30);
-                    _logger.LogInformation("Token retrieved, using default 30 minute expiration");
-                }
-
-                return _cachedToken;
+                return _accessToken;
             }
-            catch (Exception ex)
+
+            var clientId = _configuration["Amadeus:ClientId"];
+            var clientSecret = _configuration["Amadeus:ClientSecret"];
+
+            if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret) ||
+                clientId == "YOUR_ACTUAL_AMADEUS_API_KEY" || clientSecret == "YOUR_ACTUAL_AMADEUS_API_SECRET")
             {
-                _logger.LogError(ex, $"Exception occurred retrieving Amadeus access token: {ex.Message}");
-                return null;
+                throw new InvalidOperationException("Amadeus API credentials are not properly configured. Please update appsettings.json with valid credentials.");
             }
+
+            var content = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                new KeyValuePair<string, string>("client_id", clientId),
+                new KeyValuePair<string, string>("client_secret", clientSecret)
+            });
+
+            var response = await _httpClient.PostAsync("https://test.api.amadeus.com/v1/security/oauth2/token", content);
+
+            // Add error logging
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Failed to get Amadeus token. Status: {response.StatusCode}, Content: {errorContent}");
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            var tokenResponse = await response.Content.ReadFromJsonAsync<TokenResponse>(jsonOptions);
+
+            if (tokenResponse == null)
+            {
+                throw new JsonException("Failed to deserialize token response from Amadeus API");
+            }
+
+            _accessToken = tokenResponse.AccessToken;
+            _tokenExpiration = DateTime.UtcNow.AddSeconds(tokenResponse.ExpiresIn - 60); // Buffer of 60 seconds
+
+            return _accessToken;
+        }
+
+        private class TokenResponse
+        {
+            [JsonPropertyName("access_token")]
+            public string AccessToken { get; set; }
+
+            [JsonPropertyName("expires_in")]
+            public int ExpiresIn { get; set; }
         }
     }
 }
