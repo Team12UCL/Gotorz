@@ -10,13 +10,15 @@ namespace Server.Services
     {
         private readonly HttpClient _httpClient;
         private readonly AmadeusAuthService _authService;
-        public readonly string _baseUrl;
+        private readonly string _baseUrl;
+        private readonly ILogger<FlightService> _logger;
 
-        public FlightService(IHttpClientFactory httpClientFactory, AmadeusAuthService authService, IConfiguration configuration)
+        public FlightService(IHttpClientFactory httpClientFactory, AmadeusAuthService authService, IConfiguration configuration, ILogger<FlightService> logger)
         {
             _httpClient = httpClientFactory.CreateClient("AmadeusClient");
             _authService = authService;
             _baseUrl = configuration["AmadeusAPI:FlightOffersUrl"]!;
+            _logger = logger;
         }
 
         public async Task<FlightOfferRootModel?> GetFlightOffersAsync(
@@ -37,7 +39,7 @@ namespace Server.Services
                     string.IsNullOrWhiteSpace(destinationLocationCode) ||
                     string.IsNullOrWhiteSpace(departureDate))
                 {
-                    Debug.WriteLine("Invalid search parameters.");
+                    _logger.LogWarning("Invalid search parameters for flight offers");
                     return null;
                 }
 
@@ -45,7 +47,7 @@ namespace Server.Services
                 var token = await _authService.GetAccessTokenAsync();
                 if (token == null)
                 {
-                    Debug.WriteLine("No token retrieved.");
+                    _logger.LogError("Failed to retrieve Amadeus API token");
                     return null;
                 }
 
@@ -83,32 +85,47 @@ namespace Server.Services
 
                 string requestUrl = $"{_baseUrl}?{string.Join("&", requestParams)}";
 
-                Debug.WriteLine($"Requesting flights: {requestUrl}");
+                _logger.LogInformation($"Requesting flights: {requestUrl}");
 
                 // Make the API call
                 var response = await _httpClient.GetAsync(requestUrl);
+                var content = await response.Content.ReadAsStringAsync();
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    Debug.WriteLine($"Error: {response.StatusCode}, {errorContent}");
+                    _logger.LogError($"Error: {response.StatusCode}, {content}");
                     return null;
                 }
 
                 // Read and deserialize the response
-                var content = await response.Content.ReadAsStringAsync();
-                Debug.WriteLine($"Success: {content.Substring(0, Math.Min(200, content.Length))}...");
+                _logger.LogDebug($"Received flight data: {content.Substring(0, Math.Min(200, content.Length))}...");
 
                 var options = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 };
 
-                return JsonSerializer.Deserialize<FlightOfferRootModel>(content, options);
+                var flightOffers = JsonSerializer.Deserialize<FlightOfferRootModel>(content, options);
+
+                if (flightOffers == null)
+                {
+                    _logger.LogError("Failed to deserialize flight offers JSON response");
+                    return null;
+                }
+
+                if (flightOffers.Data == null || flightOffers.Data.Count == 0)
+                {
+                    _logger.LogInformation($"No flight offers found for {originLocationCode} to {destinationLocationCode}");
+                    // Return empty model instead of null to avoid warnings
+                    return new FlightOfferRootModel { Data = new List<FlightOffer>() };
+                }
+
+                _logger.LogInformation($"Successfully retrieved {flightOffers.Data.Count} flight offers");
+                return flightOffers;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception occurred: {ex.Message}");
-                Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                _logger.LogError(ex, $"Exception in GetFlightOffersAsync: {ex.Message}");
                 return null;
             }
         }

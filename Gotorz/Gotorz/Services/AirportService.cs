@@ -12,12 +12,14 @@ namespace Server.Services
         private readonly string _baseUrl;
         private readonly string _jsonFilePath = "Data/airports.json";
         private List<Airport> Airports = new();
+        private readonly ILogger<AirportService> _logger;
 
-        public AirportService(IHttpClientFactory httpClientFactory, AmadeusAuthService authService, IConfiguration configuration)
+        public AirportService(IHttpClientFactory httpClientFactory, AmadeusAuthService authService, IConfiguration configuration, ILogger<AirportService> logger)
         {
             _httpClient = httpClientFactory.CreateClient("AmadeusClient");
             _authService = authService;
             _baseUrl = configuration["AmadeusAPI:AirportAndCitySearchUrl"]!;
+            _logger = logger;
             Task.Run(InitializeAirportsAsync).Wait();
         }
 
@@ -72,7 +74,7 @@ namespace Server.Services
         {
             try
             {
-                Debug.WriteLine("Airports before: " + Airports.Count());
+                _logger.LogInformation($"Airports before: {Airports.Count()}");
 
                 if (string.IsNullOrWhiteSpace(cityOrAirportIATA)) return new List<Airport>();
 
@@ -80,24 +82,32 @@ namespace Server.Services
                 if (token == null) return new List<Airport>();
 
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                Debug.WriteLine("Using token: " + token.Substring(0, Math.Min(10, token.Length)) + "...");
+                _logger.LogDebug($"Using token: {token.Substring(0, Math.Min(10, token.Length))}...");
 
                 _httpClient.DefaultRequestHeaders.Accept.Clear();
                 _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                string requestUrl = $"{_baseUrl}?keyword={Uri.EscapeDataString(cityOrAirportIATA)}&subType=AIRPORT,CITY&limit=10";
-                Debug.WriteLine($"Requesting airports/cities: {requestUrl}");
+                // Clean up the query string to avoid problematic characters
+                string cleanQuery = cityOrAirportIATA.Trim();
+                if (cleanQuery.StartsWith("-"))
+                {
+                    cleanQuery = cleanQuery.TrimStart('-').Trim();
+                }
+
+                string requestUrl = $"{_baseUrl}?keyword={Uri.EscapeDataString(cleanQuery)}&subType=AIRPORT,CITY&limit=10";
+                _logger.LogInformation($"Requesting airports/cities: {requestUrl}");
 
                 var response = await _httpClient.GetAsync(requestUrl);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Debug.WriteLine($"Error fetching airports: {response.StatusCode}");
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Error fetching airports: {response.StatusCode}. Response: {errorContent}");
                     return new List<Airport>();
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
-                Debug.WriteLine($"Received airport data: {content.Substring(0, Math.Min(200, content.Length))}...");
+                _logger.LogDebug($"Received airport data: {content.Substring(0, Math.Min(200, content.Length))}...");
 
                 var model = JsonSerializer.Deserialize<AirportRootModel>(content, new JsonSerializerOptions
                 {
@@ -106,7 +116,7 @@ namespace Server.Services
 
                 if (model?.Data == null || !model.Data.Any())
                 {
-                    Debug.WriteLine("No airports found in the response.");
+                    _logger.LogWarning("No airports found in the response.");
                     return new List<Airport>();
                 }
 
@@ -120,14 +130,13 @@ namespace Server.Services
                 }
 
                 await SaveAirportsToJsonAsync();
-                Debug.WriteLine("Airports after: " + Airports.Count());
+                _logger.LogInformation($"Airports after: {Airports.Count()}");
 
                 return model.Data;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception in PersistAirportsToJsonAsync: {ex.Message}");
-                Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                _logger.LogError(ex, $"Exception in PersistAirportsToJsonAsync: {ex.Message}");
                 return new List<Airport>();
             }
         }
@@ -136,22 +145,19 @@ namespace Server.Services
         {
             if (string.IsNullOrWhiteSpace(query)) return new List<Airport>();
 
+            // Only one Where clause needed
             var localResults = Airports
-			.Where(a => (a.Name?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
-						(a.IataCode?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
-						(a.CityName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
-						(a.CountryName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
-                .Where(a => a.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                           a.IataCode.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                           a.CityName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                           a.CountryName.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .Where(a => (a.Name?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                           (a.IataCode?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                           (a.CityName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                           (a.CountryName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
                 .Take(5)
                 .ToList();
 
             // If no results are found locally, try fetching from the API
             if (!localResults.Any())
             {
-                Debug.WriteLine($"No local results for '{query}', fetching from API...");
+                _logger.LogInformation($"No local results for '{query}', fetching from API...");
                 return await PersistAirportsToJsonAsync(query);
             }
 

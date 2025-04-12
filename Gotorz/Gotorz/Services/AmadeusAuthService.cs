@@ -13,11 +13,13 @@ namespace Server.Services
         private readonly string _clientSecret;
         private string? _cachedToken;
         private DateTime _tokenExpiration = DateTime.MinValue;
+        private readonly ILogger<AmadeusAuthService> _logger;
 
-        public AmadeusAuthService(HttpClient httpClient, IConfiguration configuration)
+        public AmadeusAuthService(HttpClient httpClient, IConfiguration configuration, ILogger<AmadeusAuthService> logger)
         {
             _httpClient = httpClient;
             _configuration = configuration;
+            _logger = logger;
 
             _tokenUrl = _configuration["AmadeusAPI:TokenUrl"]!;
             _clientId = _configuration["AmadeusAPI:ClientId"]!;
@@ -31,17 +33,17 @@ namespace Server.Services
                 // Check if we have a cached token that's still valid (with 30 second buffer)
                 if (!string.IsNullOrEmpty(_cachedToken) && _tokenExpiration > DateTime.UtcNow.AddSeconds(30))
                 {
-                    Debug.WriteLine("Using cached token");
+                    _logger.LogDebug("Using cached Amadeus API token");
                     return _cachedToken;
                 }
 
-                Debug.WriteLine("Getting new access token from Amadeus API");
+                _logger.LogInformation("Getting new access token from Amadeus API");
 
                 // Check if credentials are properly configured
                 if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_clientSecret) ||
                     _clientId == "YOUR_AMADEUS_API_KEY" || _clientSecret == "YOUR_AMADEUS_API_SECRET")
                 {
-                    Debug.WriteLine("ERROR: Amadeus API credentials not configured. Please update appsettings.json");
+                    _logger.LogError("Amadeus API credentials not configured. Please update appsettings.json");
                     return null;
                 }
 
@@ -53,14 +55,14 @@ namespace Server.Services
                     "application/x-www-form-urlencoded");
 
                 var response = await _httpClient.PostAsync(_tokenUrl, requestContent);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    Debug.WriteLine($"Error retrieving token: {response.StatusCode}, {errorContent}");
+                    _logger.LogError($"Error retrieving Amadeus token: {response.StatusCode}, {responseContent}");
                     return null;
                 }
 
-                var responseContent = await response.Content.ReadAsStringAsync();
                 using var jsonDoc = JsonDocument.Parse(responseContent);
 
                 // Get the token and expiration time
@@ -71,19 +73,19 @@ namespace Server.Services
                 {
                     int secondsValid = expiresIn.GetInt32();
                     _tokenExpiration = DateTime.UtcNow.AddSeconds(secondsValid);
-                    Debug.WriteLine($"Token retrieved, valid for {secondsValid} seconds");
+                    _logger.LogInformation($"Token retrieved, valid for {secondsValid} seconds");
                 }
                 else
                 {
                     _tokenExpiration = DateTime.UtcNow.AddMinutes(30);
-                    Debug.WriteLine("Token retrieved, using default 30 minute expiration");
+                    _logger.LogInformation("Token retrieved, using default 30 minute expiration");
                 }
 
                 return _cachedToken;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception occurred retrieving access token: {ex.Message}");
+                _logger.LogError(ex, $"Exception occurred retrieving Amadeus access token: {ex.Message}");
                 return null;
             }
         }

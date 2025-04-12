@@ -57,8 +57,8 @@ namespace Server.Controllers
 
             if (flightOffers == null)
             {
-                _logger.LogWarning($"Failed to retrieve flight offers from {originLocationCode} to {destinationLocationCode}");
-                return BadRequest("Could not fetch flight offers.");
+                _logger.LogError($"Error retrieving flight offers from {originLocationCode} to {destinationLocationCode}");
+                return StatusCode(500, "An error occurred while fetching flight offers.");
             }
 
             _logger.LogInformation($"Found {flightOffers.Data?.Count ?? 0} flight offers from {originLocationCode} to {destinationLocationCode}");
