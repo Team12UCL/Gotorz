@@ -137,6 +137,10 @@ namespace Server.Services
             if (string.IsNullOrWhiteSpace(query)) return new List<Airport>();
 
             var localResults = Airports
+			.Where(a => (a.Name?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+						(a.IataCode?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+						(a.CityName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+						(a.CountryName?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
                 .Where(a => a.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                            a.IataCode.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                            a.CityName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
