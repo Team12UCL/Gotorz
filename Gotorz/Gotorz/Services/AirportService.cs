@@ -94,7 +94,7 @@ namespace Server.Services
                     cleanQuery = cleanQuery.TrimStart('-').Trim();
                 }
 
-                string requestUrl = $"{_baseUrl}?keyword={Uri.EscapeDataString(cleanQuery)}&subType=AIRPORT,CITY&limit=10";
+                string requestUrl = $"{_baseUrl}?keyword={Uri.EscapeDataString(cleanQuery)}&subType=AIRPORT,CITY&page[limit]=10";
                 _logger.LogInformation($"Requesting airports/cities: {requestUrl}");
 
                 var response = await _httpClient.GetAsync(requestUrl);
