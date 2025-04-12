@@ -26,6 +26,9 @@ namespace Gotorz.Services
         {
             try
             {
+                _logger.LogInformation($"Searching flights from {originCode} to {destinationCode}, " +
+                                      $"departure: {departureDate:yyyy-MM-dd}, return: {returnDate:yyyy-MM-dd}");
+
                 var token = await _authService.GetAccessToken();
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -41,14 +44,33 @@ namespace Gotorz.Services
                           $"travelClass={travelClass}&" +
                           $"currencyCode=USD&max=10";
 
+                _logger.LogInformation($"Making request to Amadeus API: {url}");
+
                 var response = await _httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Error searching flights. Status: {response.StatusCode}, Content: {errorContent}");
+                    throw new HttpRequestException($"Error searching flights. Status: {response.StatusCode}, Content: {errorContent}");
+                }
+
                 response.EnsureSuccessStatusCode();
 
                 var content = await response.Content.ReadAsStringAsync();
-                var flightRoot = JsonSerializer.Deserialize<FlightOfferRootModel>(content, new JsonSerializerOptions
+                _logger.LogDebug($"Received flight search response: {content}");
+
+                var jsonOptions = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
-                });
+                };
+
+                var flightRoot = JsonSerializer.Deserialize<FlightOfferRootModel>(content, jsonOptions);
+
+                if (flightRoot == null)
+                {
+                    throw new JsonException("Failed to deserialize flight offers response");
+                }
 
                 return flightRoot;
             }
