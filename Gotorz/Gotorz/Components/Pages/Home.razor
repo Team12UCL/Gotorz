@@ -1,8 +1,239 @@
-﻿@* @page "/"
+﻿@page "/"
+@using Shared.Models
+@using System.Text.Json
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ILogger<Home> Logger
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Gotorz Travel Platform</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="hero-section">
+    <div class="container">
+        <h1 class="display-4 text-white">Find Your Perfect Travel Package</h1>
+        <p class="lead text-white">Bundle flights and hotels for the best deals</p>
+        
+        <div class="search-container bg-white p-4 rounded shadow">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="originAirport" class="form-label">From</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-geo-alt-fill"></i></span>
+                        <input @bind="OriginAirport" type="text" class="form-control" id="originAirport" placeholder="Origin Airport (e.g. JFK)" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label for="destinationAirport" class="form-label">To</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-geo-alt-fill"></i></span>
+                        <input @bind="DestinationAirport" type="text" class="form-control" id="destinationAirport" placeholder="Destination Airport (e.g. LAX)" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label for="departureDate" class="form-label">Departure</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                        <input @bind="DepartureDate" type="date" class="form-control" id="departureDate" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label for="returnDate" class="form-label">Return</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                        <input @bind="ReturnDate" type="date" class="form-control" id="returnDate" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label for="adults" class="form-label">Travelers</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <select @bind="Adults" class="form-select" id="adults">
+                            <option value="1">1 Adult</option>
+                            <option value="2">2 Adults</option>
+                            <option value="3">3 Adults</option>
+                            <option value="4">4 Adults</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-12 text-center">
+                    <button @onclick="SearchPackages" class="btn btn-primary btn-lg px-5">Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-Welcome to your new app.
- *@
+@if (isLoading)
+{
+    <div class="d-flex justify-content-center my-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="container my-5 text-center">
+        <div class="alert alert-danger">
+            <h4><i class="bi bi-exclamation-triangle me-2"></i>Error</h4>
+            <p>@errorMessage</p>
+            <button @onclick="() => errorMessage = null" class="btn btn-outline-danger mt-2">Try Again</button>
+        </div>
+    </div>
+}
+else if (packages != null && packages.Any())
+{
+    <div class="container my-5">
+        <h2 class="mb-4">Available Travel Packages</h2>
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            @foreach (var package in packages)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        <img src="@(string.IsNullOrEmpty(package.ImageUrl) ? "/images/default-hotel.jpg" : package.ImageUrl)" 
+                             class="card-img-top" alt="@package.HotelName" style="height: 200px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">@package.Name</h5>
+                            <p class="card-text">@package.Description</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-primary fw-bold">$@package.TotalPrice.ToString("F2")</span>
+                                    <small class="text-muted">total for @package.DurationInDays days</small>
+                                </div>
+                                <a href="/package-details/@package.Id" class="btn btn-outline-primary">View Details</a>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar"></i> @package.DepartureDate.ToString("MMM dd") - @package.ReturnDate.ToString("MMM dd, yyyy")
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+else if (searched)
+{
+    <div class="container my-5 text-center">
+        <div class="alert alert-info">
+            <h4><i class="bi bi-info-circle me-2"></i>No travel packages found</h4>
+            <p>Try different dates or destinations.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container my-5">
+        <h2 class="mb-4">Popular Destinations</h2>
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card destination-card">
+                    <img src="https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80" 
+                         class="card-img" alt="New York">
+                    <div class="card-img-overlay d-flex flex-column justify-content-end">
+                        <h4 class="card-title text-white">New York</h4>
+                        <button class="btn btn-light" @onclick="() => QuickSearch('JFK')">View Packages</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card destination-card">
+                    <img src="https://images.unsplash.com/photo-1581373449483-37449f962b6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80" 
+                         class="card-img" alt="Los Angeles">
+                    <div class="card-img-overlay d-flex flex-column justify-content-end">
+                        <h4 class="card-title text-white">Los Angeles</h4>
+                        <button class="btn btn-light" @onclick="() => QuickSearch('LAX')">View Packages</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card destination-card">
+                    <img src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?ixlib=rb-4.0.3&auto=format&fit=crop&w=1471&q=80" 
+                         class="card-img" alt="Miami">
+                    <div class="card-img-overlay d-flex flex-column justify-content-end">
+                        <h4 class="card-title text-white">Miami</h4>
+                        <button class="btn btn-light" @onclick="() => QuickSearch('MIA')">View Packages</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string OriginAirport { get; set; } = "JFK";
+    private string DestinationAirport { get; set; } = "LAX";
+    private DateTime DepartureDate { get; set; } = DateTime.Today.AddDays(30);
+    private DateTime ReturnDate { get; set; } = DateTime.Today.AddDays(37);
+    private int Adults { get; set; } = 1;
+    private List<TravelPackage> packages;
+    private bool isLoading;
+    private bool searched;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // When first loaded, don't automatically search
+        await base.OnInitializedAsync();
+    }
+
+    private async Task SearchPackages()
+    {
+        try
+        {
+            // Validate inputs
+            if (string.IsNullOrWhiteSpace(OriginAirport) || string.IsNullOrWhiteSpace(DestinationAirport))
+            {
+                errorMessage = "Please enter both origin and destination airports.";
+                return;
+            }
+
+            if (ReturnDate <= DepartureDate)
+            {
+                errorMessage = "Return date must be after departure date.";
+                return;
+            }
+
+            // Clear previous error
+            errorMessage = null;
+            isLoading = true;
+            searched = true;
+            StateHasChanged();
+
+            var url = $"api/TravelPackage/search?originCode={OriginAirport}&destinationCode={DestinationAirport}" +
+                      $"&departureDate={DepartureDate:yyyy-MM-dd}&returnDate={ReturnDate:yyyy-MM-dd}&adults={Adults}";
+            
+            try
+            {
+                packages = await Http.GetFromJsonAsync<List<TravelPackage>>(url);
+            }
+            catch (HttpRequestException ex)
+            {
+                Logger.LogError(ex, "HTTP error searching travel packages");
+                errorMessage = "Unable to connect to the server. Please check your connection and try again.";
+            }
+            catch (JsonException ex)
+            {
+                Logger.LogError(ex, "JSON parsing error for travel packages");
+                errorMessage = "Error processing the data. Please try again later.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching travel packages");
+            errorMessage = "An unexpected error occurred. Please try again later.";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task QuickSearch(string destinationCode)
+    {
+        DestinationAirport = destinationCode;
+        await SearchPackages();
+    }
+}

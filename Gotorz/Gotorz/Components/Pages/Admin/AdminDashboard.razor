@@ -1,0 +1,317 @@
+@page "/admin"
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using Shared.Models
+@inject NavigationManager NavigationManager
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Admin Dashboard</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Dashboard</li>
+    </ol>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Dashboard Overview</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Total Bookings</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@totalBookings</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-journal-check fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Revenue (Monthly)</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">$@monthlyRevenue.ToString("N0")</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-currency-dollar fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Open Support Tickets</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@openTickets</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-headset fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Total Users</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@totalUsers</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-people fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Recent Bookings</h6>
+                        </div>
+                        <div class="card-body">
+                            @if (recentBookings.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Reference</th>
+                                                <th>Customer</th>
+                                                <th>Date</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var booking in recentBookings)
+                                            {
+                                                <tr @onclick="() => NavigateToBookingDetails(booking.Id)">
+                                                    <td>@booking.BookingReference</td>
+                                                    <td>@booking.PrimaryContactName</td>
+                                                    <td>@booking.BookingDate.ToString("MM/dd/yyyy")</td>
+                                                    <td>$@booking.TotalAmount.ToString("N2")</td>
+                                                    <td>
+                                                        <span class="badge bg-@GetStatusColor(booking.Status)">@booking.Status</span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-3">
+                                    <p class="text-muted">No recent bookings</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Recent Support Tickets</h6>
+                        </div>
+                        <div class="card-body">
+                            @if (recentTickets.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Ticket #</th>
+                                                <th>Subject</th>
+                                                <th>Date</th>
+                                                <th>Priority</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var ticket in recentTickets)
+                                            {
+                                                <tr @onclick="() => NavigateToTicketDetails(ticket.Id)">
+                                                    <td>@ticket.TicketNumber</td>
+                                                    <td>@ticket.Subject</td>
+                                                    <td>@ticket.CreatedAt.ToString("MM/dd/yyyy")</td>
+                                                    <td>
+                                                        <span class="badge bg-@GetPriorityColor(ticket.Priority)">@ticket.Priority</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-@GetTicketStatusColor(ticket.Status)">@ticket.Status</span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-3">
+                                    <p class="text-muted">No recent support tickets</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Demo data - in a real application, these would come from a service
+    private int totalBookings = 156;
+    private decimal monthlyRevenue = 58670;
+    private int openTickets = 12;
+    private int totalUsers = 248;
+
+    private List<Booking> recentBookings = new List<Booking>
+    {
+        new Booking
+        {
+            Id = Guid.NewGuid(),
+            BookingReference = "GT-20250410-7823",
+            PrimaryContactName = "John Smith",
+            BookingDate = DateTime.Now.AddDays(-2),
+            TotalAmount = 1245.50m,
+            Status = "Confirmed"
+        },
+        new Booking
+        {
+            Id = Guid.NewGuid(),
+            BookingReference = "GT-20250409-9154",
+            PrimaryContactName = "Alice Johnson",
+            BookingDate = DateTime.Now.AddDays(-3),
+            TotalAmount = 2390.00m,
+            Status = "Pending"
+        },
+        new Booking
+        {
+            Id = Guid.NewGuid(),
+            BookingReference = "GT-20250408-4502",
+            PrimaryContactName = "Robert Davis",
+            BookingDate = DateTime.Now.AddDays(-4),
+            TotalAmount = 1875.25m,
+            Status = "Confirmed"
+        },
+        new Booking
+        {
+            Id = Guid.NewGuid(),
+            BookingReference = "GT-20250407-6179",
+            PrimaryContactName = "Emily Wilson",
+            BookingDate = DateTime.Now.AddDays(-5),
+            TotalAmount = 3120.75m,
+            Status = "Cancelled"
+        }
+    };
+
+    private List<SupportTicket> recentTickets = new List<SupportTicket>
+    {
+        new SupportTicket
+        {
+            Id = Guid.NewGuid(),
+            TicketNumber = "TKT-20250410-4582",
+            Subject = "Flight Rescheduling Request",
+            CreatedAt = DateTime.Now.AddDays(-1),
+            Priority = "High",
+            Status = "Open"
+        },
+        new SupportTicket
+        {
+            Id = Guid.NewGuid(),
+            TicketNumber = "TKT-20250409-7823",
+            Subject = "Payment Issue",
+            CreatedAt = DateTime.Now.AddDays(-2),
+            Priority = "Medium",
+            Status = "In Progress"
+        },
+        new SupportTicket
+        {
+            Id = Guid.NewGuid(),
+            TicketNumber = "TKT-20250408-3361",
+            Subject = "Hotel Upgrade Question",
+            CreatedAt = DateTime.Now.AddDays(-3),
+            Priority = "Low",
+            Status = "Resolved"
+        },
+        new SupportTicket
+        {
+            Id = Guid.NewGuid(),
+            TicketNumber = "TKT-20250407-9014",
+            Subject = "Booking Cancellation",
+            CreatedAt = DateTime.Now.AddDays(-4),
+            Priority = "High",
+            Status = "Closed"
+        }
+    };
+
+    private string GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Confirmed" => "success",
+            "Pending" => "warning",
+            "Cancelled" => "danger",
+            _ => "secondary"
+        };
+    }
+
+    private string GetPriorityColor(string priority)
+    {
+        return priority switch
+        {
+            "High" => "danger",
+            "Medium" => "warning",
+            "Low" => "info",
+            _ => "secondary"
+        };
+    }
+
+    private string GetTicketStatusColor(string status)
+    {
+        return status switch
+        {
+            "Open" => "danger",
+            "In Progress" => "warning",
+            "Resolved" => "success",
+            "Closed" => "secondary",
+            _ => "secondary"
+        };
+    }
+
+    private void NavigateToBookingDetails(Guid id)
+    {
+        NavigationManager.NavigateTo($"/admin/bookings/{id}");
+    }
+
+    private void NavigateToTicketDetails(Guid id)
+    {
+        NavigationManager.NavigateTo($"/admin/support/{id}");
+    }
+}
