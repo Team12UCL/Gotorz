@@ -1,315 +1,454 @@
 @page "/admin/dashboard"
-@attribute [Authorize(Roles = "Admin")]
-@using Microsoft.AspNetCore.Authorization
+
 @using Shared.Models
-@using System.Globalization
-@inject HttpClient HttpClient
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Gotorz.Client.Services
+
+@inject TravelPackageService PackageService
+@inject ActivityLogService ActivityLogService
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize(Roles = "Admin")]
 @rendermode InteractiveWebAssembly
 
-<PageTitle>Admin Dashboard - GodTur</PageTitle>
+<PageTitle>Admin Dashboard</PageTitle>
 
-<div class="container-fluid">
-    <h2 class="mb-4">Admin Dashboard</h2>
-    
-    <div class="row">
-        <!-- Stats Cards -->
-        <div class="col-md-3">
-            <div class="card stats-card bg-primary text-white mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Users</h5>
-                    <h2 class="display-4">@usersCount</h2>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a class="text-white stretched-link" href="/admin/users">View Details</a>
-                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card stats-card bg-success text-white mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Active Bookings</h5>
-                    <h2 class="display-4">@activeBookingsCount</h2>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a class="text-white stretched-link" href="/admin/bookings">View Details</a>
-                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card stats-card bg-warning text-white mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Packages</h5>
-                    <h2 class="display-4">@packagesCount</h2>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a class="text-white stretched-link" href="/admin/packages">View Details</a>
-                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3">
-            <div class="card stats-card bg-danger text-white mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Revenue</h5>
-                    <h2 class="display-4">@revenue.ToString("C0", CultureInfo.CreateSpecificCulture("en-US"))</h2>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
-                    <a class="text-white stretched-link" href="/admin/reports">View Reports</a>
-                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
-                </div>
+<h3>Admin Dashboard</h3>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Total Bookings</h5>
+                <p class="card-text fs-2">@totalBookings</p>
             </div>
         </div>
     </div>
-    
-    <!-- Recent Activity -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Recent Bookings</h5>
-                </div>
-                <div class="card-body">
-                    @if (isLoading)
-                    {
-                        <div class="text-center p-3">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    }
-                    else if (recentBookings.Any())
-                    {
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Booking ID</th>
-                                        <th>User</th>
-                                        <th>Package</th>
-                                        <th>Date</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var booking in recentBookings)
-                                    {
-                                        <tr>
-                                            <td>@booking.Id.ToString().Substring(0, 8)...</td>
-                                            <td>@booking.UserName</td>
-                                            <td>@booking.PackageName</td>
-                                            <td>@booking.BookingDate.ToString("MMM dd, yyyy")</td>
-                                            <td>
-                                                <span class="badge bg-@GetStatusColor(booking.Status)">
-                                                    @booking.Status
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <p class="text-center p-3">No recent bookings found.</p>
-                    }
-                </div>
-                <div class="card-footer">
-                    <a href="/admin/bookings" class="btn btn-sm btn-outline-primary">View All Bookings</a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Recent User Activity</h5>
-                </div>
-                <div class="card-body">
-                    @if (isLoading)
-                    {
-                        <div class="text-center p-3">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    }
-                    else if (recentActivities.Any())
-                    {
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>User</th>
-                                        <th>Activity</th>
-                                        <th>Time</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var activity in recentActivities)
-                                    {
-                                        <tr>
-                                            <td>@activity.UserName</td>
-                                            <td>@activity.Description</td>
-                                            <td>@activity.Timestamp.ToString("MMM dd, HH:mm")</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <p class="text-center p-3">No recent activities found.</p>
-                    }
-                </div>
-                <div class="card-footer">
-                    <a href="/admin/activity" class="btn btn-sm btn-outline-primary">View All Activities</a>
-                </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Completed Bookings</h5>
+                <p class="card-text fs-2">@completedBookings</p>
             </div>
         </div>
     </div>
-    
-    <!-- Quick Actions -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Quick Actions</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex flex-wrap gap-2">
-                        <a href="/admin/users/create" class="btn btn-outline-primary">
-                            <i class="bi bi-person-plus"></i> Add User
-                        </a>
-                        <a href="/admin/packages/create" class="btn btn-outline-success">
-                            <i class="bi bi-plus-square"></i> Create Package
-                        </a>
-                        <a href="/admin/reports/export" class="btn btn-outline-info">
-                            <i class="bi bi-file-earmark-arrow-down"></i> Export Reports
-                        </a>
-                        <a href="/admin/settings" class="btn btn-outline-secondary">
-                            <i class="bi bi-gear"></i> System Settings
-                        </a>
-                    </div>
-                </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Pending Bookings</h5>
+                <p class="card-text fs-2">@pendingBookings</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Cancelled Bookings</h5>
+                <p class="card-text fs-2">@cancelledBookings</p>
             </div>
         </div>
     </div>
 </div>
 
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Bookings</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="ExportBookings">Export</button>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (isLoadingBookings)
+                {
+                    <div class="text-center py-3">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else if (allBookings.Count == 0)
+                {
+                    <p class="text-center py-3">No bookings found.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Reference</th>
+                                    <th>Customer</th>
+                                    <th>Destination</th>
+                                    <th>Travel Dates</th>
+                                    <th>Status</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var booking in allBookings.Take(10))
+                                {
+                                    <tr>
+                                        <td>@booking.ReferenceNumber</td>
+                                        <td>@booking.UserId</td>
+                                        <td>@GetDestination(booking.Package)</td>
+                                        <td>
+                                            @booking.TravelStartDate.ToString("MMM d") - 
+                                            @booking.TravelEndDate.ToString("MMM d, yyyy")
+                                        </td>
+                                        <td>
+                                            <span class="badge @GetStatusBadgeClass(booking.Status)">
+                                                @booking.Status
+                                            </span>
+                                        </td>
+                                        <td>€@booking.TotalAmount</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewBookingDetails(booking)">
+                                                View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    @if (allBookings.Count > 10)
+                    {
+                        <div class="text-center">
+                            <a href="/admin/bookings" class="btn btn-link">View All Bookings</a>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Activity Logs</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="ExportLogs">Export</button>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (isLoadingLogs)
+                {
+                    <div class="text-center py-3">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else if (activityLogs.Count == 0)
+                {
+                    <p class="text-center py-3">No activity logs found.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                    <th>IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in activityLogs.Take(10))
+                                {
+                                    <tr>
+                                        <td>@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                        <td>@log.UserId</td>
+                                        <td>@log.Action</td>
+                                        <td>@log.Details</td>
+                                        <td>@log.IpAddress</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    @if (activityLogs.Count > 10)
+                    {
+                        <div class="text-center">
+                            <a href="/admin/logs" class="btn btn-link">View All Logs</a>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (selectedBooking != null)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Booking Details: @selectedBooking.ReferenceNumber</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Flight Information</h6>
+                            <div class="mb-3">
+                                <strong>Outbound</strong><br />
+                                @selectedBooking.Package.OutboundFlight.Itineraries[0].Segments[0].Departure.IataCode →
+                                @selectedBooking.Package.OutboundFlight.Itineraries[0].Segments[^1].Arrival.IataCode<br />
+                                @selectedBooking.Package.OutboundFlight.Itineraries[0].Segments[0].Departure.At.ToString("MMM d, yyyy HH:mm")
+                            </div>
+                            
+                            @if (selectedBooking.Package.ReturnFlight != null)
+                            {
+                                <div class="mb-3">
+                                    <strong>Return</strong><br />
+                                    @selectedBooking.Package.ReturnFlight.Itineraries[0].Segments[0].Departure.IataCode →
+                                    @selectedBooking.Package.ReturnFlight.Itineraries[0].Segments[^1].Arrival.IataCode<br />
+                                    @selectedBooking.Package.ReturnFlight.Itineraries[0].Segments[0].Departure.At.ToString("MMM d, yyyy HH:mm")
+                                </div>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Hotel Information</h6>
+                            <div class="mb-3">
+                                <strong>@selectedBooking.Package.Hotel.Hotel.Name</strong><br />
+                                Check-in: @selectedBooking.Package.Hotel.Offers[0].CheckInDate<br />
+                                Check-out: @selectedBooking.Package.Hotel.Offers[0].CheckOutDate<br />
+                                Room: @selectedBooking.Package.Hotel.Offers[0].RoomType
+                            </div>
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Payment Information</h6>
+                            <p>Status: <span class="badge @GetPaymentBadgeClass(selectedBooking.PaymentStatus)">@selectedBooking.PaymentStatus</span></p>
+                            <p>Total Amount: €@selectedBooking.TotalAmount</p>
+                            <p>Payment Date: @selectedBooking.BookingDate.ToString("MMM d, yyyy")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Booking Status</h6>
+                            <div class="mb-3">
+                                <select class="form-select" @bind="selectedStatus">
+                                    @foreach (var status in Enum.GetValues(typeof(BookingStatus)))
+                                    {
+                                        <option value="@status">@status</option>
+                                    }
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" @onclick="UpdateBookingStatus">Update Status</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (showExportMessage)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Export Complete</strong>
+                <button type="button" class="btn-close" @onclick="() => showExportMessage = false"></button>
+            </div>
+            <div class="toast-body">
+                @exportFileName has been downloaded to your device.
+            </div>
+        </div>
+    </div>
+}
+
 @code {
-    private bool isLoading = true;
-    private int usersCount = 0;
-    private int activeBookingsCount = 0;
-    private int packagesCount = 0;
-    private decimal revenue = 0;
-    private List<Booking> recentBookings = new();
-    private List<ActivityLog> recentActivities = new();
+    private List<Booking> allBookings = new();
+    private List<ActivityLog> activityLogs = new();
+    private Booking selectedBooking;
+    private BookingStatus selectedStatus;
+    private bool isLoadingBookings = true;
+    private bool isLoadingLogs = true;
+    private bool showExportMessage = false;
+    private string exportFileName;
+    
+    // Dashboard stats
+    private int totalBookings;
+    private int completedBookings;
+    private int pendingBookings;
+    private int cancelledBookings;
     
     protected override async Task OnInitializedAsync()
     {
-        await LoadDashboardData();
+        await LoadBookings();
+        await LoadActivityLogs();
+        
+        // Add some mock data for demonstration
+        AddMockActivityLogs();
+        
+        CalculateStats();
     }
     
-    private async Task LoadDashboardData()
+    private async Task LoadBookings()
     {
-        isLoading = true;
+        isLoadingBookings = true;
         
         try
         {
-            // In a real app, these would be actual API calls
-            // For this example, we're using mock data
-            await Task.Delay(500); // Simulate API call
-            
-            usersCount = 152;
-            activeBookingsCount = 48;
-            packagesCount = 95;
-            revenue = 287450;
-            
-            recentBookings = GenerateMockBookings();
-            recentActivities = GenerateMockActivities();
-        }
-        catch (Exception)
-        {
-            // Handle error
+            // In a real implementation, this would fetch from a database
+            allBookings = PackageService.Bookings;
         }
         finally
         {
-            isLoading = false;
+            isLoadingBookings = false;
         }
     }
     
-    private List<Booking> GenerateMockBookings()
+    private async Task LoadActivityLogs()
     {
-        return new List<Booking>
+        isLoadingLogs = true;
+        
+        try
         {
-            new Booking { Id = Guid.NewGuid(), UserName = "john.doe@example.com", PackageName = "Paris Getaway", BookingDate = DateTime.Now.AddDays(-1), Status = "Confirmed" },
-            new Booking { Id = Guid.NewGuid(), UserName = "jane.smith@example.com", PackageName = "Tokyo Adventure", BookingDate = DateTime.Now.AddDays(-2), Status = "Pending" },
-            new Booking { Id = Guid.NewGuid(), UserName = "mark.wilson@example.com", PackageName = "New York City Break", BookingDate = DateTime.Now.AddDays(-3), Status = "Confirmed" },
-            new Booking { Id = Guid.NewGuid(), UserName = "sarah.johnson@example.com", PackageName = "Rome Holiday", BookingDate = DateTime.Now.AddDays(-3), Status = "Cancelled" },
-            new Booking { Id = Guid.NewGuid(), UserName = "david.williams@example.com", PackageName = "Barcelona Weekend", BookingDate = DateTime.Now.AddDays(-5), Status = "Completed" }
+            // In a real implementation, this would fetch from a database
+            activityLogs = ActivityLogService.GetAllLogs();
+        }
+        finally
+        {
+            isLoadingLogs = false;
+        }
+    }
+    
+    private void AddMockActivityLogs()
+    {
+        // Add some mock activity logs if none exist
+        if (activityLogs.Count == 0)
+        {
+            ActivityLogService.LogActivity("user1", "Login", "User logged in");
+            ActivityLogService.LogActivity("user1", "Search", "User searched for flights to Paris");
+            ActivityLogService.LogActivity("user1", "Booking", "User created booking GDT-230412-5678");
+            ActivityLogService.LogActivity("user1", "Payment", "User completed payment for booking GDT-230412-5678");
+            ActivityLogService.LogActivity("user2", "Login", "User logged in");
+            ActivityLogService.LogActivity("user2", "Search", "User searched for flights to London");
+            ActivityLogService.LogActivity("admin1", "Login", "Admin logged in");
+            ActivityLogService.LogActivity("admin1", "User Management", "Admin reset password for user3");
+            
+            // Reload logs
+            activityLogs = ActivityLogService.GetAllLogs();
+        }
+    }
+    
+    private void CalculateStats()
+    {
+        totalBookings = allBookings.Count;
+        completedBookings = allBookings.Count(b => b.Status == BookingStatus.Completed);
+        pendingBookings = allBookings.Count(b => b.Status == BookingStatus.Pending);
+        cancelledBookings = allBookings.Count(b => b.Status == BookingStatus.Cancelled);
+    }
+    
+    private string GetDestination(TravelPackage package)
+    {
+        return package?.OutboundFlight?.Itineraries[0]?.Segments[^1]?.Arrival?.IataCode ?? "Unknown";
+    }
+    
+    private string GetStatusBadgeClass(BookingStatus status)
+    {
+        return status switch
+        {
+            BookingStatus.Confirmed => "bg-success",
+            BookingStatus.Pending => "bg-warning",
+            BookingStatus.Cancelled => "bg-danger",
+            BookingStatus.Completed => "bg-info",
+            _ => "bg-secondary"
         };
     }
     
-    private List<ActivityLog> GenerateMockActivities()
+    private string GetPaymentBadgeClass(PaymentStatus status)
     {
-        return new List<ActivityLog>
+        return status switch
         {
-            new ActivityLog { UserName = "john.doe@example.com", Description = "Logged in", Timestamp = DateTime.Now.AddHours(-1) },
-            new ActivityLog { UserName = "admin@godtur.com", Description = "Updated package details", Timestamp = DateTime.Now.AddHours(-2) },
-            new ActivityLog { UserName = "jane.smith@example.com", Description = "Completed booking", Timestamp = DateTime.Now.AddHours(-3) },
-            new ActivityLog { UserName = "sales@godtur.com", Description = "Added new package", Timestamp = DateTime.Now.AddHours(-5) },
-            new ActivityLog { UserName = "mark.wilson@example.com", Description = "Requested support", Timestamp = DateTime.Now.AddHours(-6) }
+            PaymentStatus.Paid => "bg-success",
+            PaymentStatus.Pending => "bg-warning",
+            PaymentStatus.Failed => "bg-danger",
+            PaymentStatus.Refunded => "bg-info",
+            _ => "bg-secondary"
         };
     }
     
-    private string GetStatusColor(string status) => status switch
+    private void ViewBookingDetails(Booking booking)
     {
-        "Confirmed" => "success",
-        "Pending" => "warning",
-        "Cancelled" => "danger",
-        "Completed" => "info",
-        _ => "secondary"
-    };
-    
-    // Mock classes (in a real app, these would be in the Shared project)
-    private class Booking
-    {
-        public Guid Id { get; set; }
-        public string UserName { get; set; } = "";
-        public string PackageName { get; set; } = "";
-        public DateTime BookingDate { get; set; }
-        public string Status { get; set; } = "";
+        selectedBooking = booking;
+        selectedStatus = booking.Status;
     }
     
-    private class ActivityLog
+    private void CloseModal()
     {
-        public string UserName { get; set; } = "";
-        public string Description { get; set; } = "";
-        public DateTime Timestamp { get; set; }
+        selectedBooking = null;
+    }
+    
+    private void UpdateBookingStatus()
+    {
+        if (selectedBooking != null)
+        {
+            // Update the booking status
+            selectedBooking.Status = selectedStatus;
+            
+            // If cancelled, update payment status to refunded
+            if (selectedStatus == BookingStatus.Cancelled && selectedBooking.PaymentStatus == PaymentStatus.Paid)
+            {
+                selectedBooking.PaymentStatus = PaymentStatus.Refunded;
+            }
+            
+            // Log the activity
+            ActivityLogService.LogActivity("admin", "Booking Update", 
+                $"Updated booking {selectedBooking.ReferenceNumber} status to {selectedStatus}");
+                
+            // Refresh stats
+            CalculateStats();
+            
+            // Close the modal
+            CloseModal();
+        }
+    }
+    
+    private async Task ExportBookings()
+    {
+        // Simulate exporting to CSV
+        exportFileName = $"bookings_export_{DateTime.Now:yyyyMMdd}.csv";
+        showExportMessage = true;
+        
+        // Log activity
+        ActivityLogService.LogActivity("admin", "Export", "Exported bookings to CSV");
+        
+        // In a real implementation, this would generate and download a CSV file
+        await Task.Delay(1000);
+    }
+    
+    private async Task ExportLogs()
+    {
+        // Simulate exporting to CSV
+        exportFileName = $"activity_logs_{DateTime.Now:yyyyMMdd}.csv";
+        showExportMessage = true;
+        
+        // Log activity
+        ActivityLogService.LogActivity("admin", "Export", "Exported activity logs to CSV");
+        
+        // In a real implementation, this would generate and download a CSV file
+        await Task.Delay(1000);
     }
 }
-
-<style>
-    .stats-card {
-        border-radius: 0.5rem;
-        border-left: 0.25rem solid rgba(255, 255, 255, 0.5);
-    }
-    
-    .stats-card .display-4 {
-        font-size: 2.5rem;
-        font-weight: 300;
-    }
-    
-    .stats-card .card-footer {
-        background-color: rgba(0, 0, 0, 0.1);
-        border-top: none;
-    }
-</style>

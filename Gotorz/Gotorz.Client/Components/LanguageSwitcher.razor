@@ -1,0 +1,39 @@
+@using Gotorz.Client.Services
+@inject LocalizationService LocalizationService
+
+<div class="language-switcher">
+    <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-globe"></i>
+            @GetLanguageDisplay(LocalizationService.GetCurrentLanguage())
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+            @foreach (var language in LocalizationService.GetSupportedLanguages())
+            {
+                <li>
+                    <button class="dropdown-item @(language.Key == LocalizationService.GetCurrentLanguage() ? "active" : "")" 
+                            @onclick="() => ChangeLanguage(language.Key)">
+                        @language.Value
+                    </button>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnLanguageChanged { get; set; }
+    
+    private async Task ChangeLanguage(string languageCode)
+    {
+        LocalizationService.SetLanguage(languageCode);
+        await OnLanguageChanged.InvokeAsync();
+    }
+    
+    private string GetLanguageDisplay(string languageCode)
+    {
+        var languages = LocalizationService.GetSupportedLanguages();
+        return languages.TryGetValue(languageCode, out var display) ? display : languageCode;
+    }
+}

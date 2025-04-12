@@ -1,0 +1,422 @@
+@page "/gdpr"
+
+@using Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Gotorz.Client.Services
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject LocalizationService LocalizationService
+@inject ActivityLogService ActivityLogService
+@attribute [Authorize]
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Privacy & Data</PageTitle>
+
+<div class="container my-4">
+    <h3>@LocalizationService.GetTranslation("PersonalData")</h3>
+    <p class="lead">Manage your personal data and privacy settings.</p>
+    
+    <div class="row mt-4">
+        <div class="col-lg-8">
+            <!-- Personal Data Access Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>@LocalizationService.GetTranslation("DownloadData")</h5>
+                </div>
+                <div class="card-body">
+                    <p>As per GDPR regulations, you have the right to access all personal data we store about you. You can download a complete copy of your data in JSON format.</p>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn btn-primary" @onclick="RequestDataDownload">
+                                <i class="bi bi-download me-2"></i> @LocalizationService.GetTranslation("DownloadData")
+                            </button>
+                        </div>
+                        
+                        @if (isDownloading)
+                        {
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        }
+                    </div>
+                    
+                    @if (dataRequestMessage != null)
+                    {
+                        <div class="alert @(dataRequestSuccess ? "alert-success" : "alert-danger") mt-3">
+                            @dataRequestMessage
+                        </div>
+                    }
+                </div>
+            </div>
+            
+            <!-- Account Deletion Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>@LocalizationService.GetTranslation("DeleteAccount")</h5>
+                </div>
+                <div class="card-body">
+                    <p>You have the right to be forgotten. Deleting your account will permanently remove all your personal data from our systems.</p>
+                    <p class="text-danger">This action cannot be undone. Please be certain.</p>
+                    
+                    <button class="btn btn-danger" @onclick="ShowDeleteConfirmation">
+                        <i class="bi bi-exclamation-triangle me-2"></i> @LocalizationService.GetTranslation("DeleteAccount")
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Activity Logging Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Activity Logs</h5>
+                </div>
+                <div class="card-body">
+                    <p>View recent activity on your account.</p>
+                    
+                    @if (activityLogs == null || activityLogs.Count == 0)
+                    {
+                        <p class="text-muted">No activity logs found.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in activityLogs.Take(5))
+                                    {
+                                        <tr>
+                                            <td>@log.Timestamp.ToString("yyyy-MM-dd HH:mm")</td>
+                                            <td>@log.Action</td>
+                                            <td>@log.Details</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            
+                            @if (activityLogs.Count > 5)
+                            {
+                                <p class="text-end">
+                                    <a href="#" @onclick="ViewAllActivityLogs" @onclick:preventDefault>View All Activity</a>
+                                </p>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Privacy Settings -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>@LocalizationService.GetTranslation("PrivacySettings")</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="analyticsConsent" @bind="analyticsConsent">
+                            <label class="form-check-label" for="analyticsConsent">
+                                Allow usage analytics
+                            </label>
+                        </div>
+                        <div class="text-muted small">
+                            We collect anonymous usage data to improve our services.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="marketingConsent" @bind="marketingConsent">
+                            <label class="form-check-label" for="marketingConsent">
+                                Receive marketing emails
+                            </label>
+                        </div>
+                        <div class="text-muted small">
+                            We'll send you promotions and special offers.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="thirdPartyConsent" @bind="thirdPartyConsent">
+                            <label class="form-check-label" for="thirdPartyConsent">
+                                Share data with partners
+                            </label>
+                        </div>
+                        <div class="text-muted small">
+                            We share data with trusted partners to enhance your travel experience.
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary w-100 mt-3" @onclick="SavePrivacySettings">
+                        Save Privacy Settings
+                    </button>
+                    
+                    @if (privacySettingsMessage != null)
+                    {
+                        <div class="alert alert-success mt-3">
+                            @privacySettingsMessage
+                        </div>
+                    }
+                </div>
+            </div>
+            
+            <!-- Data Retention Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Data Retention Policy</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">We retain your data according to the following schedule:</p>
+                    <ul>
+                        <li>Account information: Until account deletion</li>
+                        <li>Booking history: 7 years (for tax purposes)</li>
+                        <li>Payment details: 2 years after last use</li>
+                        <li>Chat messages: 1 year</li>
+                        <li>Activity logs: 90 days</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showDeleteConfirmation)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">Confirm Account Deletion</h5>
+                    <button type="button" class="btn-close" @onclick="() => showDeleteConfirmation = false"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you absolutely sure you want to delete your account? This will:</p>
+                    <ul>
+                        <li>Permanently delete all your personal information</li>
+                        <li>Cancel any upcoming bookings (refunds will be processed separately)</li>
+                        <li>Remove you from all chat rooms</li>
+                        <li>Delete your saved payment methods</li>
+                    </ul>
+                    <p class="text-danger"><strong>This action cannot be undone.</strong></p>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="deleteConfirm" @bind="deleteConfirmed">
+                        <label class="form-check-label" for="deleteConfirm">
+                            I understand that this action is permanent and cannot be undone.
+                        </label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="deletionReason" class="form-label">Please tell us why you're leaving (optional):</label>
+                        <select class="form-select" id="deletionReason" @bind="deletionReason">
+                            <option value="">Select a reason...</option>
+                            <option value="privacy">Privacy concerns</option>
+                            <option value="unsatisfied">Unsatisfied with service</option>
+                            <option value="unused">No longer using the service</option>
+                            <option value="other">Other reason</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showDeleteConfirmation = false">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeleteAccount" disabled="@(!deleteConfirmed)">
+                        Permanently Delete My Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (showAllActivityLogs)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">All Activity Logs</h5>
+                    <button type="button" class="btn-close" @onclick="() => showAllActivityLogs = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (activityLogs == null || activityLogs.Count == 0)
+                    {
+                        <p class="text-muted">No activity logs found.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                        <th>IP Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in activityLogs)
+                                    {
+                                        <tr>
+                                            <td>@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                            <td>@log.Action</td>
+                                            <td>@log.Details</td>
+                                            <td>@log.IpAddress</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showAllActivityLogs = false">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="ExportActivityLogs">Export Logs</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private string userId;
+    private List<ActivityLog> activityLogs;
+    
+    // Data download state
+    private bool isDownloading = false;
+    private string dataRequestMessage;
+    private bool dataRequestSuccess = false;
+    
+    // Account deletion state
+    private bool showDeleteConfirmation = false;
+    private bool deleteConfirmed = false;
+    private string deletionReason;
+    
+    // Privacy settings state
+    private bool analyticsConsent = true;
+    private bool marketingConsent = true;
+    private bool thirdPartyConsent = false;
+    private string privacySettingsMessage;
+    
+    // Activity logs modal state
+    private bool showAllActivityLogs = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity.IsAuthenticated)
+        {
+            userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            // Load activity logs
+            activityLogs = ActivityLogService.GetUserLogs(userId);
+            
+            // Add demo activity if none exists
+            if (activityLogs.Count == 0)
+            {
+                ActivityLogService.LogActivity(userId, "Login", "User logged in");
+                ActivityLogService.LogActivity(userId, "Privacy Settings", "Updated privacy preferences");
+                activityLogs = ActivityLogService.GetUserLogs(userId);
+            }
+        }
+    }
+    
+    private async Task RequestDataDownload()
+    {
+        isDownloading = true;
+        dataRequestMessage = null;
+        
+        try
+        {
+            // Simulate API call delay
+            await Task.Delay(2000);
+            
+            // Mock successful data export
+            dataRequestSuccess = true;
+            dataRequestMessage = "Your data has been prepared. Click below to download it.";
+            
+            // Log the activity
+            ActivityLogService.LogActivity(userId, "Data Export", "User requested data export");
+        }
+        finally
+        {
+            isDownloading = false;
+        }
+    }
+    
+    private void ShowDeleteConfirmation()
+    {
+        showDeleteConfirmation = true;
+        deleteConfirmed = false;
+        deletionReason = "";
+    }
+    
+    private async Task DeleteAccount()
+    {
+        if (!deleteConfirmed)
+            return;
+            
+        // Simulate API call delay
+        await Task.Delay(2000);
+        
+        // Log the activity
+        ActivityLogService.LogActivity(userId, "Account Deletion", 
+            $"User requested account deletion. Reason: {(string.IsNullOrEmpty(deletionReason) ? "Not provided" : deletionReason)}");
+            
+        // Close modal
+        showDeleteConfirmation = false;
+        
+        // In a real implementation, this would redirect to a confirmation page
+        // For the mock, we'll just go to the logout page
+        NavigationManager.NavigateTo("Account/Logout", true);
+    }
+    
+    private async Task SavePrivacySettings()
+    {
+        // Simulate API call delay
+        await Task.Delay(1000);
+        
+        // Show success message
+        privacySettingsMessage = "Your privacy settings have been updated.";
+        
+        // Log the activity
+        ActivityLogService.LogActivity(userId, "Privacy Settings", 
+            $"Updated privacy preferences: Analytics={analyticsConsent}, Marketing={marketingConsent}, ThirdParty={thirdPartyConsent}");
+            
+        // Clear the message after a delay
+        await Task.Delay(3000);
+        privacySettingsMessage = null;
+    }
+    
+    private void ViewAllActivityLogs()
+    {
+        showAllActivityLogs = true;
+    }
+    
+    private async Task ExportActivityLogs()
+    {
+        // Simulate export
+        await Task.Delay(1000);
+        
+        // Log the activity
+        ActivityLogService.LogActivity(userId, "Activity Export", "User exported activity logs");
+        
+        // Close modal
+        showAllActivityLogs = false;
+    }
+}

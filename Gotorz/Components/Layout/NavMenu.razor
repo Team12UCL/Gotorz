@@ -1,5 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Gotorz.Client.Services
 @inject NavigationManager NavigationManager
+@inject LocalizationService LocalizationService
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -17,35 +19,45 @@
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <i class="bi bi-house-door-fill me-2"></i> Home
+                <i class="bi bi-house-door-fill me-2"></i> @LocalizationService.GetTranslation("Home")
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="destinations">
-                <i class="bi bi-globe me-2"></i> Destinations
+                <i class="bi bi-globe me-2"></i> @LocalizationService.GetTranslation("Destinations")
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="deals">
-                <i class="bi bi-tag-fill me-2"></i> Special Deals
+                <i class="bi bi-tag-fill me-2"></i> @LocalizationService.GetTranslation("SpecialDeals")
             </NavLink>
         </div>
         
         <AuthorizeView>
             <Authorized>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="my-bookings">
-                        <i class="bi bi-briefcase-fill me-2"></i> My Bookings
+                    <NavLink class="nav-link" href="orderhistory">
+                        <i class="bi bi-briefcase-fill me-2"></i> @LocalizationService.GetTranslation("MyBookings")
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="chat">
+                        <i class="bi bi-chat-dots-fill me-2"></i> @LocalizationService.GetTranslation("CustomerSupport")
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="gdpr">
+                        <i class="bi bi-shield-check me-2"></i> @LocalizationService.GetTranslation("PersonalData")
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="account">
-                        <i class="bi bi-person-circle me-2"></i> My Account
+                        <i class="bi bi-person-circle me-2"></i> @LocalizationService.GetTranslation("MyAccount")
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="account/logout">
-                        <i class="bi bi-box-arrow-right me-2"></i> Logout
+                        <i class="bi bi-box-arrow-right me-2"></i> @LocalizationService.GetTranslation("Logout")
                     </NavLink>
                 </div>
                 
@@ -81,12 +93,12 @@
             <NotAuthorized>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="account/login">
-                        <i class="bi bi-box-arrow-in-right me-2"></i> Login
+                        <i class="bi bi-box-arrow-in-right me-2"></i> @LocalizationService.GetTranslation("Login")
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="account/register">
-                        <i class="bi bi-person-plus me-2"></i> Register
+                        <i class="bi bi-person-plus me-2"></i> @LocalizationService.GetTranslation("Register")
                     </NavLink>
                 </div>
             </NotAuthorized>
@@ -96,12 +108,12 @@
         
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="help">
-                <i class="bi bi-question-circle me-2"></i> Help & Support
+                <i class="bi bi-question-circle me-2"></i> @LocalizationService.GetTranslation("HelpSupport")
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="about">
-                <i class="bi bi-info-circle me-2"></i> About Us
+                <i class="bi bi-info-circle me-2"></i> @LocalizationService.GetTranslation("AboutUs")
             </NavLink>
         </div>
     </nav>

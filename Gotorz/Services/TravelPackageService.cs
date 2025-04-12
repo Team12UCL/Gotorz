@@ -16,6 +16,9 @@ namespace Gotorz.Services
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<TravelPackageService> _logger;
 
+        // Collection to store bookings (for mock implementation)
+        public List<Booking> Bookings { get; private set; } = new List<Booking>();
+
         public TravelPackageService(
             FlightService flightService,
             HotelService hotelService,
@@ -26,6 +29,194 @@ namespace Gotorz.Services
             _hotelService = hotelService;
             _dbContext = dbContext;
             _logger = logger;
+
+            // Add some mock bookings for demonstration purposes
+            if (Bookings.Count == 0)
+            {
+                InitializeMockBookings();
+            }
+        }
+
+        private void InitializeMockBookings()
+        {
+            // In a real implementation, these would be stored in a database
+            // Create some mock travel packages for bookings
+            var package1 = new TravelPackage
+            {
+                Id = Guid.NewGuid(),
+                Name = "Paris Getaway",
+                Description = "Round-trip flight to Paris with 5 nights at Hotel de Ville",
+                TotalPrice = 1250.00m,
+                DepartureDate = DateTime.Now.AddDays(30),
+                ReturnDate = DateTime.Now.AddDays(35),
+                DurationInDays = 5,
+                OriginAirport = "LAX",
+                DestinationAirport = "CDG",
+                Airline = "AF",
+                FlightNumber = "AF65",
+                HotelName = "Hotel de Ville",
+                HotelAddress = "15 Rue de Rivoli, Paris",
+                HotelRating = 4,
+                RoomType = "Deluxe Double",
+                Status = "Available",
+                ImageUrl = "/images/paris.jpg",
+                CreatedDate = DateTime.Now.AddDays(-15),
+                OutboundFlight = MockFlightOffer("LAX", "CDG", DateTime.Now.AddDays(30)),
+                ReturnFlight = MockFlightOffer("CDG", "LAX", DateTime.Now.AddDays(35)),
+                Hotel = MockHotelOffer("Hotel de Ville", 4, "Paris")
+            };
+
+            var package2 = new TravelPackage
+            {
+                Id = Guid.NewGuid(),
+                Name = "London Adventure",
+                Description = "Round-trip flight to London with 7 nights at The Savoy",
+                TotalPrice = 1850.00m,
+                DepartureDate = DateTime.Now.AddDays(45),
+                ReturnDate = DateTime.Now.AddDays(52),
+                DurationInDays = 7,
+                OriginAirport = "JFK",
+                DestinationAirport = "LHR",
+                Airline = "BA",
+                FlightNumber = "BA112",
+                HotelName = "The Savoy",
+                HotelAddress = "Strand, London",
+                HotelRating = 5,
+                RoomType = "Superior King",
+                Status = "Available",
+                ImageUrl = "/images/london.jpg",
+                CreatedDate = DateTime.Now.AddDays(-10),
+                OutboundFlight = MockFlightOffer("JFK", "LHR", DateTime.Now.AddDays(45)),
+                ReturnFlight = MockFlightOffer("LHR", "JFK", DateTime.Now.AddDays(52)),
+                Hotel = MockHotelOffer("The Savoy", 5, "London")
+            };
+
+            var package3 = new TravelPackage
+            {
+                Id = Guid.NewGuid(),
+                Name = "Rome Vacation",
+                Description = "Round-trip flight to Rome with 4 nights at Hotel Artemide",
+                TotalPrice = 1100.00m,
+                DepartureDate = DateTime.Now.AddDays(-15),
+                ReturnDate = DateTime.Now.AddDays(-11),
+                DurationInDays = 4,
+                OriginAirport = "SFO",
+                DestinationAirport = "FCO",
+                Airline = "AZ",
+                FlightNumber = "AZ608",
+                HotelName = "Hotel Artemide",
+                HotelAddress = "Via Nazionale, Rome",
+                HotelRating = 4,
+                RoomType = "Classic Double",
+                Status = "Available",
+                ImageUrl = "/images/rome.jpg",
+                CreatedDate = DateTime.Now.AddDays(-45),
+                OutboundFlight = MockFlightOffer("SFO", "FCO", DateTime.Now.AddDays(-15)),
+                ReturnFlight = MockFlightOffer("FCO", "SFO", DateTime.Now.AddDays(-11)),
+                Hotel = MockHotelOffer("Hotel Artemide", 4, "Rome")
+            };
+
+            // Create some mock bookings
+            Bookings.Add(new Booking
+            {
+                Id = 1,
+                UserId = "user1",
+                Package = package1,
+                BookingDate = DateTime.Now.AddDays(-10),
+                TravelStartDate = package1.DepartureDate,
+                TravelEndDate = package1.ReturnDate,
+                Status = BookingStatus.Confirmed,
+                PaymentStatus = PaymentStatus.Paid,
+                ReferenceNumber = "GDT-230412-1234",
+                TotalAmount = package1.TotalPrice
+            });
+
+            Bookings.Add(new Booking
+            {
+                Id = 2,
+                UserId = "user1",
+                Package = package2,
+                BookingDate = DateTime.Now.AddDays(-5),
+                TravelStartDate = package2.DepartureDate,
+                TravelEndDate = package2.ReturnDate,
+                Status = BookingStatus.Pending,
+                PaymentStatus = PaymentStatus.Pending,
+                ReferenceNumber = "GDT-230412-5678",
+                TotalAmount = package2.TotalPrice
+            });
+
+            Bookings.Add(new Booking
+            {
+                Id = 3,
+                UserId = "user2",
+                Package = package3,
+                BookingDate = DateTime.Now.AddDays(-30),
+                TravelStartDate = package3.DepartureDate,
+                TravelEndDate = package3.ReturnDate,
+                Status = BookingStatus.Completed,
+                PaymentStatus = PaymentStatus.Paid,
+                ReferenceNumber = "GDT-230412-9012",
+                TotalAmount = package3.TotalPrice
+            });
+        }
+
+        // Mock helper methods for creating test data
+        private FlightOfferRootModel MockFlightOffer(string originCode, string destinationCode, DateTime departureDate)
+        {
+            var segment = new FlightSegment
+            {
+                Departure = new FlightEndpoint { IataCode = originCode, At = departureDate },
+                Arrival = new FlightEndpoint { IataCode = destinationCode, At = departureDate.AddHours(8) },
+                Number = "123"
+            };
+
+            var itinerary = new FlightItinerary
+            {
+                Segments = new List<FlightSegment> { segment }
+            };
+
+            var flightOffer = new FlightOffer
+            {
+                Id = "1",
+                Itineraries = new List<FlightItinerary> { itinerary },
+                Price = new FlightPrice { Total = 500m },
+                ValidatingAirlineCodes = new List<string> { "AA" }
+            };
+
+            return new FlightOfferRootModel
+            {
+                Data = new List<FlightOffer> { flightOffer }
+            };
+        }
+
+        private HotelOfferRootModel MockHotelOffer(string hotelName, int rating, string city)
+        {
+            var hotel = new HotelInfo
+            {
+                Name = hotelName,
+                Rating = rating,
+                Address = new HotelAddress { Lines = new List<string> { $"123 Main St, {city}" } },
+                Media = new List<HotelMedia> { new HotelMedia { Uri = $"/images/{city.ToLower()}.jpg" } }
+            };
+
+            var offer = new HotelOfferItem
+            {
+                CheckInDate = DateTime.Now.AddDays(30),
+                CheckOutDate = DateTime.Now.AddDays(35),
+                RoomType = "Standard",
+                Price = new HotelPrice { Total = "300" }
+            };
+
+            var hotelOffer = new HotelOffer
+            {
+                Hotel = hotel,
+                Offers = new List<HotelOfferItem> { offer }
+            };
+
+            return new HotelOfferRootModel
+            {
+                Data = new List<HotelOffer> { hotelOffer }
+            };
         }
 
         public async Task<TravelPackage> GetTravelPackageById(Guid id)
@@ -116,6 +307,8 @@ namespace Gotorz.Services
                     foreach (var hotel in topHotels)
                     {
                         var package = CreateTravelPackage(flight, hotel, departureDate, returnDate);
+                        package.OutboundFlight = new FlightOfferRootModel { Data = new List<FlightOffer> { flight } };
+                        package.Hotel = new HotelOfferRootModel { Data = new List<HotelOffer> { hotel } };
                         travelPackages.Add(package);
 
                         // Save to database for future queries
@@ -179,6 +372,59 @@ namespace Gotorz.Services
             _dbContext.TravelPackages.Remove(package);
             await _dbContext.SaveChangesAsync();
             return true;
+        }
+
+        // Booking-related methods
+
+        public List<Booking> GetBookingsForUser(string userId)
+        {
+            // In a real implementation, this would query a database
+            return Bookings.Where(b => b.UserId == userId).ToList();
+        }
+
+        public Booking GetBookingByReferenceNumber(string referenceNumber)
+        {
+            // In a real implementation, this would query a database
+            return Bookings.FirstOrDefault(b => b.ReferenceNumber == referenceNumber);
+        }
+
+        public Booking CreateBooking(string userId, TravelPackage package, DateTime travelStartDate, DateTime travelEndDate)
+        {
+            var booking = new Booking
+            {
+                Id = Bookings.Count + 1,
+                UserId = userId,
+                Package = package,
+                BookingDate = DateTime.Now,
+                TravelStartDate = travelStartDate,
+                TravelEndDate = travelEndDate,
+                Status = BookingStatus.Pending,
+                PaymentStatus = PaymentStatus.Pending,
+                ReferenceNumber = $"GDT-{DateTime.Now:yyMMdd}-{new Random().Next(1000, 9999)}",
+                TotalAmount = package.TotalPrice
+            };
+
+            Bookings.Add(booking);
+
+            return booking;
+        }
+
+        public void UpdateBookingStatus(string referenceNumber, BookingStatus status)
+        {
+            var booking = GetBookingByReferenceNumber(referenceNumber);
+            if (booking != null)
+            {
+                booking.Status = status;
+            }
+        }
+
+        public void UpdatePaymentStatus(string referenceNumber, PaymentStatus status)
+        {
+            var booking = GetBookingByReferenceNumber(referenceNumber);
+            if (booking != null)
+            {
+                booking.PaymentStatus = status;
+            }
         }
     }
 }

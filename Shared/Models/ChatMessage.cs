@@ -1,24 +1,32 @@
 using System;
-using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace Shared.Models
 {
     public class ChatMessage
     {
-        [Key]
-        public Guid Id { get; set; } = Guid.NewGuid();
-
-        public Guid SupportTicketId { get; set; }
+        public int Id { get; set; }
+        public int RoomId { get; set; }
         public string SenderId { get; set; }
-
-        [Required]
+        public string SenderName { get; set; }
         public string Content { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
 
-        public bool IsFromSupport { get; set; }
-        public bool IsRead { get; set; } = false;
+    public class ChatRoom
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public ChatRoomType Type { get; set; }
+        public List<string> Participants { get; set; } = new List<string>();
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+    }
 
-        // Timestamps
-        public DateTime SentAt { get; set; } = DateTime.UtcNow;
-        public DateTime? ReadAt { get; set; }
+    public enum ChatRoomType
+    {
+        Support,
+        Destination,
+        Private
     }
 }

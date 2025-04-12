@@ -1,0 +1,364 @@
+@page "/orderhistory"
+
+@using Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Gotorz.Client.Services
+
+@inject TravelPackageService PackageService
+@inject NotificationService NotificationService
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Order History</PageTitle>
+
+<h3>My Bookings</h3>
+
+<AuthorizeView>
+    <Authorized>
+        @if (bookings == null)
+        {
+            <div class="loading-container">
+                <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+                <p>Loading your bookings...</p>
+            </div>
+        }
+        else if (!bookings.Any())
+        {
+            <div class="alert alert-info">
+                <p>You don't have any bookings yet.</p>
+                <a href="/" class="btn btn-primary">Book a Travel Package</a>
+            </div>
+        }
+        else
+        {
+            <div class="booking-filter mb-4">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="bookingFilter" id="all" checked @onclick="() => SetFilter(BookingStatusFilter.All)" />
+                    <label class="form-check-label" for="all">All</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="bookingFilter" id="upcoming" @onclick="() => SetFilter(BookingStatusFilter.Upcoming)" />
+                    <label class="form-check-label" for="upcoming">Upcoming</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="bookingFilter" id="past" @onclick="() => SetFilter(BookingStatusFilter.Past)" />
+                    <label class="form-check-label" for="past">Past</label>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Booking Ref</th>
+                            <th>Destination</th>
+                            <th>Dates</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var booking in filteredBookings)
+                        {
+                            <tr>
+                                <td>@booking.ReferenceNumber</td>
+                                <td>@GetDestination(booking.Package)</td>
+                                <td>
+                                    @booking.TravelStartDate.ToString("MMM d, yyyy") - 
+                                    @booking.TravelEndDate.ToString("MMM d, yyyy")
+                                </td>
+                                <td>
+                                    <span class="badge @GetStatusBadgeClass(booking.Status)">
+                                        @booking.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge @GetPaymentBadgeClass(booking.PaymentStatus)">
+                                        @booking.PaymentStatus
+                                    </span>
+                                </td>
+                                <td>€@booking.TotalAmount</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewBookingDetails(booking)">
+                                        View
+                                    </button>
+                                    @if (booking.Status != BookingStatus.Cancelled)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => ShowCancelConfirmation(booking)">
+                                            Cancel
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (selectedBooking != null)
+            {
+                <div class="modal fade show" style="display: block;" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Booking Details: @selectedBooking.ReferenceNumber</h5>
+                                <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Flight Information</h6>
+                                        <div class="mb-3">
+                                            <strong>Outbound</strong><br />
+                                            @selectedBooking.Package.OutboundFlight.Itineraries[0].Segments[0].Departure.IataCode →
+                                            @selectedBooking.Package.OutboundFlight.Itineraries[0].Segments[^1].Arrival.IataCode<br />
+                                            @selectedBooking.Package.OutboundFlight.Itineraries[0].Segments[0].Departure.At.ToString("MMM d, yyyy HH:mm")
+                                        </div>
+                                        
+                                        @if (selectedBooking.Package.ReturnFlight != null)
+                                        {
+                                            <div class="mb-3">
+                                                <strong>Return</strong><br />
+                                                @selectedBooking.Package.ReturnFlight.Itineraries[0].Segments[0].Departure.IataCode →
+                                                @selectedBooking.Package.ReturnFlight.Itineraries[0].Segments[^1].Arrival.IataCode<br />
+                                                @selectedBooking.Package.ReturnFlight.Itineraries[0].Segments[0].Departure.At.ToString("MMM d, yyyy HH:mm")
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Hotel Information</h6>
+                                        <div class="mb-3">
+                                            <strong>@selectedBooking.Package.Hotel.Hotel.Name</strong><br />
+                                            Check-in: @selectedBooking.Package.Hotel.Offers[0].CheckInDate<br />
+                                            Check-out: @selectedBooking.Package.Hotel.Offers[0].CheckOutDate<br />
+                                            Room: @selectedBooking.Package.Hotel.Offers[0].RoomType
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr />
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Payment Information</h6>
+                                        <p>Status: <span class="badge @GetPaymentBadgeClass(selectedBooking.PaymentStatus)">@selectedBooking.PaymentStatus</span></p>
+                                        <p>Total Amount: €@selectedBooking.TotalAmount</p>
+                                        <p>Payment Date: @selectedBooking.BookingDate.ToString("MMM d, yyyy")</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Travel Documents</h6>
+                                        <button class="btn btn-primary mb-2" @onclick="() => RequestTravelDocuments(selectedBooking)">
+                                            Download E-Tickets & Vouchers
+                                        </button>
+                                        <button class="btn btn-info" @onclick="() => RequestTravelGuide(selectedBooking)">
+                                            Download Travel Guide
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-backdrop fade show"></div>
+            }
+
+            @if (bookingToCancel != null)
+            {
+                <div class="modal fade show" style="display: block;" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Confirm Cancellation</h5>
+                                <button type="button" class="btn-close" @onclick="() => bookingToCancel = null"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Are you sure you want to cancel booking @bookingToCancel.ReferenceNumber?</p>
+                                <p class="text-danger">This action cannot be undone.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" @onclick="() => bookingToCancel = null">No, Keep My Booking</button>
+                                <button type="button" class="btn btn-danger" @onclick="ConfirmCancellation">Yes, Cancel Booking</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-backdrop fade show"></div>
+            }
+
+            @if (showDocumentMessage)
+            {
+                <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+                    <strong>Success!</strong> Your documents have been sent to your email.
+                    <button type="button" class="btn-close" @onclick="() => showDocumentMessage = false"></button>
+                </div>
+            }
+        }
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-warning">
+            <p>You need to be logged in to view your bookings.</p>
+            <a href="Account/Login" class="btn btn-primary">Log In</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<Booking> bookings;
+    private List<Booking> filteredBookings;
+    private Booking selectedBooking;
+    private Booking bookingToCancel;
+    private BookingStatusFilter currentFilter = BookingStatusFilter.All;
+    private bool showDocumentMessage = false;
+    private string userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get the current user ID from the authentication state
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity.IsAuthenticated)
+        {
+            userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            // Add some mock bookings for demo purposes
+            if (PackageService.Bookings.Count == 0 && PackageService.Packages.Count > 0)
+            {
+                // Create a few sample bookings using the existing packages
+                foreach (var package in PackageService.Packages.Take(3))
+                {
+                    PackageService.CreateBooking(package, userId);
+                }
+                
+                // Add a past booking
+                var pastBooking = PackageService.Bookings.FirstOrDefault();
+                if (pastBooking != null)
+                {
+                    pastBooking.TravelStartDate = DateTime.Now.AddMonths(-2);
+                    pastBooking.TravelEndDate = DateTime.Now.AddMonths(-2).AddDays(7);
+                    pastBooking.Status = BookingStatus.Completed;
+                }
+                
+                // Add a cancelled booking
+                var cancelledBooking = PackageService.CreateBooking(PackageService.Packages.FirstOrDefault(), userId);
+                cancelledBooking.Status = BookingStatus.Cancelled;
+                cancelledBooking.PaymentStatus = PaymentStatus.Refunded;
+            }
+            
+            bookings = PackageService.GetUserBookings(userId);
+            ApplyFilter();
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        filteredBookings = currentFilter switch
+        {
+            BookingStatusFilter.Upcoming => bookings.Where(b => 
+                b.TravelStartDate >= DateTime.Now && 
+                b.Status != BookingStatus.Cancelled).ToList(),
+                
+            BookingStatusFilter.Past => bookings.Where(b => 
+                b.TravelEndDate < DateTime.Now || 
+                b.Status == BookingStatus.Cancelled || 
+                b.Status == BookingStatus.Completed).ToList(),
+                
+            _ => bookings.ToList()
+        };
+    }
+
+    private void SetFilter(BookingStatusFilter filter)
+    {
+        currentFilter = filter;
+        ApplyFilter();
+    }
+
+    private string GetDestination(TravelPackage package)
+    {
+        return package?.OutboundFlight?.Itineraries[0]?.Segments[^1]?.Arrival?.IataCode ?? "Unknown";
+    }
+
+    private string GetStatusBadgeClass(BookingStatus status)
+    {
+        return status switch
+        {
+            BookingStatus.Confirmed => "bg-success",
+            BookingStatus.Pending => "bg-warning",
+            BookingStatus.Cancelled => "bg-danger",
+            BookingStatus.Completed => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetPaymentBadgeClass(PaymentStatus status)
+    {
+        return status switch
+        {
+            PaymentStatus.Paid => "bg-success",
+            PaymentStatus.Pending => "bg-warning",
+            PaymentStatus.Failed => "bg-danger",
+            PaymentStatus.Refunded => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+
+    private void ViewBookingDetails(Booking booking)
+    {
+        selectedBooking = booking;
+    }
+
+    private void CloseModal()
+    {
+        selectedBooking = null;
+    }
+
+    private void ShowCancelConfirmation(Booking booking)
+    {
+        bookingToCancel = booking;
+    }
+
+    private void ConfirmCancellation()
+    {
+        if (bookingToCancel != null)
+        {
+            bookingToCancel.Status = BookingStatus.Cancelled;
+            bookingToCancel.PaymentStatus = PaymentStatus.Refunded;
+            bookingToCancel = null;
+        }
+    }
+
+    private async Task RequestTravelDocuments(Booking booking)
+    {
+        // Call the notification service to "send" the documents
+        await NotificationService.SendTravelDocuments(booking, "user@example.com");
+        showDocumentMessage = true;
+    }
+
+    private async Task RequestTravelGuide(Booking booking)
+    {
+        // Get the destination from the booking
+        var destination = GetDestination(booking.Package);
+        
+        // Call the notification service to "send" the travel guide
+        await NotificationService.SendTravelGuide(booking, "user@example.com", destination);
+        showDocumentMessage = true;
+    }
+
+    private enum BookingStatusFilter
+    {
+        All,
+        Upcoming,
+        Past
+    }
+}
+
+<style>
+    .modal {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+</style>

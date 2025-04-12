@@ -1,0 +1,504 @@
+@page "/checkout/{packageId:int}"
+
+@using Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Gotorz.Client.Services
+
+@inject TravelPackageService PackageService
+@inject PaymentService PaymentService
+@inject NotificationService NotificationService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize]
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Checkout</PageTitle>
+
+<h3>Complete Your Booking</h3>
+
+@if (isLoading)
+{
+    <div class="loading-container my-5 text-center">
+        <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+        <p>Loading your booking details...</p>
+    </div>
+}
+else if (package == null)
+{
+    <div class="alert alert-danger">
+        <h5>Package Not Found</h5>
+        <p>Sorry, we couldn't find the package you're looking for.</p>
+        <a href="/" class="btn btn-primary">Return to Home</a>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Booking Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="booking-summary">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6>Flight Information</h6>
+                                <div class="mb-2">
+                                    <strong>Outbound:</strong> 
+                                    @package.OutboundFlight.Itineraries[0].Segments[0].Departure.IataCode to
+                                    @package.OutboundFlight.Itineraries[0].Segments[^1].Arrival.IataCode
+                                </div>
+                                <div class="text-muted small mb-3">
+                                    @package.OutboundFlight.Itineraries[0].Segments[0].Departure.At.ToString("ddd, MMM d, yyyy HH:mm")
+                                </div>
+                                
+                                @if (package.ReturnFlight != null)
+                                {
+                                    <div class="mb-2">
+                                        <strong>Return:</strong> 
+                                        @package.ReturnFlight.Itineraries[0].Segments[0].Departure.IataCode to
+                                        @package.ReturnFlight.Itineraries[0].Segments[^1].Arrival.IataCode
+                                    </div>
+                                    <div class="text-muted small">
+                                        @package.ReturnFlight.Itineraries[0].Segments[0].Departure.At.ToString("ddd, MMM d, yyyy HH:mm")
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Hotel Information</h6>
+                                <div class="mb-2">
+                                    <strong>@package.Hotel.Hotel.Name</strong>
+                                </div>
+                                <div class="text-muted small mb-2">
+                                    Check-in: @package.Hotel.Offers[0].CheckInDate<br />
+                                    Check-out: @package.Hotel.Offers[0].CheckOutDate
+                                </div>
+                                <div>
+                                    Room: @package.Hotel.Offers[0].RoomType
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="traveler-info">
+                            <h6>Traveler Information</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" class="form-control" @bind="firstName" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" @bind="lastName" />
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" @bind="email" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" @bind="phone" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Payment Information</h5>
+                </div>
+                <div class="card-body">
+                    @if (paymentStep == PaymentStep.Method)
+                    {
+                        <div class="payment-methods mb-3">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="paymentMethod" id="newCard" 
+                                    checked="@(paymentMethodType == PaymentMethodType.NewCard)"
+                                    @onclick="() => paymentMethodType = PaymentMethodType.NewCard" />
+                                <label class="form-check-label" for="newCard">
+                                    Pay with a new card
+                                </label>
+                            </div>
+                            
+                            @if (savedPaymentMethods != null && savedPaymentMethods.Length > 0)
+                            {
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="paymentMethod" id="savedCard"
+                                        checked="@(paymentMethodType == PaymentMethodType.SavedCard)"
+                                        @onclick="() => paymentMethodType = PaymentMethodType.SavedCard" />
+                                    <label class="form-check-label" for="savedCard">
+                                        Pay with a saved card
+                                    </label>
+                                </div>
+                                
+                                @if (paymentMethodType == PaymentMethodType.SavedCard)
+                                {
+                                    <div class="saved-cards ms-4 mt-2 mb-3">
+                                        @foreach (var card in savedPaymentMethods)
+                                        {
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="radio" name="savedCardOption" 
+                                                    id="@card.Id" value="@card.Id" 
+                                                    checked="@(selectedPaymentMethodId == card.Id)"
+                                                    @onclick="() => selectedPaymentMethodId = card.Id" />
+                                                <label class="form-check-label" for="@card.Id">
+                                                    @card.CardType •••• @card.Last4 (Expires @card.ExpiryMonth/@card.ExpiryYear)
+                                                    @if (card.IsDefault)
+                                                    {
+                                                        <span class="badge bg-secondary ms-2">Default</span>
+                                                    }
+                                                </label>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                        
+                        @if (paymentMethodType == PaymentMethodType.NewCard)
+                        {
+                            <div class="new-card-form">
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <label class="form-label">Card Number</label>
+                                        <input type="text" class="form-control" placeholder="1234 5678 9012 3456" @bind="cardNumber" />
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Expiration Date</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" placeholder="MM" @bind="expiryMonth" maxlength="2" />
+                                            <span class="input-group-text">/</span>
+                                            <input type="text" class="form-control" placeholder="YY" @bind="expiryYear" maxlength="2" />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">CVV</label>
+                                        <input type="text" class="form-control" placeholder="123" @bind="cvv" maxlength="4" />
+                                    </div>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="saveCard" @bind="saveCard" />
+                                    <label class="form-check-label" for="saveCard">
+                                        Save this card for future bookings
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                        
+                        <div class="billing-address">
+                            <h6 class="mb-3">Billing Address</h6>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Country</label>
+                                    <select class="form-select" @bind="country">
+                                        <option value="US">United States</option>
+                                        <option value="CA">Canada</option>
+                                        <option value="GB">United Kingdom</option>
+                                        <option value="AU">Australia</option>
+                                        <option value="DE">Germany</option>
+                                        <option value="FR">France</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Zip/Postal Code</label>
+                                    <input type="text" class="form-control" @bind="postalCode" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary mt-3" @onclick="ProcessPayment" disabled="@isProcessingPayment">
+                            @if (isProcessingPayment)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Processing...</span>
+                            }
+                            else
+                            {
+                                <span>Pay Now</span>
+                            }
+                        </button>
+                    }
+                    else if (paymentStep == PaymentStep.Confirmation)
+                    {
+                        <div class="payment-confirmation">
+                            @if (paymentResult.Success)
+                            {
+                                <div class="text-center py-4">
+                                    <div class="mb-4">
+                                        <span class="display-1 text-success">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        </span>
+                                    </div>
+                                    <h4 class="mb-3">Payment Successful!</h4>
+                                    <p class="mb-4">Your booking has been confirmed. A confirmation email has been sent to @email.</p>
+                                    <p class="mb-2"><strong>Transaction ID:</strong> @paymentResult.TransactionId</p>
+                                    <p class="mb-4"><strong>Booking Reference:</strong> @bookingReference</p>
+                                    
+                                    <a href="/orderhistory" class="btn btn-primary">View My Bookings</a>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-4">
+                                    <div class="mb-4">
+                                        <span class="display-1 text-danger">
+                                            <i class="bi bi-x-circle-fill"></i>
+                                        </span>
+                                    </div>
+                                    <h4 class="mb-3">Payment Failed</h4>
+                                    <p class="mb-4">@paymentResult.ErrorMessage</p>
+                                    
+                                    <button class="btn btn-primary" @onclick="() => paymentStep = PaymentStep.Method">
+                                        Try Again
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Price Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Flight (Outbound)</span>
+                        <span>€@outboundFlightPrice</span>
+                    </div>
+                    
+                    @if (returnFlightPrice > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Flight (Return)</span>
+                            <span>€@returnFlightPrice</span>
+                        </div>
+                    }
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Hotel</span>
+                        <span>€@hotelPrice</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Service Fee</span>
+                        <span>€@serviceFee</span>
+                    </div>
+                    
+                    <hr />
+                    
+                    <div class="d-flex justify-content-between mb-2 fw-bold">
+                        <span>Total</span>
+                        <span>€@totalPrice</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string PackageId { get; set; }
+    
+    private TravelPackage package;
+    private bool isLoading = true;
+    private bool isProcessingPayment = false;
+    private string bookingReference;
+    private PaymentResult paymentResult;
+    private PaymentStep paymentStep = PaymentStep.Method;
+    private PaymentMethodType paymentMethodType = PaymentMethodType.NewCard;
+    private PaymentMethod[] savedPaymentMethods;
+    private string selectedPaymentMethodId;
+    private string userId;
+    
+    // Form fields
+    private string firstName;
+    private string lastName;
+    private string email;
+    private string phone;
+    private string cardNumber;
+    private string expiryMonth;
+    private string expiryYear;
+    private string cvv;
+    private bool saveCard;
+    private string country = "US";
+    private string postalCode;
+    
+    // Price breakdown
+    private decimal outboundFlightPrice;
+    private decimal returnFlightPrice;
+    private decimal hotelPrice;
+    private decimal serviceFee;
+    private decimal totalPrice;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Get the current user ID
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            email = user.FindFirst(ClaimTypes.Email)?.Value ?? "";
+            firstName = user.Identity.Name?.Split('@').FirstOrDefault() ?? "";
+            
+            if (int.TryParse(PackageId, out var packageIdInt))
+            {
+                package = PackageService.Packages.FirstOrDefault(p => p == PackageService.Packages[packageIdInt-1]);
+                
+                if (package != null)
+                {
+                    // Calculate prices
+                    decimal.TryParse(package.OutboundFlight?.Price?.Total ?? "0", out outboundFlightPrice);
+                    
+                    if (package.ReturnFlight != null)
+                    {
+                        decimal.TryParse(package.ReturnFlight?.Price?.Total ?? "0", out returnFlightPrice);
+                    }
+                    
+                    decimal.TryParse(package.Hotel?.Offers?.FirstOrDefault()?.Price?.Total ?? "0", out hotelPrice);
+                    
+                    // Calculate service fee (5%)
+                    var subtotal = outboundFlightPrice + returnFlightPrice + hotelPrice;
+                    serviceFee = Math.Round(subtotal * 0.05m, 2);
+                    totalPrice = subtotal + serviceFee;
+                }
+            }
+            
+            // Load saved payment methods
+            savedPaymentMethods = await PaymentService.GetSavedPaymentMethods(userId);
+            
+            // Pre-select default payment method if available
+            var defaultMethod = savedPaymentMethods?.FirstOrDefault(m => m.IsDefault);
+            if (defaultMethod != null)
+            {
+                selectedPaymentMethodId = defaultMethod.Id;
+                paymentMethodType = PaymentMethodType.SavedCard;
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    
+    private async Task ProcessPayment()
+    {
+        isProcessingPayment = true;
+        
+        try
+        {
+            // Create payment request
+            var paymentRequest = new PaymentRequest
+            {
+                Amount = totalPrice,
+                Currency = "EUR",
+                Description = $"GodTur Travel Package - {package.DepartureDate:yyyy-MM-dd}",
+                Email = email,
+                UserId = userId
+            };
+            
+            if (paymentMethodType == PaymentMethodType.NewCard)
+            {
+                paymentRequest.CardDetails = new CardDetails
+                {
+                    Number = cardNumber,
+                    ExpiryMonth = expiryMonth,
+                    ExpiryYear = expiryYear,
+                    Cvv = cvv,
+                    PostalCode = postalCode
+                };
+                
+                // Save card if requested
+                if (saveCard)
+                {
+                    await PaymentService.SavePaymentMethod(userId, new PaymentMethod
+                    {
+                        Id = $"pm_{Guid.NewGuid():N}",
+                        CardType = GetCardType(cardNumber),
+                        Last4 = cardNumber.Length >= 4 ? cardNumber.Substring(cardNumber.Length - 4) : "0000",
+                        ExpiryMonth = int.TryParse(expiryMonth, out var month) ? month : 12,
+                        ExpiryYear = int.TryParse(expiryYear, out var year) ? year : 25,
+                        IsDefault = savedPaymentMethods == null || savedPaymentMethods.Length == 0
+                    });
+                }
+            }
+            else
+            {
+                paymentRequest.SavedPaymentMethodId = selectedPaymentMethodId;
+            }
+            
+            // Process payment
+            paymentResult = await PaymentService.ProcessPayment(paymentRequest);
+            
+            if (paymentResult.Success)
+            {
+                // Create booking
+                var booking = PackageService.CreateBooking(package, userId);
+                bookingReference = booking.ReferenceNumber;
+                
+                // Send confirmation email
+                await NotificationService.SendBookingConfirmation(booking, email);
+                
+                // Send travel documents
+                await NotificationService.SendTravelDocuments(booking, email);
+                
+                // Send travel guide
+                var destination = package.OutboundFlight?.Itineraries[0]?.Segments.LastOrDefault()?.Arrival?.IataCode;
+                if (!string.IsNullOrEmpty(destination))
+                {
+                    await NotificationService.SendTravelGuide(booking, email, destination);
+                }
+            }
+            
+            paymentStep = PaymentStep.Confirmation;
+        }
+        finally
+        {
+            isProcessingPayment = false;
+        }
+    }
+    
+    private string GetCardType(string cardNumber)
+    {
+        if (string.IsNullOrEmpty(cardNumber))
+            return "Unknown";
+            
+        // Very simplified card type detection
+        if (cardNumber.StartsWith("4"))
+            return "Visa";
+        else if (cardNumber.StartsWith("5"))
+            return "Mastercard";
+        else if (cardNumber.StartsWith("3"))
+            return "American Express";
+        else if (cardNumber.StartsWith("6"))
+            return "Discover";
+        else
+            return "Unknown";
+    }
+    
+    private enum PaymentStep
+    {
+        Method,
+        Confirmation
+    }
+    
+    private enum PaymentMethodType
+    {
+        NewCard,
+        SavedCard
+    }
+}

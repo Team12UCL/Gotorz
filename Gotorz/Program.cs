@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using Gotorz.Client.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +70,13 @@ builder.Services.AddScoped<AirportService>();
 builder.Services.AddScoped<FlightService>();
 builder.Services.AddScoped<HotelService>();
 builder.Services.AddScoped<TravelPackageService>();
+
+// Register mock services for client-side functionality
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<ActivityLogService>();
+builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<LocalizationService>();
 
 // Add SignalR (for real-time chat)
 builder.Services.AddSignalR();
