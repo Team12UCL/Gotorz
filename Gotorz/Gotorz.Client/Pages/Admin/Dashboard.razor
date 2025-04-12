@@ -1,0 +1,314 @@
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@using Shared.Models
+@using System.Globalization
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Admin Dashboard - GodTur</PageTitle>
+
+<div class="container-fluid">
+    <h2 class="mb-4">Admin Dashboard</h2>
+    
+    <div class="row">
+        <!-- Stats Cards -->
+        <div class="col-md-3">
+            <div class="card stats-card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Users</h5>
+                    <h2 class="display-4">@usersCount</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="text-white stretched-link" href="/admin/users">View Details</a>
+                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stats-card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Active Bookings</h5>
+                    <h2 class="display-4">@activeBookingsCount</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="text-white stretched-link" href="/admin/bookings">View Details</a>
+                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stats-card bg-warning text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Packages</h5>
+                    <h2 class="display-4">@packagesCount</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="text-white stretched-link" href="/admin/packages">View Details</a>
+                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stats-card bg-danger text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Revenue</h5>
+                    <h2 class="display-4">@revenue.ToString("C0", CultureInfo.CreateSpecificCulture("en-US"))</h2>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="text-white stretched-link" href="/admin/reports">View Reports</a>
+                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Bookings</h5>
+                </div>
+                <div class="card-body">
+                    @if (isLoading)
+                    {
+                        <div class="text-center p-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (recentBookings.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Booking ID</th>
+                                        <th>User</th>
+                                        <th>Package</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var booking in recentBookings)
+                                    {
+                                        <tr>
+                                            <td>@booking.Id.ToString().Substring(0, 8)...</td>
+                                            <td>@booking.UserName</td>
+                                            <td>@booking.PackageName</td>
+                                            <td>@booking.BookingDate.ToString("MMM dd, yyyy")</td>
+                                            <td>
+                                                <span class="badge bg-@GetStatusColor(booking.Status)">
+                                                    @booking.Status
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-center p-3">No recent bookings found.</p>
+                    }
+                </div>
+                <div class="card-footer">
+                    <a href="/admin/bookings" class="btn btn-sm btn-outline-primary">View All Bookings</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent User Activity</h5>
+                </div>
+                <div class="card-body">
+                    @if (isLoading)
+                    {
+                        <div class="text-center p-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (recentActivities.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Activity</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var activity in recentActivities)
+                                    {
+                                        <tr>
+                                            <td>@activity.UserName</td>
+                                            <td>@activity.Description</td>
+                                            <td>@activity.Timestamp.ToString("MMM dd, HH:mm")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-center p-3">No recent activities found.</p>
+                    }
+                </div>
+                <div class="card-footer">
+                    <a href="/admin/activity" class="btn btn-sm btn-outline-primary">View All Activities</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="/admin/users/create" class="btn btn-outline-primary">
+                            <i class="bi bi-person-plus"></i> Add User
+                        </a>
+                        <a href="/admin/packages/create" class="btn btn-outline-success">
+                            <i class="bi bi-plus-square"></i> Create Package
+                        </a>
+                        <a href="/admin/reports/export" class="btn btn-outline-info">
+                            <i class="bi bi-file-earmark-arrow-down"></i> Export Reports
+                        </a>
+                        <a href="/admin/settings" class="btn btn-outline-secondary">
+                            <i class="bi bi-gear"></i> System Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isLoading = true;
+    private int usersCount = 0;
+    private int activeBookingsCount = 0;
+    private int packagesCount = 0;
+    private decimal revenue = 0;
+    private List<Booking> recentBookings = new();
+    private List<ActivityLog> recentActivities = new();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+    
+    private async Task LoadDashboardData()
+    {
+        isLoading = true;
+        
+        try
+        {
+            // In a real app, these would be actual API calls
+            // For this example, we're using mock data
+            await Task.Delay(500); // Simulate API call
+            
+            usersCount = 152;
+            activeBookingsCount = 48;
+            packagesCount = 95;
+            revenue = 287450;
+            
+            recentBookings = GenerateMockBookings();
+            recentActivities = GenerateMockActivities();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    
+    private List<Booking> GenerateMockBookings()
+    {
+        return new List<Booking>
+        {
+            new Booking { Id = Guid.NewGuid(), UserName = "john.doe@example.com", PackageName = "Paris Getaway", BookingDate = DateTime.Now.AddDays(-1), Status = "Confirmed" },
+            new Booking { Id = Guid.NewGuid(), UserName = "jane.smith@example.com", PackageName = "Tokyo Adventure", BookingDate = DateTime.Now.AddDays(-2), Status = "Pending" },
+            new Booking { Id = Guid.NewGuid(), UserName = "mark.wilson@example.com", PackageName = "New York City Break", BookingDate = DateTime.Now.AddDays(-3), Status = "Confirmed" },
+            new Booking { Id = Guid.NewGuid(), UserName = "sarah.johnson@example.com", PackageName = "Rome Holiday", BookingDate = DateTime.Now.AddDays(-3), Status = "Cancelled" },
+            new Booking { Id = Guid.NewGuid(), UserName = "david.williams@example.com", PackageName = "Barcelona Weekend", BookingDate = DateTime.Now.AddDays(-5), Status = "Completed" }
+        };
+    }
+    
+    private List<ActivityLog> GenerateMockActivities()
+    {
+        return new List<ActivityLog>
+        {
+            new ActivityLog { UserName = "john.doe@example.com", Description = "Logged in", Timestamp = DateTime.Now.AddHours(-1) },
+            new ActivityLog { UserName = "admin@godtur.com", Description = "Updated package details", Timestamp = DateTime.Now.AddHours(-2) },
+            new ActivityLog { UserName = "jane.smith@example.com", Description = "Completed booking", Timestamp = DateTime.Now.AddHours(-3) },
+            new ActivityLog { UserName = "sales@godtur.com", Description = "Added new package", Timestamp = DateTime.Now.AddHours(-5) },
+            new ActivityLog { UserName = "mark.wilson@example.com", Description = "Requested support", Timestamp = DateTime.Now.AddHours(-6) }
+        };
+    }
+    
+    private string GetStatusColor(string status) => status switch
+    {
+        "Confirmed" => "success",
+        "Pending" => "warning",
+        "Cancelled" => "danger",
+        "Completed" => "info",
+        _ => "secondary"
+    };
+    
+    // Mock classes (in a real app, these would be in the Shared project)
+    private class Booking
+    {
+        public Guid Id { get; set; }
+        public string UserName { get; set; } = "";
+        public string PackageName { get; set; } = "";
+        public DateTime BookingDate { get; set; }
+        public string Status { get; set; } = "";
+    }
+    
+    private class ActivityLog
+    {
+        public string UserName { get; set; } = "";
+        public string Description { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+    }
+}
+
+<style>
+    .stats-card {
+        border-radius: 0.5rem;
+        border-left: 0.25rem solid rgba(255, 255, 255, 0.5);
+    }
+    
+    .stats-card .display-4 {
+        font-size: 2.5rem;
+        font-weight: 300;
+    }
+    
+    .stats-card .card-footer {
+        background-color: rgba(0, 0, 0, 0.1);
+        border-top: none;
+    }
+</style>

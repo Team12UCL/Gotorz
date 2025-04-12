@@ -1,0 +1,250 @@
+@page "/packagedetails/{Id:guid}"
+@using Shared.Models
+@using System.Globalization
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Package Details - GodTur</PageTitle>
+
+<div class="container my-4">
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center my-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading package details...</span>
+            </div>
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger">
+            <h4 class="alert-heading">Error</h4>
+            <p>@errorMessage</p>
+            <hr />
+            <p class="mb-0">
+                <button class="btn btn-outline-danger" @onclick="() => NavigationManager.NavigateTo('/packages')">
+                    Return to Packages
+                </button>
+            </p>
+        </div>
+    }
+    else if (package != null)
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <h2>@package.Name</h2>
+                <p class="lead">@package.Description</p>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Flight Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between flight-card">
+                            <div>
+                                <h6>Outbound Flight</h6>
+                                <div class="flight-route">
+                                    <span class="airport">@package.OriginAirport</span>
+                                    <span class="flight-arrow">→</span>
+                                    <span class="airport">@package.DestinationAirport</span>
+                                </div>
+                                <div class="flight-details">
+                                    <div>Airline: @package.Airline</div>
+                                    <div>Flight: @package.FlightNumber</div>
+                                    <div>Date: @package.DepartureDate.ToString("dddd, MMMM d, yyyy")</div>
+                                </div>
+                            </div>
+                            <div>
+                                <h6>Return Flight</h6>
+                                <div class="flight-route">
+                                    <span class="airport">@package.DestinationAirport</span>
+                                    <span class="flight-arrow">→</span>
+                                    <span class="airport">@package.OriginAirport</span>
+                                </div>
+                                <div class="flight-details">
+                                    <div>Airline: @package.Airline</div>
+                                    <div>Date: @package.ReturnDate.ToString("dddd, MMMM d, yyyy")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Hotel Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <img src="@(string.IsNullOrEmpty(package.ImageUrl) ? "/images/default-hotel.jpg" : package.ImageUrl)" 
+                                     class="img-fluid rounded" alt="@package.HotelName">
+                            </div>
+                            <div class="col-md-8">
+                                <h5>@package.HotelName <span class="rating">@package.HotelRating★</span></h5>
+                                <p>@package.HotelAddress</p>
+                                
+                                <div class="hotel-details">
+                                    <div><i class="bi bi-calendar-check"></i> Check-in: @package.DepartureDate.ToString("MMM dd, yyyy")</div>
+                                    <div><i class="bi bi-calendar-x"></i> Check-out: @package.ReturnDate.ToString("MMM dd, yyyy")</div>
+                                    <div><i class="bi bi-moon-stars"></i> @package.DurationInDays nights</div>
+                                    <div><i class="bi bi-door-open"></i> Room type: @package.RoomType</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card booking-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Booking Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="price-breakdown">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Package Price:</span>
+                                <span>@package.TotalPrice.ToString("C", CultureInfo.CreateSpecificCulture("en-US"))</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Taxes & Fees:</span>
+                                <span>@((package.TotalPrice * 0.1m).ToString("C", CultureInfo.CreateSpecificCulture("en-US")))</span>
+                            </div>
+                            <hr/>
+                            <div class="d-flex justify-content-between total-price">
+                                <span>Total:</span>
+                                <span>@((package.TotalPrice * 1.1m).ToString("C", CultureInfo.CreateSpecificCulture("en-US")))</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button class="btn btn-primary w-100 mb-2" @onclick="BookPackage">
+                                Book Now
+                            </button>
+                            <button class="btn btn-outline-secondary w-100" @onclick="() => NavigationManager.NavigateTo('/packages')">
+                                Back to Packages
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5>Need Help?</h5>
+                        <p>Contact our travel experts for assistance with this package.</p>
+                        <a href="/supportchat" class="btn btn-outline-info w-100">
+                            <i class="bi bi-chat-dots"></i> Chat with Support
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+    
+    private TravelPackage? package;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private bool isLoggedIn = false; // In a real app, this would come from auth state
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPackageDetails();
+    }
+
+    private async Task LoadPackageDetails()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            package = await HttpClient.GetFromJsonAsync<TravelPackage>($"api/travelpackage/{Id}");
+            
+            if (package == null)
+            {
+                errorMessage = "Package not found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading package details: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void BookPackage()
+    {
+        if (isLoggedIn)
+        {
+            // In a real app, this would make a booking and redirect to payment
+            NavigationManager.NavigateTo($"/booking/payment/{Id}");
+        }
+        else
+        {
+            // Redirect to login page with return URL
+            NavigationManager.NavigateTo($"/Account/Login?returnUrl=/packagedetails/{Id}");
+        }
+    }
+}
+
+<style>
+    .flight-card {
+        margin-bottom: 20px;
+    }
+    
+    .flight-route {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    .flight-arrow {
+        color: #0d6efd;
+        margin: 0 10px;
+    }
+    
+    .flight-details {
+        color: #666;
+    }
+    
+    .hotel-details {
+        margin-top: 15px;
+    }
+    
+    .hotel-details div {
+        margin-bottom: 8px;
+    }
+    
+    .hotel-details i {
+        color: #0d6efd;
+        margin-right: 8px;
+    }
+    
+    .rating {
+        background-color: #ffc107;
+        color: #000;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+    
+    .booking-card {
+        position: sticky;
+        top: 20px;
+    }
+    
+    .total-price {
+        font-size: 1.25rem;
+        font-weight: bold;
+    }
+</style>

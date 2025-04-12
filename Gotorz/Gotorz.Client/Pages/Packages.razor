@@ -1,0 +1,237 @@
+@page "/packages"
+@using Shared.Models
+@using System.Globalization
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Travel Packages - GodTur</PageTitle>
+
+<div class="container">
+    <h2>Travel Packages</h2>
+    <p class="lead">Search for complete travel packages including flights and accommodations.</p>
+
+    <div class="search-container card mb-4">
+        <div class="card-body">
+            <h4>Search for Packages</h4>
+            
+            <div class="row g-3">
+                <!-- Origin -->
+                <div class="col-md-6 col-lg-3">
+                    <label for="originCode" class="form-label">From</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-geo"></i></span>
+                        <input type="text" class="form-control" id="originCode" @bind="originCode" 
+                               placeholder="Airport code (e.g. LHR)" />
+                    </div>
+                </div>
+                
+                <!-- Destination -->
+                <div class="col-md-6 col-lg-3">
+                    <label for="destinationCode" class="form-label">To</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                        <input type="text" class="form-control" id="destinationCode" @bind="destinationCode" 
+                               placeholder="Airport code (e.g. JFK)" />
+                    </div>
+                </div>
+                
+                <!-- Departure Date -->
+                <div class="col-md-6 col-lg-2">
+                    <label for="departureDate" class="form-label">Departure</label>
+                    <input type="date" class="form-control" id="departureDate" @bind="departureDate" min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                </div>
+                
+                <!-- Return Date -->
+                <div class="col-md-6 col-lg-2">
+                    <label for="returnDate" class="form-label">Return</label>
+                    <input type="date" class="form-control" id="returnDate" @bind="returnDate" min="@(departureDate?.ToString("yyyy-MM-dd") ?? DateTime.Now.ToString("yyyy-MM-dd"))" />
+                </div>
+                
+                <!-- Adults -->
+                <div class="col-md-6 col-lg-1">
+                    <label for="adults" class="form-label">Adults</label>
+                    <input type="number" class="form-control" id="adults" @bind="adults" min="1" max="9" />
+                </div>
+                
+                <!-- Search Button -->
+                <div class="col-md-6 col-lg-1 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" @onclick="SearchPackages" disabled="@isSearching">
+                        @if (isSearching)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>Searching</span>
+                        }
+                        else
+                        {
+                            <span>Search</span>
+                        }
+                    </button>
+                </div>
+            </div>
+            
+            @if (errorMessage != null)
+            {
+                <div class="alert alert-danger mt-3">@errorMessage</div>
+            }
+        </div>
+    </div>
+
+    @if (isSearching)
+    {
+        <div class="d-flex justify-content-center my-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading packages...</span>
+            </div>
+        </div>
+        <p class="text-center">We're creating the perfect packages for you...</p>
+    }
+    else if (packages.Any())
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var package in packages)
+            {
+                <div class="col">
+                    <div class="card h-100 package-card">
+                        <img src="@(string.IsNullOrEmpty(package.ImageUrl) ? "/images/default-hotel.jpg" : package.ImageUrl)" 
+                             class="card-img-top" alt="@package.HotelName" style="height: 200px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">@package.Name</h5>
+                            <p class="card-text">@package.Description</p>
+                            
+                            <div class="package-details">
+                                <div class="detail-item">
+                                    <i class="bi bi-calendar-check"></i>
+                                    <span>@package.DepartureDate.ToString("MMM dd") - @package.ReturnDate.ToString("MMM dd, yyyy")</span>
+                                </div>
+                                <div class="detail-item">
+                                    <i class="bi bi-airplane"></i>
+                                    <span>@package.OriginAirport to @package.DestinationAirport</span>
+                                </div>
+                                <div class="detail-item">
+                                    <i class="bi bi-building"></i>
+                                    <span>@package.HotelName (@package.HotelRating★)</span>
+                                </div>
+                                <div class="detail-item">
+                                    <i class="bi bi-person"></i>
+                                    <span>@adults @(adults == 1 ? "Adult" : "Adults")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="price-display">@package.TotalPrice.ToString("C", CultureInfo.CreateSpecificCulture("en-US"))</span>
+                                <button class="btn btn-outline-primary" @onclick="() => ViewPackageDetails(package.Id)">View Details</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (hasSearched)
+    {
+        <div class="alert alert-info">
+            <h4 class="alert-heading">No packages found</h4>
+            <p>We couldn't find any travel packages matching your search criteria. Please try different dates or destinations.</p>
+        </div>
+    }
+</div>
+
+@code {
+    private string? originCode;
+    private string? destinationCode;
+    private DateTime? departureDate = DateTime.Now.AddDays(7);
+    private DateTime? returnDate = DateTime.Now.AddDays(14);
+    private int adults = 2;
+    private List<TravelPackage> packages = new();
+    private bool isSearching = false;
+    private bool hasSearched = false;
+    private string? errorMessage;
+
+    private async Task SearchPackages()
+    {
+        // Validate inputs
+        if (string.IsNullOrWhiteSpace(originCode) || string.IsNullOrWhiteSpace(destinationCode) || 
+            !departureDate.HasValue || !returnDate.HasValue)
+        {
+            errorMessage = "Please fill in all required fields.";
+            return;
+        }
+        
+        if (departureDate >= returnDate)
+        {
+            errorMessage = "Return date must be after departure date.";
+            return;
+        }
+
+        errorMessage = null;
+        isSearching = true;
+        hasSearched = true;
+        packages.Clear();
+
+        try
+        {
+            string requestUrl = $"api/travelpackage/search?originCode={originCode}&destinationCode={destinationCode}" +
+                              $"&departureDate={departureDate:yyyy-MM-dd}&returnDate={returnDate:yyyy-MM-dd}&adults={adults}";
+            
+            var response = await HttpClient.GetFromJsonAsync<List<TravelPackage>>(requestUrl);
+            
+            if (response != null)
+            {
+                packages = response;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred while searching for packages: {ex.Message}";
+        }
+        finally
+        {
+            isSearching = false;
+        }
+    }
+
+    private void ViewPackageDetails(Guid packageId)
+    {
+        NavigationManager.NavigateTo($"/packagedetails/{packageId}");
+    }
+}
+
+<style>
+    .search-container {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+    }
+    
+    .package-card {
+        transition: transform 0.3s;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .package-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .package-details {
+        margin-top: 1rem;
+    }
+    
+    .detail-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .detail-item i {
+        margin-right: 0.5rem;
+        color: #0d6efd;
+    }
+    
+    .price-display {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+</style>
