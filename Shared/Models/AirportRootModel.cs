@@ -1,40 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Shared.Models.AirportRootModel
+namespace Shared.Models
 {
     public class AirportRootModel
     {
-        //public Meta Meta { get; set; }
-        public List<Location> Data { get; set; } = new();
+        public List<Airport> Data { get; set; }
     }
 
-    //public class Meta
-    //{
-    //    public int Count { get; set; }
-    //    public Links Links { get; set; }
-    //}
-
-    //public class Links
-    //{
-    //    public string Self { get; set; }
-    //    public string Next { get; set; }
-    //    public string Last { get; set; }
-    //}
-
-    public class Location
+    public class Airport
     {
-        public string Name { get; set; }
         public string IataCode { get; set; }
-        public Address Address { get; set; }
-    }
-
-    public class Address
-    {
+        public string Name { get; set; }
         public string CityName { get; set; }
         public string CountryName { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
     }
 }

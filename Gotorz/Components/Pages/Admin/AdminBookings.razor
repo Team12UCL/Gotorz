@@ -1,0 +1,510 @@
+@using Shared.Models
+@inject NavigationManager NavigationManager
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Bookings Management</h5>
+        <div>
+            <button class="btn btn-light me-2" @onclick="ExportBookings">
+                <i class="bi bi-download me-1"></i> Export
+            </button>
+            <button class="btn btn-light" @onclick="CreateNewBooking">
+                <i class="bi bi-plus-circle me-1"></i> Add Booking
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search bookings..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterBookings" />
+                    <button class="btn btn-outline-secondary" type="button" @onclick="FilterBookings">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" @bind="statusFilter" @bind:event="onchange" @onchange="FilterBookings">
+                    <option value="">All Statuses</option>
+                    <option value="Confirmed">Confirmed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">From</span>
+                    <input type="date" class="form-control" @bind="startDate" @bind:event="onchange" @onchange="FilterBookings" />
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">To</span>
+                    <input type="date" class="form-control" @bind="endDate" @bind:event="onchange" @onchange="FilterBookings" />
+                </div>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">
+                    <i class="bi bi-x-circle me-1"></i> Clear Filters
+                </button>
+            </div>
+        </div>
+
+        @if (loading)
+        {
+            <div class="text-center my-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading bookings...</p>
+            </div>
+        }
+        else if (filteredBookings.Count == 0)
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i> No bookings found. 
+                @if (!string.IsNullOrWhiteSpace(searchTerm) || !string.IsNullOrWhiteSpace(statusFilter) || startDate != null || endDate != null)
+                {
+                    <span>Try different search criteria or <button class="btn btn-link p-0" @onclick="ClearFilters">clear filters</button>.</span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th @onclick="() => SortTable("Reference")">
+                                Reference <SortIndicator Field="Reference" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th @onclick="() => SortTable("Customer")">
+                                Customer <SortIndicator Field="Customer" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th @onclick="() => SortTable("Package")">
+                                Package <SortIndicator Field="Package" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th @onclick="() => SortTable("BookingDate")">
+                                Booking Date <SortIndicator Field="BookingDate" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th @onclick="() => SortTable("TravelDate")">
+                                Travel Date <SortIndicator Field="TravelDate" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th @onclick="() => SortTable("Amount")">
+                                Amount <SortIndicator Field="Amount" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th @onclick="() => SortTable("Status")">
+                                Status <SortIndicator Field="Status" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var booking in filteredBookings)
+                        {
+                            <tr @onclick="() => ViewBookingDetails(booking.Id)" style="cursor: pointer;">
+                                <td>@booking.BookingReference</td>
+                                <td>@booking.PrimaryContactName</td>
+                                <td>@booking.PackageName</td>
+                                <td>@booking.BookingDate.ToString("MM/dd/yyyy")</td>
+                                <td>@booking.TravelDate.ToString("MM/dd/yyyy")</td>
+                                <td>$@booking.TotalAmount.ToString("N2")</td>
+                                <td>
+                                    <span class="badge bg-@GetStatusBadgeColor(booking.Status)">@booking.Status</span>
+                                </td>
+                                <td class="text-center" @onclick:stopPropagation>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => EditBooking(booking.Id)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info" @onclick="() => SendBookingDocuments(booking.Id)">
+                                            <i class="bi bi-envelope"></i>
+                                        </button>
+                                        @if (booking.Status != "Cancelled")
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => CancelBookingPrompt(booking)">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                    <span>Showing @filteredBookings.Count of @allBookings.Count bookings</span>
+                </div>
+                <nav>
+                    <ul class="pagination">
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="PreviousPage">Previous</button>
+                        </li>
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            var pageNumber = i;
+                            <li class="page-item @(currentPage == pageNumber ? "active" : "")">
+                                <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
+                            </li>
+                        }
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="NextPage">Next</button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+@if (showCancelConfirmation)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirm Cancellation</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CancelCancelAction"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to cancel booking <strong>@bookingToCancel?.BookingReference</strong> for @bookingToCancel?.PrimaryContactName?</p>
+                    <div class="mb-3">
+                        <label for="cancellationReason" class="form-label">Reason for cancellation:</label>
+                        <textarea class="form-control" id="cancellationReason" rows="3" @bind="cancellationReason"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" value="" id="processRefund" @bind="processRefund">
+                        <label class="form-check-label" for="processRefund">
+                            Process refund according to cancellation policy
+                        </label>
+                    </div>
+                    <p class="text-danger"><small>This action cannot be undone.</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelCancelAction">Back</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmCancelBooking">Confirm Cancellation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool loading = true;
+    private string searchTerm = "";
+    private string statusFilter = "";
+    private DateTime? startDate = null;
+    private DateTime? endDate = null;
+    private string currentSortField = "BookingDate";
+    private bool isAscending = false;
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => (int)Math.Ceiling(filteredBookings.Count / (double)pageSize);
+    
+    // Cancellation
+    private bool showCancelConfirmation = false;
+    private Booking bookingToCancel;
+    private string cancellationReason = "";
+    private bool processRefund = true;
+    
+    // Mock data
+    private List<Booking> allBookings = new List<Booking>();
+    private List<Booking> filteredBookings = new List<Booking>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // In a real application, this would be loading from a service/API
+        await Task.Delay(500); // Simulate network delay
+        
+        // Mock data
+        allBookings = GenerateSampleBookings();
+        FilterAndSortBookings();
+        
+        loading = false;
+    }
+
+    private List<Booking> GenerateSampleBookings()
+    {
+        var bookings = new List<Booking>();
+        var statuses = new[] { "Confirmed", "Pending", "Completed", "Cancelled" };
+        var packages = new[] { 
+            "New York City Escape", 
+            "Paris Romance", 
+            "Tokyo Adventure", 
+            "Caribbean Cruise", 
+            "London Explorer",
+            "Rome Getaway",
+            "Barcelona Weekend",
+            "Sydney Adventure",
+            "Dubai Luxury",
+            "Bangkok Experience"
+        };
+        var names = new[] {
+            "John Smith",
+            "Jane Johnson",
+            "Robert Williams",
+            "Emily Brown",
+            "Michael Davis",
+            "Sarah Miller",
+            "David Garcia",
+            "Lisa Rodriguez",
+            "William Wilson",
+            "Emma Martinez"
+        };
+        
+        var random = new Random();
+        
+        for (int i = 0; i < 50; i++)
+        {
+            var bookingDate = DateTime.Now.AddDays(-random.Next(1, 180));
+            var travelDate = bookingDate.AddDays(random.Next(14, 120));
+            var status = statuses[random.Next(statuses.Length)];
+            
+            // Make sure completed bookings have travel dates in the past
+            if (status == "Completed")
+            {
+                travelDate = DateTime.Now.AddDays(-random.Next(1, 30));
+            }
+            
+            // Generate a realistic booking reference
+            var bookingReference = $"GT-{bookingDate:yyyyMMdd}-{random.Next(1000, 9999)}";
+            
+            bookings.Add(new Booking
+            {
+                Id = Guid.NewGuid(),
+                BookingReference = bookingReference,
+                PrimaryContactName = names[random.Next(names.Length)],
+                ContactEmail = $"customer{i}@example.com",
+                ContactPhone = $"(555) {random.Next(100, 999)}-{random.Next(1000, 9999)}",
+                BookingDate = bookingDate,
+                TravelDate = travelDate,
+                ReturnDate = travelDate.AddDays(random.Next(3, 14)),
+                TotalAmount = random.Next(800, 5000) + random.Next(0, 99) / 100.0m,
+                Status = status,
+                PackageName = packages[random.Next(packages.Length)],
+                NumberOfTravelers = random.Next(1, 5),
+                PaymentMethod = random.Next(2) == 0 ? "Credit Card" : "PayPal",
+                SpecialRequests = random.Next(3) == 0 ? "Vegetarian meals requested" : null
+            });
+        }
+        
+        return bookings;
+    }
+
+    private void FilterBookings()
+    {
+        FilterAndSortBookings();
+        currentPage = 1;
+    }
+
+    private void FilterAndSortBookings()
+    {
+        // Apply filters
+        filteredBookings = allBookings.Where(b => 
+            (string.IsNullOrWhiteSpace(searchTerm) || 
+             b.BookingReference.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             b.PrimaryContactName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             b.PackageName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(statusFilter) || b.Status == statusFilter) &&
+            (startDate == null || b.BookingDate >= startDate) &&
+            (endDate == null || b.BookingDate <= endDate.Value.AddDays(1))
+        ).ToList();
+
+        // Apply sorting
+        switch (currentSortField)
+        {
+            case "Reference":
+                filteredBookings = isAscending 
+                    ? filteredBookings.OrderBy(b => b.BookingReference).ToList() 
+                    : filteredBookings.OrderByDescending(b => b.BookingReference).ToList();
+                break;
+            case "Customer":
+                filteredBookings = isAscending 
+                    ? filteredBookings.OrderBy(b => b.PrimaryContactName).ToList() 
+                    : filteredBookings.OrderByDescending(b => b.PrimaryContactName).ToList();
+                break;
+            case "Package":
+                filteredBookings = isAscending 
+                    ? filteredBookings.OrderBy(b => b.PackageName).ToList() 
+                    : filteredBookings.OrderByDescending(b => b.PackageName).ToList();
+                break;
+            case "BookingDate":
+                filteredBookings = isAscending 
+                    ? filteredBookings.OrderBy(b => b.BookingDate).ToList() 
+                    : filteredBookings.OrderByDescending(b => b.BookingDate).ToList();
+                break;
+            case "TravelDate":
+                filteredBookings = isAscending 
+                    ? filteredBookings.OrderBy(b => b.TravelDate).ToList() 
+                    : filteredBookings.OrderByDescending(b => b.TravelDate).ToList();
+                break;
+            case "Amount":
+                filteredBookings = isAscending 
+                    ? filteredBookings.OrderBy(b => b.TotalAmount).ToList() 
+                    : filteredBookings.OrderByDescending(b => b.TotalAmount).ToList();
+                break;
+            case "Status":
+                filteredBookings = isAscending 
+                    ? filteredBookings.OrderBy(b => b.Status).ToList() 
+                    : filteredBookings.OrderByDescending(b => b.Status).ToList();
+                break;
+        }
+    }
+
+    private void SortTable(string field)
+    {
+        if (currentSortField == field)
+        {
+            isAscending = !isAscending;
+        }
+        else
+        {
+            currentSortField = field;
+            isAscending = true;
+        }
+        
+        FilterAndSortBookings();
+    }
+
+    private void ClearFilters()
+    {
+        searchTerm = "";
+        statusFilter = "";
+        startDate = null;
+        endDate = null;
+        FilterBookings();
+    }
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+        }
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+        }
+    }
+
+    private void GoToPage(int page)
+    {
+        currentPage = page;
+    }
+
+    private void ViewBookingDetails(Guid id)
+    {
+        NavigationManager.NavigateTo($"/admin/bookings/{id}");
+    }
+
+    private void CreateNewBooking()
+    {
+        NavigationManager.NavigateTo("/admin/bookings/create");
+    }
+
+    private void EditBooking(Guid id)
+    {
+        NavigationManager.NavigateTo($"/admin/bookings/edit/{id}");
+    }
+
+    private void SendBookingDocuments(Guid id)
+    {
+        // In a real application, this would trigger an API call to send documents
+        Console.WriteLine($"Sending booking documents for booking ID: {id}");
+    }
+
+    private void ExportBookings()
+    {
+        // In a real application, this would generate a CSV or PDF export
+        Console.WriteLine("Exporting bookings...");
+    }
+
+    private void CancelBookingPrompt(Booking booking)
+    {
+        bookingToCancel = booking;
+        cancellationReason = "";
+        processRefund = true;
+        showCancelConfirmation = true;
+    }
+
+    private void CancelCancelAction()
+    {
+        showCancelConfirmation = false;
+        bookingToCancel = null;
+    }
+
+    private void ConfirmCancelBooking()
+    {
+        if (bookingToCancel != null)
+        {
+            // In a real application, this would call an API to cancel the booking
+            var index = allBookings.FindIndex(b => b.Id == bookingToCancel.Id);
+            if (index != -1)
+            {
+                allBookings[index].Status = "Cancelled";
+                allBookings[index].CancellationReason = cancellationReason;
+                allBookings[index].RefundProcessed = processRefund;
+            }
+            FilterAndSortBookings();
+        }
+        
+        showCancelConfirmation = false;
+        bookingToCancel = null;
+    }
+
+    private string GetStatusBadgeColor(string status)
+    {
+        return status switch
+        {
+            "Confirmed" => "success",
+            "Pending" => "warning",
+            "Completed" => "info",
+            "Cancelled" => "danger",
+            _ => "secondary"
+        };
+    }
+}
+
+@code {
+    public class SortIndicator : ComponentBase
+    {
+        [Parameter]
+        public string Field { get; set; }
+        
+        [Parameter]
+        public string CurrentSortField { get; set; }
+        
+        [Parameter]
+        public bool IsAscending { get; set; }
+        
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder)
+        {
+            if (Field == CurrentSortField)
+            {
+                if (IsAscending)
+                {
+                    __builder.AddMarkupContent(0, "<i class=\"bi bi-sort-up\"></i>");
+                }
+                else
+                {
+                    __builder.AddMarkupContent(0, "<i class=\"bi bi-sort-down\"></i>");
+                }
+            }
+            else
+            {
+                __builder.AddMarkupContent(0, "<i class=\"bi bi-sort\" style=\"opacity: 0.3;\"></i>");
+            }
+        }
+    }
+}

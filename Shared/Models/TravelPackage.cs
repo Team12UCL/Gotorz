@@ -9,20 +9,30 @@ namespace Shared.Models
 {
     public class TravelPackage
     {
-        public FlightOffer OutboundFlight {get; set; }
-        public FlightOffer? ReturnFlight {get; set; }
-        public HotelData Hotel { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public decimal TotalPrice { get; set; }
         public DateTime DepartureDate { get; set; }
         public DateTime ReturnDate { get; set; }
-        public int Adults { get; set; }
-        //public decimal Price { get; set; }
+        public int DurationInDays { get; set; }
+
+        // Flight details (bundled)
+        public string OriginAirport { get; set; }
+        public string DestinationAirport { get; set; }
+        public string Airline { get; set; }
+        public string FlightNumber { get; set; }
+
+        // Hotel details (bundled)
+        public string HotelName { get; set; }
+        public string HotelAddress { get; set; }
+        public int HotelRating { get; set; }
+        public string RoomType { get; set; }
+
+        // Booking status
+        public string Status { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string ImageUrl { get; set; }
     }
 }
-
-//public class TravelPackage
-//{
-//    public FlightOffer Flight { get; set; }
-//    public HotelData Hotel { get; set; }
-//    public DateTime DepartureDate { get; set; }
-//}
 
