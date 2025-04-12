@@ -43,5 +43,63 @@ namespace Gotorz.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        [HttpPost("search/advanced")]
+        public async Task<ActionResult<FlightOfferRootModel>> SearchFlightsAdvanced([FromBody] FlightSearchRequest request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest("Request body cannot be null");
+                }
+
+                if (string.IsNullOrEmpty(request.OriginCode))
+                {
+                    return BadRequest("Origin airport code is required");
+                }
+
+                if (string.IsNullOrEmpty(request.DestinationCode))
+                {
+                    return BadRequest("Destination airport code is required");
+                }
+
+                var result = await _flightService.SearchFlightsAdvanced(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("search/pricing")]
+        public async Task<ActionResult<FlightOfferRootModel>> SearchFlightsWithPricing([FromBody] FlightSearchRequest request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest("Request body cannot be null");
+                }
+
+                if (string.IsNullOrEmpty(request.OriginCode))
+                {
+                    return BadRequest("Origin airport code is required");
+                }
+
+                if (string.IsNullOrEmpty(request.DestinationCode))
+                {
+                    return BadRequest("Destination airport code is required");
+                }
+
+                var result = await _flightService.SearchFlightsWithPricing(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
 }
