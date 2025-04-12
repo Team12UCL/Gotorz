@@ -1,25 +1,290 @@
 ﻿@page "/flightsearch"
 @using Shared.Models
-@inject Client.Services.TravelPackageService PackageService
-@rendermode InteractiveWebAssembly   
+@using System.Net.Http.Json
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveWebAssembly
 
-<h3>Packages</h3>
+<div class="container mt-4">
+    <h3 class="mb-4">Flight Search</h3>
 
-@if (PackageService.Packages.Count == 0)
-{
-    <p>No packages has been created</p>
-}
-else
-{
-    <ul>
-        @foreach (var pkg in PackageService.Packages)
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Search Criteria</h5>
+                    
+                    <EditForm Model="@searchModel" OnValidSubmit="@SearchFlights">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label for="origin" class="form-label">Origin Airport (Code)</label>
+                            <input id="origin" @bind="searchModel.OriginCode" class="form-control" placeholder="e.g. LAX" />
+                            <ValidationMessage For="@(() => searchModel.OriginCode)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="destination" class="form-label">Destination Airport (Code)</label>
+                            <input id="destination" @bind="searchModel.DestinationCode" class="form-control" placeholder="e.g. JFK" />
+                            <ValidationMessage For="@(() => searchModel.DestinationCode)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="departureDate" class="form-label">Departure Date</label>
+                            <input id="departureDate" type="date" @bind="searchModel.DepartureDate" class="form-control" />
+                            <ValidationMessage For="@(() => searchModel.DepartureDate)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="returnDate" class="form-label">Return Date</label>
+                            <input id="returnDate" type="date" @bind="searchModel.ReturnDate" class="form-control" />
+                            <ValidationMessage For="@(() => searchModel.ReturnDate)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="adults" class="form-label">Number of Passengers</label>
+                            <input id="adults" type="number" @bind="searchModel.Adults" min="1" max="9" class="form-control" />
+                            <ValidationMessage For="@(() => searchModel.Adults)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="travelClass" class="form-label">Travel Class</label>
+                            <select id="travelClass" @bind="searchModel.TravelClass" class="form-select">
+                                <option value="ECONOMY">Economy</option>
+                                <option value="PREMIUM_ECONOMY">Premium Economy</option>
+                                <option value="BUSINESS">Business</option>
+                                <option value="FIRST">First</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" disabled="@isSearching">
+                            @if (isSearching)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span> Searching...</span>
+                            }
+                            else
+                            {
+                                <span>Search Flights</span>
+                            }
+                        </button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            @if (errorMessage != null)
+            {
+                <div class="alert alert-danger" role="alert">
+                    @errorMessage
+                </div>
+            }
+
+            @if (isSearching)
+            {
+                <div class="d-flex justify-content-center my-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (flightOffers != null)
+            {
+                @if (flightOffers.Data == null || flightOffers.Data.Count == 0)
+                {
+                    <div class="alert alert-warning">
+                        No flights found for your search criteria. Please modify your search and try again.
+                    </div>
+                }
+                else
+                {
+                    <h4>@flightOffers.Data.Count Flight Options Found</h4>
+                    <div class="list-group">
+                        @foreach (var offer in flightOffers.Data)
+                        {
+                            <div class="list-group-item list-group-item-action mb-3 shadow-sm">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">@GetFlightCarrierNames(offer)</h5>
+                                    <span class="badge bg-primary rounded-pill">@offer.Price.Currency @offer.Price.Total</span>
+                                </div>
+                                
+                                @foreach (var itinerary in offer.Itineraries)
+                                {
+                                    <div class="mb-2 mt-2 p-2 bg-light rounded">
+                                        <div class="d-flex justify-content-between">
+                                            <small>@(itinerary == offer.Itineraries[0] ? "Outbound" : "Return")</small>
+                                            <small>Duration: @FormatDuration(itinerary.Duration)</small>
+                                        </div>
+                                        <hr class="my-2" />
+                                        
+                                        @foreach (var segment in itinerary.Segments)
+                                        {
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div>
+                                                    <strong>@segment.Departure.IataCode</strong>
+                                                    <div>@FormatDateTime(segment.Departure.At)</div>
+                                                </div>
+                                                <div class="text-center">
+                                                    <div class="text-muted">@segment.CarrierCode @segment.Number</div>
+                                                    <div class="flight-line"></div>
+                                                    <div class="text-muted">@FormatDuration(segment.Duration)</div>
+                                                </div>
+                                                <div>
+                                                    <strong>@segment.Arrival.IataCode</strong>
+                                                    <div>@FormatDateTime(segment.Arrival.At)</div>
+                                                </div>
+                                            </div>
+                                            @if (segment != itinerary.Segments.Last())
+                                            {
+                                                <div class="layover text-center mb-2">
+                                                    <small>Layover: @CalculateLayover(segment, itinerary.Segments[itinerary.Segments.IndexOf(segment) + 1])</small>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                }
+                                <button class="btn btn-sm btn-outline-primary mt-2" @onclick="() => SaveFlightOffer(offer)">
+                                    Select This Flight
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    public class FlightSearchModel
+    {
+        [Required(ErrorMessage = "Origin airport code is required")]
+        [StringLength(3, MinimumLength = 3, ErrorMessage = "Airport code must be 3 characters")]
+        public string OriginCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Destination airport code is required")]
+        [StringLength(3, MinimumLength = 3, ErrorMessage = "Airport code must be 3 characters")]
+        public string DestinationCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Departure date is required")]
+        public DateTime DepartureDate { get; set; }
+
+        [Required(ErrorMessage = "Return date is required")]
+        public DateTime ReturnDate { get; set; }
+
+        [Range(1, 9, ErrorMessage = "Number of passengers must be between 1 and 9")]
+        public int Adults { get; set; }
+
+        public string TravelClass { get; set; } = string.Empty;
+    }
+
+    private FlightSearchModel searchModel = new()
+    {
+        OriginCode = "",
+        DestinationCode = "",
+        DepartureDate = DateTime.Now.AddDays(7),
+        ReturnDate = DateTime.Now.AddDays(14),
+        Adults = 1,
+        TravelClass = "ECONOMY"
+    };
+
+    private FlightOfferRootModel? flightOffers;
+    private bool isSearching = false;
+    private string? errorMessage;
+
+    private async Task SearchFlights()
+    {
+        try
         {
-            <li style="margin-bottom: 20px;">
-                <strong>Flight:</strong> @pkg.OutboundFlight?.Id — @pkg.OutboundFlight?.Price?.Currency @pkg.OutboundFlight?.Price?.Total <br />
-                <strong>Flight:</strong> @pkg.ReturnFlight?.Id — @pkg.ReturnFlight?.Price?.Currency @pkg.ReturnFlight?.Price?.Total <br />
-                <strong>Hotel:</strong> @pkg.Hotel?.Hotel?.Name — @pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Total @pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Currency <br />
-                <strong>Departure date:</strong> @pkg.DepartureDate.ToString("yyyy-MM-dd")
-            </li>
+            isSearching = true;
+            errorMessage = null;
+
+            var url = $"api/Flight/search?originCode={searchModel.OriginCode}" +
+                      $"&destinationCode={searchModel.DestinationCode}" +
+                      $"&departureDate={searchModel.DepartureDate:yyyy-MM-dd}" +
+                      $"&returnDate={searchModel.ReturnDate:yyyy-MM-dd}" +
+                      $"&adults={searchModel.Adults}" +
+                      $"&travelClass={searchModel.TravelClass}";
+
+            flightOffers = await Http.GetFromJsonAsync<FlightOfferRootModel>(url);
         }
-    </ul>
+        catch (Exception ex)
+        {
+            errorMessage = $"Error searching for flights: {ex.Message}";
+            await JSRuntime.InvokeVoidAsync("console.error", ex);
+        }
+        finally
+        {
+            isSearching = false;
+        }
+    }
+
+    private string GetFlightCarrierNames(FlightOffer offer)
+    {
+        // Get unique carrier codes
+        var carrierCodes = offer.Itineraries
+            .SelectMany(i => i.Segments)
+            .Select(s => s.CarrierCode)
+            .Distinct();
+            
+        return string.Join(" + ", carrierCodes);
+    }
+
+    private string FormatDateTime(string dateTimeStr)
+    {
+        if (DateTime.TryParse(dateTimeStr, out var dateTime))
+        {
+            return dateTime.ToString("MMM d, h:mm tt");
+        }
+        return dateTimeStr;
+    }
+
+    private string FormatDuration(string duration)
+    {
+        // Format PT2H30M to 2h 30m
+        if (string.IsNullOrEmpty(duration)) return "";
+        
+        duration = duration.Replace("PT", "");
+        duration = duration.Replace("H", "h ");
+        duration = duration.Replace("M", "m");
+        
+        return duration;
+    }
+
+    private string CalculateLayover(Segment current, Segment next)
+    {
+        if (DateTime.TryParse(current.Arrival.At, out var arrivalTime) && 
+            DateTime.TryParse(next.Departure.At, out var departureTime))
+        {
+            var layover = departureTime - arrivalTime;
+            return $"{layover.Hours}h {layover.Minutes}m in {next.Departure.IataCode}";
+        }
+        return "";
+    }
+
+    private void SaveFlightOffer(FlightOffer offer)
+    {
+        // This would typically save the selected flight to a service or navigate to booking
+        // For now, just show an alert
+        JSRuntime.InvokeVoidAsync("alert", $"Selected flight: {offer.Id} for {offer.Price.Currency} {offer.Price.Total}");
+    }
 }
+
+<style>
+    .flight-line {
+        height: 2px;
+        background-color: #ccc;
+        margin: 5px 0;
+    }
+
+    .layover {
+        color: #666;
+        padding: 5px;
+        border-top: 1px dashed #ccc;
+        border-bottom: 1px dashed #ccc;
+        background-color: #f8f9fa;
+    }
+</style>
