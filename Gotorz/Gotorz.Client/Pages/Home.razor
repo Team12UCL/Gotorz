@@ -2,7 +2,6 @@
 @using Shared.Models
 @using Client.Services
 @using System.Diagnostics
-@using Shared.Models.AirportRootModel
 @inject HttpClient HttpClient
 @inject TravelPackageService PackageService
 @rendermode InteractiveWebAssembly
@@ -24,7 +23,7 @@
 				<div class="autocomplete-dropdown" style="display: @(originAirportSuggestions.Any() ? "block" : "none")">
 					@foreach (var airport in originAirportSuggestions)
 					{
-						<div class="autocomplete-item" @onclick="() => SelectAirport(ref originLocationCode, ref originSearchQuery, originAirportSuggestions, airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
+						<div class="autocomplete-item" @onclick="() => SelectAirport(ref originLocationCode, ref originSearchQuery, originAirportSuggestions, airport)">@airport.City (@airport.Country) - @airport.Name (@airport.IataCode)</div>
 					}
 				</div>
 			</div>
@@ -35,7 +34,7 @@
 				<div class="autocomplete-dropdown" style="display: @(destinationAirportSuggestions.Any() ? "block" : "none")">
 					@foreach (var airport in destinationAirportSuggestions)
 					{
-						<div class="autocomplete-item" @onclick="() => SelectAirport(ref destinationLocationCode, ref destinationSearchQuery, destinationAirportSuggestions, airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
+						<div class="autocomplete-item" @onclick="() => SelectAirport(ref destinationLocationCode, ref destinationSearchQuery, destinationAirportSuggestions, airport)">@airport.City (@airport.Country) - @airport.Name (@airport.IataCode)</div>
 					}
 				</div>
 			</div>
@@ -378,8 +377,8 @@
 	private int adults = 1;
 
 	// UI states
-	private List<Location> originAirportSuggestions = new();
-	private List<Location> destinationAirportSuggestions = new();
+	private List<Airport> originAirportSuggestions = new();
+	private List<Airport> destinationAirportSuggestions = new();
 	// Controls the loading indicator while flight data is being fetched from the API
 	private bool isLoadingFlights = false;
 	// Controls the loading indicator while hotel data is being fetched from the API
@@ -433,15 +432,16 @@
 	}
 
 	// Fetches airport suggestions based on the user's input
-	private async Task<List<Location>> FetchAirportSuggestions(string query) =>
+	private async Task<List<Airport>> FetchAirportSuggestions(string query) =>
 		string.IsNullOrWhiteSpace(query)
-			? new List<Location>()
-			: await HttpClient.GetFromJsonAsync<List<Location>>($"api/airport/suggest-airports?query={query}");
+			? new List<Airport>()
+			: await HttpClient.GetFromJsonAsync<List<Airport>>($"api/airport/suggest-airports?query={query}");
 
-	private void SelectAirport(ref string locationCode, ref string searchQuery, List<Location> suggestions, Location airport)
+
+	private void SelectAirport(ref string locationCode, ref string searchQuery, List<Airport> suggestions, Airport airport)
 	{
 		locationCode = airport.IataCode;
-		searchQuery = $"{airport.Address.CountryName} - {airport.Name} ({airport.IataCode})";
+		searchQuery = $"{airport.Country} - {airport.Name} ({airport.IataCode})";
 		suggestions.Clear();
 
 		// Auto-fill city code when selecting destination (might not work since it's AITA)

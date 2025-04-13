@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Server.Services;
 using Shared.Models;
-using Shared.Models.AirportRootModel;
-using System.Diagnostics;
 
 namespace Gotorz.Controllers
 {
@@ -17,22 +15,9 @@ namespace Gotorz.Controllers
             _airportService = airportService;
         }
 
-        // GET: api/airport/add-airports
-        [HttpPost("add-airports")]
-        public async Task<IActionResult> SearchAndAddAirports([FromBody] string query)
-        {
-
-            if (string.IsNullOrWhiteSpace(query))
-                return BadRequest("Query cannot be empty.");
-
-            await _airportService.PersistAirportsToJsonAsync(query);
-
-            return Ok("Airports added.");
-        }
-
         // GET: api/airport/search
         [HttpGet("suggest-airports")]
-        public async Task<ActionResult<List<AirportRootModel>>> SuggestAirports([FromQuery] string query)
+        public async Task<ActionResult<List<Airport>>> SuggestAirports([FromQuery] string query)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
