@@ -372,6 +372,8 @@
 	private string originLocationCode = "";
 	private string destinationLocationCode = "";
 	private string destinationCityCode = "";
+	private string originCityName = "";
+	private string destinationCityName = "";
 	private DateTime? departureDate;
 	private DateTime? returnDate;
 	private string NewDate = DateTime.Now.ToString("yyyy-MM-dd");
@@ -413,8 +415,17 @@
 		return total;
 	}
 
-	private decimal TryParsePrice(string? price) =>
-		decimal.TryParse(price, out var result) ? result : 0;
+	// private decimal TryParsePrice(string? price) =>
+	// 	decimal.TryParse(price, out var result) ? result : 0;
+	private decimal TryParsePrice(string? price)
+	{
+		return decimal.TryParse(price,
+			System.Globalization.NumberStyles.Any,
+			System.Globalization.CultureInfo.InvariantCulture,
+			out var result)
+			? result
+			: 0;
+	}
 
 	// Finds airport suggestions for origin or destination based on user input
 	private async Task OnSearchQueryChanged(ChangeEventArgs e, bool isOrigin)
@@ -442,6 +453,13 @@
 	{
 		locationCode = airport.IataCode;
 		searchQuery = $"{airport.Address.CountryName} - {airport.Name} ({airport.IataCode})";
+
+		//gemmer bynavne
+		if (locationCode == originLocationCode)
+			originCityName = airport.Address.CityName ?? airport.Address.CountryName;
+		else if (locationCode == destinationLocationCode)
+			destinationCityName = airport.Address.CityName ?? airport.Address.CountryName;
+
 		suggestions.Clear();
 
 		// Auto-fill city code when selecting destination (might not work since it's AITA)
@@ -576,7 +594,9 @@
 					Hotel = selectedHotel,
 					DepartureDate = departureDate.Value,
 					ReturnDate = returnDate ?? DateTime.MinValue,
-					Adults = adults
+					Adults = adults,
+					OriginCity = originCityName,
+					DestinationCity = destinationCityName
 				};
 
 			PackageService.Packages.Add(package);
