@@ -42,7 +42,7 @@
 			<!-- City Search -->
 			<div class="autocomplete-container">
 				<label for="city">City for Hotel:</label>
-				<input type="text" @bind="destinationCityCode" id="city" placeholder="Enter city (CityCode) for stay" class="autocomplete-input" />
+				<input type="text" @bind="hotelCitySearch" placeholder="Enter city name" />
 			</div>
 			<!-- Dates and Adults Options -->
 			<div class="form-container">
@@ -372,6 +372,7 @@
 	private string originLocationCode = "";
 	private string destinationLocationCode = "";
 	private string destinationCityCode = "";
+	private string hotelCitySearch = "";
 	private string originCityName = "";
 	private string destinationCityName = "";
 	private DateTime? departureDate;
@@ -505,6 +506,9 @@
 
 	private async Task SearchHotels()
 	{
+
+		await SetDestinationCityCodeFromCityName();
+
 		if (string.IsNullOrWhiteSpace(destinationCityCode) || !departureDate.HasValue)
 		{
 			searchError = true;
@@ -563,6 +567,9 @@
 		hotelError = false;
 
 		Logger.LogInformation($"Fetching hotels in {destinationCityCode}");
+
+		await InvokeAsync(StateHasChanged);
+
 		try
 		{
 			var checkInDate = departureDate?.ToString("yyyy-MM-dd") ?? "";
@@ -610,6 +617,22 @@
 			currentSearchMode = SearchMode.None;
 		}
 	}
+
+	private async Task SetDestinationCityCodeFromCityName()
+	{
+		if (!string.IsNullOrWhiteSpace(hotelCitySearch))
+		{
+			var response = await HttpClient.GetFromJsonAsync<CityCodeResponse>($"api/hotel/get-city-code?cityName={hotelCitySearch}");
+			if (!string.IsNullOrWhiteSpace(response?.CityCode))
+			{
+				destinationCityCode = response.CityCode;
+			}
+
+		}
+	}
+	
+
+
 }
 
 <style>

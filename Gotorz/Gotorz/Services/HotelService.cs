@@ -89,5 +89,24 @@ namespace Server.Services
                 return new List<string>();
             }
         }
+        public async Task<string?> GetCityCodeAsync(string cityName)
+        {
+            var token = await _authService.GetAccessTokenAsync();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var url = $"https://test.api.amadeus.com/v1/reference-data/locations?subType=CITY&keyword={cityName}&page[limit]=1";
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            var doc = JsonDocument.Parse(json);
+
+            return doc.RootElement.GetProperty("data")
+                .EnumerateArray()
+                .FirstOrDefault()
+                .GetProperty("iataCode")
+                .GetString();
+        }
     }
 }

@@ -33,5 +33,15 @@ namespace Server.Controllers
             return Ok(hotelOffers);
         }
 
+        [HttpGet("get-city-code")]
+        public async Task<IActionResult> GetCityCode([FromQuery] string cityName)
+        {
+            var result = await _hotelService.GetCityCodeAsync(cityName);
+            if (string.IsNullOrWhiteSpace(result))
+                return NotFound("City code not found");
+
+            return Ok(new { cityCode = result });
+        }
+
     }
 }

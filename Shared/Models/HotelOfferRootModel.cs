@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 namespace Shared.Models
 {
+    public class CityCodeResponse
+    {
+        public string CityCode { get; set; }
+    }
     public class HotelOfferRootModel
     {
         public List<HotelData> Data { get; set; }
