@@ -15,6 +15,21 @@ namespace Server.Controllers
             _hotelService = hotelService;
         }
 
+        [HttpGet("suggest-cities")]
+        public async Task<IActionResult> SuggestCities([FromQuery] string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest("Query is required.");
+
+            var cities = await _hotelService.GetCitySuggestionsAsync(query);
+
+            if (cities == null || !cities.Any())
+                return NotFound("No city suggestions found.");
+
+            return Ok(cities);
+        }
+
+
         // GET: api/hotel/search?cityCode=PAR
         [HttpGet("search")]
         public async Task<IActionResult> GetHotelOffers([FromQuery] string cityCode,

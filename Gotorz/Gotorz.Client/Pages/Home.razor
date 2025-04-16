@@ -3,6 +3,7 @@
 @using Client.Services
 @using System.Diagnostics
 @using Shared.Models.AirportRootModel
+@using Shared.Models.AmadeusCityResponse
 @inject HttpClient HttpClient
 @inject TravelPackageService PackageService
 @rendermode InteractiveWebAssembly
@@ -20,29 +21,37 @@
 			<!-- Departure Search -->
 			<div class="autocomplete-container">
 				<label for="origin">Origin:</label>
-				<input type="text" @bind="originSearchQuery" @oninput="e => OnSearchQueryChanged(e, true)" id="origin" placeholder="Enter origin airport" class="autocomplete-input" />
+				<input type="text" @bind="originSearchQuery" @oninput="e => OnSearchQueryChanged(e, true, false)" id="origin" placeholder="Enter origin airport" class="autocomplete-input" />
 				<div class="autocomplete-dropdown" style="display: @(originAirportSuggestions.Any() ? "block" : "none")">
 					@foreach (var airport in originAirportSuggestions)
 					{
-						<div class="autocomplete-item" @onclick="() => SelectAirport(ref originLocationCode, ref originSearchQuery, originAirportSuggestions, airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
+						<div class="autocomplete-item" @onclick="() => SetAirport(ref originLocationCode, ref originSearchQuery, originAirportSuggestions, airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
 					}
 				</div>
 			</div>
 			<!-- Destination Search -->
 			<div class="autocomplete-container">
 				<label for="destination">Destination:</label>
-				<input type="text" @bind="destinationSearchQuery" @oninput="e => OnSearchQueryChanged(e, false)" id="destination" placeholder="Enter destination airport" class="autocomplete-input" />
+				<input type="text" @bind="destinationSearchQuery" @oninput="e => OnSearchQueryChanged(e, false, false)" id="destination" placeholder="Enter destination airport" class="autocomplete-input" />
 				<div class="autocomplete-dropdown" style="display: @(destinationAirportSuggestions.Any() ? "block" : "none")">
 					@foreach (var airport in destinationAirportSuggestions)
 					{
-						<div class="autocomplete-item" @onclick="() => SelectAirport(ref destinationLocationCode, ref destinationSearchQuery, destinationAirportSuggestions, airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
+						<div class="autocomplete-item" @onclick="() => SetAirport(ref destinationLocationCode, ref destinationSearchQuery, destinationAirportSuggestions, airport)">@airport.Address.CountryName - @airport.Name (@airport.IataCode)</div>
 					}
 				</div>
 			</div>
 			<!-- City Search -->
 			<div class="autocomplete-container">
-				<label for="city">City for Hotel:</label>
-				<input type="text" @bind="hotelCitySearch" placeholder="Enter city name" />
+				<label for="city">City:</label>
+				<input type="text" @bind="hotelCitySearch" @oninput="e => OnSearchQueryChanged(e, false, true)" id="city" placeholder="Enter city" class="autocomplete-input" />
+				<div class="autocomplete-dropdown" style="display: @(destinationHotelCitySuggestions.Any() ? "block" : "none")">
+					@foreach (var city in destinationHotelCitySuggestions)
+					{
+						<div class="autocomplete-item" @onclick="() => SetHotel(ref hotelCitySearch, destinationHotelCitySuggestions, city)">
+							@city.Name (@city.Address.CountryCode)
+						</div>
+					}
+				</div>
 			</div>
 			<!-- Dates and Adults Options -->
 			<div class="form-container">
@@ -76,7 +85,7 @@
 					Please fill in all required fields: Origin, Destination, and Dates.
 				</div>
 			}
-		</div>
+		</div>bed 
 
 		<!-- Results area (Flights or Hotels) -->
 		<div class="results-area">
@@ -237,6 +246,12 @@
 							Error loading hotel data. Please try again.
 						</div>
 					}
+					else if (hotelOffers?.Data.Count() == 0)
+					{
+						<div class="error-message">
+							No hotel offers found. Please change your search.
+						</div>
+					}
 					else if (hotelOffers?.Data?.Any() == true)
 					{
 						<table class="results-table">
@@ -383,6 +398,10 @@
 	// UI states
 	private List<Location> originAirportSuggestions = new();
 	private List<Location> destinationAirportSuggestions = new();
+	private List<CityData> destinationHotelCitySuggestions = new();
+
+	// Sets whether user is searching via raw input or via autocomplete (necessary check for city code conversion for raw input)
+	private bool isUsingAutocomplete = false;
 	// Controls the loading indicator while flight data is being fetched from the API
 	private bool isLoadingFlights = false;
 	// Controls the loading indicator while hotel data is being fetched from the API
@@ -397,6 +416,8 @@
 	private bool hotelError = false;
 	// Indicates if the search form has validation errors (missing required fields)
 	private bool searchError = false;
+	// Store the timer ID for debouncing
+	private Timer _debounceTimer;
 
 	// private bool CanSearchFlights() => true; Maybe set bools for only using auto-complete suggestions, disable direct input?
 	private bool CanSearchHotels() => true; // Can extend this if needed for specific validation
@@ -427,30 +448,95 @@
 			? result
 			: 0;
 	}
-
 	// Finds airport suggestions for origin or destination based on user input
-	private async Task OnSearchQueryChanged(ChangeEventArgs e, bool isOrigin)
+	private async Task OnSearchQueryChanged(ChangeEventArgs e, bool isOrigin, bool isHotel)
 	{
 		var query = e.Value?.ToString() ?? "";
-		if (isOrigin)
+		isUsingAutocomplete = false;
+
+		// Minimum character length before triggering search (e.g., 3 characters)
+		const int minimumCharacters = 3;
+
+		// Cancel previous timer (debouncing) to prevent multiple fast API calls
+		_debounceTimer?.Dispose();
+
+		if (query.Length >= minimumCharacters)
 		{
-			originSearchQuery = query;
-			originAirportSuggestions = await FetchAirportSuggestions(query);
-		}
-		else
-		{
-			destinationSearchQuery = query;
-			destinationAirportSuggestions = await FetchAirportSuggestions(query);
+			// Set a delay of 500ms before calling the fetch function
+			_debounceTimer = new Timer(async _ =>
+			{
+				try
+				{
+					if (isHotel)
+					{
+						hotelCitySearch = query;
+						destinationHotelCitySuggestions = await FetchHotelCitySuggestions(query);
+					}
+					else if (isOrigin)
+					{
+						originSearchQuery = query;
+						originAirportSuggestions = await FetchAirportSuggestions(query);
+					}
+					else
+					{
+						destinationSearchQuery = query;
+						destinationAirportSuggestions = await FetchAirportSuggestions(query);
+					}
+				}
+				catch (Exception ex)
+				{
+					Logger.LogError($"Error fetching suggestions: {ex.Message}");
+					// Clear suggestions to avoid showing stale data
+					if (isHotel)
+						destinationHotelCitySuggestions = new List<CityData>();
+					else if (isOrigin)
+						originAirportSuggestions = new List<Location>();
+					else
+						destinationAirportSuggestions = new List<Location>();
+				}
+
+				// Update UI (force UI re-render if needed)
+				await InvokeAsync(StateHasChanged);
+			}, null, 500, Timeout.Infinite); // 500ms debounce
 		}
 	}
 
 	// Fetches airport suggestions based on the user's input
-	private async Task<List<Location>> FetchAirportSuggestions(string query) =>
-		string.IsNullOrWhiteSpace(query)
-			? new List<Location>()
-			: await HttpClient.GetFromJsonAsync<List<Location>>($"api/airport/suggest-airports?query={query}");
+	private async Task<List<Location>> FetchAirportSuggestions(string query)
+	{
+		try
+		{
+			if (string.IsNullOrWhiteSpace(query))
+				return new List<Location>();
 
-	private void SelectAirport(ref string locationCode, ref string searchQuery, List<Location> suggestions, Location airport)
+			return await HttpClient.GetFromJsonAsync<List<Location>>($"api/airport/suggest-airports?query={query}")
+				?? new List<Location>();
+		}
+		catch (Exception ex)
+		{
+			Logger.LogError($"Error fetching airport suggestions for '{query}': {ex.Message}");
+			return new List<Location>();
+		}
+	}
+
+	private async Task<List<CityData>> FetchHotelCitySuggestions(string query)
+	{
+		try
+		{
+			if (string.IsNullOrWhiteSpace(query))
+				return new List<CityData>();
+
+			return await HttpClient.GetFromJsonAsync<List<CityData>>($"api/hotel/suggest-cities?query={query}")
+				?? new List<CityData>();
+		}
+		catch (Exception ex)
+		{
+			Logger.LogError($"Error fetching city suggestions for '{query}': {ex.Message}");
+			return new List<CityData>();
+		}
+	}
+
+	private void SetAirport(ref string locationCode, ref string searchQuery, List<Location> suggestions, Location airport)
 	{
 		locationCode = airport.IataCode;
 		searchQuery = $"{airport.Address.CountryName} - {airport.Name} ({airport.IataCode})";
@@ -462,12 +548,14 @@
 			destinationCityName = airport.Address.CityName ?? airport.Address.CountryName;
 
 		suggestions.Clear();
+	}
 
-		// Auto-fill city code when selecting destination (might not work since it's AITA)
-		// if (locationCode == destinationLocationCode && string.IsNullOrEmpty(destinationCityCode))
-		// {
-		// 	destinationCityCode = airport.IataCode;
-		// }
+	private void SetHotel(ref string hotelCitySearch, List<CityData> suggestions, CityData city)
+	{
+		isUsingAutocomplete = true;
+		hotelCitySearch = $"{city.Name} ({city.Address.CountryCode})";
+		destinationCityCode = city.IataCode;
+		suggestions.Clear();
 	}
 
 	// Selectors set the selected flight or hotel from results
@@ -507,8 +595,12 @@
 	private async Task SearchHotels()
 	{
 
-		await SetDestinationCityCodeFromCityName();
-
+		// if user is searching via raw input, their input needs conversion to city code for the API call, else we get the city code directly from the selected autocomplete hotel object
+		if (isUsingAutocomplete == false)
+		{
+			await SetDestinationCityCodeFromCityName();
+		}
+		
 		if (string.IsNullOrWhiteSpace(destinationCityCode) || !departureDate.HasValue)
 		{
 			searchError = true;
@@ -618,19 +710,36 @@
 		}
 	}
 
-	private async Task SetDestinationCityCodeFromCityName()
-	{
-		if (!string.IsNullOrWhiteSpace(hotelCitySearch))
-		{
-			var response = await HttpClient.GetFromJsonAsync<CityCodeResponse>($"api/hotel/get-city-code?cityName={hotelCitySearch}");
-			if (!string.IsNullOrWhiteSpace(response?.CityCode))
-			{
-				destinationCityCode = response.CityCode;
-			}
+private async Task SetDestinationCityCodeFromCityName()
+{
+    Logger.LogInformation("Converting to city code from city name: " + hotelCitySearch);
 
-		}
-	}
-	
+    if (!string.IsNullOrWhiteSpace(hotelCitySearch))
+    {
+        try
+        {
+            var response = await HttpClient.GetFromJsonAsync<CityCodeResponse>($"api/hotel/get-city-code?cityName={hotelCitySearch}");
+            if (response != null && !string.IsNullOrWhiteSpace(response.CityCode))
+            {
+                Logger.LogInformation("Converted to " + response.CityCode);
+                destinationCityCode = response.CityCode;
+            }
+            else
+            {
+                Logger.LogWarning($"No city code found for: {hotelCitySearch}");
+                // Provide feedback to the user that the city wasn't found
+                hotelError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error converting city name to code: {ex.Message}");
+            hotelError = true;
+            destinationCityCode = string.Empty; // Reset to prevent using invalid data
+        }
+    }
+}
+
 
 
 }
