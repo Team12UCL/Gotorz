@@ -279,7 +279,11 @@
 												</a>
 											</strong>
 										</td>
-										<td>@hotel.Offers?.FirstOrDefault()?.Price?.Total @hotel.Offers?.FirstOrDefault()?.Price?.Currency</td>
+										@{
+											var offer = hotel.Offers?.FirstOrDefault();
+											var converted = ConvertToEUR(offer?.Price?.Total, offer?.Price?.Currency);
+										}
+										@converted EUR
 										<td>
 											@if (hotel.Offers?.FirstOrDefault()?.BoardType != null)
 											{
@@ -431,14 +435,49 @@
 	private decimal CalculateTotalPrice()
 	{
 		decimal total = 0;
-		total += TryParsePrice(selectedOutboundFlight?.Price?.Total);
-		total += TryParsePrice(selectedReturnFlight?.Price?.Total);
-		total += TryParsePrice(selectedHotel?.Offers?.FirstOrDefault()?.Price?.Total);
+		total += ConvertToEUR(selectedOutboundFlight?.Price?.Total, selectedOutboundFlight?.Price?.Currency);
+		total += ConvertToEUR(selectedReturnFlight?.Price?.Total, selectedReturnFlight?.Price?.Currency);
+		total += ConvertToEUR(selectedHotel?.Offers?.FirstOrDefault()?.Price?.Total,
+									selectedHotel?.Offers?.FirstOrDefault()?.Price?.Currency);
 		return total;
 	}
 
-	// private decimal TryParsePrice(string? price) =>
-	// 	decimal.TryParse(price, out var result) ? result : 0;
+	private decimal ConvertToEUR(string? price, string? currency)
+	{
+		var raw = TryParsePrice(price);
+		Logger.LogWarning("Raw price: {Raw}, Original currency: {Currency}", raw, currency);
+
+		if (string.IsNullOrWhiteSpace(currency) || currency == "EUR")
+		{
+			Logger.LogWarning("Currency is EUR or not provided, returning raw price.");
+			return raw;
+		}
+
+		var conversion = hotelOffers?.Dictionaries?.CurrencyConversionLookupRates?.GetValueOrDefault(currency);
+		if (conversion == null)
+		{
+			Logger.LogWarning("No conversion rate found for currency: {Currency}", currency);
+			return raw;
+		}
+
+		Logger.LogWarning("Found conversion rate: {Rate} (Target: {Target}, Decimals: {Decimals})",
+			conversion.Rate, conversion.Target, conversion.TargetDecimalPlaces);
+
+		if (conversion.Target == "EUR" &&
+			decimal.TryParse(conversion.Rate, System.Globalization.NumberStyles.Any,
+				System.Globalization.CultureInfo.InvariantCulture, out var rate))
+		{
+			var converted = Math.Round(raw * rate, conversion.TargetDecimalPlaces);
+			Logger.LogWarning("Converted price: {Converted}", converted);
+			return converted;
+		}
+
+		Logger.LogWarning("Conversion failed or target not EUR, returning raw price.");
+		return raw;
+	}
+
+
+
 	private decimal TryParsePrice(string? price)
 	{
 		return decimal.TryParse(price,
@@ -448,6 +487,7 @@
 			? result
 			: 0;
 	}
+
 	// Finds airport suggestions for origin or destination based on user input
 	private async Task OnSearchQueryChanged(ChangeEventArgs e, bool isOrigin, bool isHotel)
 	{

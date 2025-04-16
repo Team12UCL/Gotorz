@@ -39,7 +39,7 @@ namespace Server.Services
 
                 var hotelIdsParam = string.Join(",", hotelIds.Take(20));
 
-                var url = $"{_hotelOffersBaseUrl}?hotelIds={hotelIdsParam}&&adults={adults}&checkInDate={checkInDate}&checkOutDate={checkOutDate}";
+                var url = $"{_hotelOffersBaseUrl}?hotelIds={hotelIdsParam}&adults={adults}&checkInDate={checkInDate}&checkOutDate={checkOutDate}&currency=EUR";
 
                 var response = await _httpClient.GetAsync(url);
                 var content = await response.Content.ReadAsStringAsync();

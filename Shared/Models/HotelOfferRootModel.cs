@@ -15,6 +15,7 @@ namespace Shared.Models
     {
         public List<HotelData> Data { get; set; }
         public Meta Meta { get; set; }
+        public Dictionaries Dictionaries { get; set; }
     }
 
     public class HotelData
@@ -115,4 +116,18 @@ namespace Shared.Models
         public string HotelId { get; set; }
         public string Name { get; set; }
     }
+
+    public class Dictionaries
+    {
+        [JsonPropertyName("currencyConversionLookupRates")]
+        public Dictionary<string, CurrencyConversionRate> CurrencyConversionLookupRates { get; set; }
+    }
+
+    public class CurrencyConversionRate
+    {
+        public string Rate { get; set; }
+        public string Target { get; set; }
+        public int TargetDecimalPlaces { get; set; }
+    }
+
 }
