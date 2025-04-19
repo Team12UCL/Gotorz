@@ -48,11 +48,11 @@
 			<div class="form-container">
 				<div>
 					<label for="departureDate">Departure Date:</label>
-					<input type="date" @bind="departureDate" id="departureDate" />
+					<input type="date" @bind="departureDate" id="departureDate" min="@minDepartureDate" />
 				</div>
 				<div>
 					<label for="returnDate">Return Date:</label>
-					<input type="date" @bind="returnDate" id="returnDate" min="@NewDate" />
+					<input type="date" @bind="returnDate" id="returnDate" min="@minReturnDate" />
 				</div>
 				<div>
 					<label for="adults">Number of Adults:</label>
@@ -93,16 +93,16 @@
 								<p>Searching for outbound flights...</p>
 							</div>
 						}
-						else if (flightError)
-						{
-							<div class="error-message">
-								Error loading flight data. Please try again.
-							</div>
-						}
 						else if (outboundFlights.Count() == 0)
 						{
 							<div class="error-message">
 								No flight offers found. Please change your search.
+							</div>
+						}
+						else if (flightError)
+						{
+							<div class="error-message">
+								Error loading flight data. Please try again.
 							</div>
 						}
 						else if (outboundFlights?.Any() == true)
@@ -159,16 +159,16 @@
 								<p>Searching for return flights...</p>
 							</div>
 						}
-						else if (flightError)
-						{
-							<div class="error-message">
-								Error loading flight data. Please try again.
-							</div>
-						}
 						else if (returnFlights.Count() == 0)
 						{
 							<div class="error-message">
 								No flight offers found. Please change your search.
+							</div>
+						}
+						else if (flightError)
+						{
+							<div class="error-message">
+								Error loading flight data. Please try again.
 							</div>
 						}
 						else if (returnFlights?.Any() == true)
@@ -229,6 +229,12 @@
 						<div class="loading-container">
 							<div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
 							<p>Searching for hotels...</p>
+						</div>
+					}
+					else if (hotelOffers.Data.Count() == 0)
+					{
+						<div class="error-message">
+							No hotel offers found. Please change your search.
 						</div>
 					}
 					else if (hotelError)
@@ -357,7 +363,6 @@
 	private SearchMode currentSearchMode = SearchMode.None;
 
 	// Data models
-	private FlightOfferRootModel? flightOffers;
 	private List<FlightOffer> outboundFlights = new();
 	private List<FlightOffer> returnFlights = new();
 	private FlightOffer? selectedOutboundFlight;
@@ -374,7 +379,8 @@
 	private string destinationCityCode = "";
 	private DateTime? departureDate;
 	private DateTime? returnDate;
-	private string NewDate = DateTime.Now.ToString("yyyy-MM-dd");
+	private string minDepartureDate = DateTime.Now.ToString("yyyy-MM-dd");
+	private string minReturnDate => ((departureDate ?? DateTime.Now).AddDays(1)).ToString("yyyy-MM-dd");
 	private int adults = 1;
 
 	// UI states
