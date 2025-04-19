@@ -758,7 +758,6 @@
 
 			PackageService.Packages.Add(package);
 
-			// Set success message
 			packageCreationMessage = "Success! Your travel package has been created.";
 			packageCreationSuccess = true;
 
@@ -767,7 +766,6 @@
 			selectedReturnFlight = null;
 			selectedHotel = null;
 
-			// Reset search mode
 			currentSearchMode = SearchMode.None;
 
 			// Set a timer to clear the message after a few seconds
@@ -780,7 +778,6 @@
 		}
 		catch (Exception ex)
 		{
-			// Set error message
 			packageCreationMessage = "Error creating package. Please try again.";
 			packageCreationSuccess = false;
 			Logger.LogError($"Error creating package: {ex.Message}");
