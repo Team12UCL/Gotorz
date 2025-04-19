@@ -85,7 +85,7 @@
 					Please fill in all required fields: Origin, Destination, and Dates.
 				</div>
 			}
-		</div>bed 
+		</div>
 
 		<!-- Results area (Flights or Hotels) -->
 		<div class="results-area">
@@ -168,16 +168,16 @@
 								<p>Searching for return flights...</p>
 							</div>
 						}
-						else if (flightError)
-						{
-							<div class="error-message">
-								Error loading flight data. Please try again.
-							</div>
-						}
 						else if (returnFlights.Count() == 0)
 						{
 							<div class="error-message">
 								No flight offers found. Please change your search.
+							</div>
+						}
+						else if (flightError)
+						{
+							<div class="error-message">
+								Error loading flight data. Please try again.
 							</div>
 						}
 						else if (returnFlights?.Any() == true)
@@ -240,16 +240,16 @@
 							<p>Searching for hotels...</p>
 						</div>
 					}
-					else if (hotelError)
-					{
-						<div class="error-message">
-							Error loading hotel data. Please try again.
-						</div>
-					}
 					else if (hotelOffers?.Data.Count() == 0)
 					{
 						<div class="error-message">
 							No hotel offers found. Please change your search.
+						</div>
+					}
+					else if (hotelError)
+					{
+						<div class="error-message">
+							Error loading hotel data. Please try again.
 						</div>
 					}
 					else if (hotelOffers?.Data?.Any() == true)
@@ -655,10 +655,21 @@
 		try
 		{
 			await FetchHotelData();
+
+			if (hotelOffers?.Data == null || !hotelOffers.Data.Any())
+			{
+				hotelOffers = new HotelOfferRootModel { Data = new List<HotelData>() };
+			}
+		}
+		catch (Exception ex)
+		{
+			Logger.LogError($"Error searching hotels: {ex.Message}");
+			hotelError = true;
 		}
 		finally
 		{
 			isSearchingHotels = false;
+			await InvokeAsync(StateHasChanged); // Force UI update
 		}
 	}
 
@@ -767,7 +778,6 @@ private async Task SetDestinationCityCodeFromCityName()
             else
             {
                 Logger.LogWarning($"No city code found for: {hotelCitySearch}");
-                // Provide feedback to the user that the city wasn't found
                 hotelError = true;
             }
         }
