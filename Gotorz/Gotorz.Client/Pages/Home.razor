@@ -345,7 +345,7 @@
 							<strong>@selectedHotel.Hotel.Name</strong>
 							<div class="summary-detail">
 								<span>Period: @selectedHotel.Offers?.FirstOrDefault()?.CheckInDate to @selectedHotel.Offers?.FirstOrDefault()?.CheckOutDate</span>
-								<span>@selectedHotel.Offers?.FirstOrDefault()?.Price?.Total @selectedHotel.Offers?.FirstOrDefault()?.Price?.Currency</span>
+								<span>@ConvertToEUR(selectedHotel.Offers?.FirstOrDefault()?.Price?.Total, selectedHotel.Offers?.FirstOrDefault()?.Price?.Currency) EUR</span>
 							</div>
 						</div>
 					</div>
