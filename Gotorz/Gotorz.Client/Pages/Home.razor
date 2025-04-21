@@ -71,10 +71,10 @@
 
 			<!-- Search Buttons -->
 			<div class="action-buttons">
-				<button @onclick="SearchFlights" disabled="@isSearchingFlights">
+				<button @onclick="SearchFlights" disabled="@(!CanSearchFlights() || @isSearchingFlights)">
 					<span>@(isSearchingFlights ? "Searching..." : "Search Flights")</span>
 				</button>
-				<button @onclick="SearchHotels" disabled="@(!CanSearchHotels() || isSearchingHotels)">
+				<button @onclick="SearchHotels" disabled="@(!CanSearchHotels() || @isSearchingHotels)">
 					<span>@(isSearchingHotels ? "Searching..." : "Search Hotels")</span>
 				</button>
 			</div>
@@ -82,7 +82,7 @@
 			@if (searchError)
 			{
 				<div class="error-message">
-					Please fill in all required fields: Origin, Destination, and Dates.
+					Please fill in all required fields: Origin, Destination, City, and Dates.
 				</div>
 			}
 		</div>
@@ -436,6 +436,13 @@
 	private Timer _debounceTimer;
 
 	// private bool CanSearchFlights() => true; Maybe set bools for only using auto-complete suggestions, disable direct input?
+	private bool CanSearchFlights() =>
+		isUsingAutocomplete &&
+		!string.IsNullOrWhiteSpace(originLocationCode) &&
+		!string.IsNullOrWhiteSpace(destinationLocationCode) &&
+		departureDate.HasValue &&
+		(!returnDate.HasValue || returnDate > departureDate);
+
 	private bool CanSearchHotels() => true; // Can extend this if needed for specific validation
 
 	private bool CanCreatePackage() =>
@@ -590,6 +597,7 @@
 
 	private void SetAirport(ref string locationCode, ref string searchQuery, List<Airport> suggestions, Airport airport)
 	{
+		isUsingAutocomplete = true;
 		locationCode = airport.IataCode;
 		searchQuery = $"{airport.Country} - {airport.Name} ({airport.IataCode})";
 
