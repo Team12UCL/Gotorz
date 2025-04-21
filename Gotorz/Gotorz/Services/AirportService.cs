@@ -2,114 +2,62 @@
 using System.Text.Json;
 using System.Diagnostics;
 using System.Net.Http.Headers;
-using Shared.Models.AirportRootModel;
+using System.Text.Json.Serialization;
 
 namespace Server.Services
 {
     public class AirportService
     {
-        private readonly HttpClient _httpClient;
-        private readonly AmadeusAuthService _authService;
-        private readonly string _baseUrl;
+        private List<Airport> _airports;
         private readonly string _jsonFilePath = "Data/airports.json";
-        private List<Location> Airports = new();
 
-        public AirportService(IHttpClientFactory httpClientFactory, AmadeusAuthService authService, IConfiguration configuration)
+        public AirportService()
         {
-            _httpClient = httpClientFactory.CreateClient("AmadeusClient");
-            _authService = authService;
-            _baseUrl = configuration["AmadeusAPI:AirportAndCitySearchUrl"]!;
-            Task.Run(InitializeAirportsAsync).Wait();
+            LoadAirportsFromJson();
         }
 
-        private async Task InitializeAirportsAsync()
+        public AirportService(string jsonFilePath)
         {
-            if (File.Exists(_jsonFilePath))
-            {
-                try
-                {
-                    var json = await File.ReadAllTextAsync(_jsonFilePath);
-                    Airports = JsonSerializer.Deserialize<List<Location>>(json) ?? new List<Location>();
-                    Debug.WriteLine($"Loaded {Airports.Count} airports from JSON.");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error loading airports: {ex.Message}");
-                }
-            }
+            _jsonFilePath = jsonFilePath;
+            LoadAirportsFromJson();
         }
 
-        private async Task SaveAirportsToJsonAsync()
+        private void LoadAirportsFromJson()
         {
             try
             {
-                var json = JsonSerializer.Serialize(Airports, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(_jsonFilePath, json);
-                Debug.WriteLine("Airports saved to JSON.");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error saving airports: {ex.Message}");
-            }
-        }
-
-        public async Task<List<Location>> PersistAirportsToJsonAsync(string cityOrAirportIATA)
-        {
-            try
-            {
-                Debug.WriteLine("Airports before: " + Airports.Count());
-
-                if (string.IsNullOrWhiteSpace(cityOrAirportIATA)) return new List<Location>();
-
-                var token = await _authService.GetAccessTokenAsync();
-                if (token == null) return new List<Location>();
-
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                Debug.WriteLine(token);
-                _httpClient.DefaultRequestHeaders.Accept.Clear();
-                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                string requestUrl = $"{_baseUrl}?keyword={Uri.EscapeDataString(cityOrAirportIATA)}&subType=AIRPORT";
-                var response = await _httpClient.GetAsync(requestUrl);
-
-                if (!response.IsSuccessStatusCode) return new List<Location>();
-
-                var content = await response.Content.ReadAsStringAsync();
-                var rootObject = JsonSerializer.Deserialize<AirportRootModel>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (rootObject?.Data == null || rootObject.Data.Count == 0) return new List<Location>();
-
-                foreach (var location in rootObject.Data)
+                string jsonContent = File.ReadAllText(_jsonFilePath);
+                var options = new JsonSerializerOptions
                 {
-                    if (!Airports.Any(a => a.IataCode == location.IataCode))
-                    {
-                        Airports.Add(location);
-                    }
-                }
+                    PropertyNameCaseInsensitive = true
+                };
 
-                Debug.WriteLine("Airports after: " + Airports.Count());
+                var allLocations = JsonSerializer.Deserialize<List<Airport>>(jsonContent, options);
 
-                await SaveAirportsToJsonAsync();
-                return rootObject.Data;
+                // The JSON also contains railway stations, so filter out anything that isn't an airport via the type value
+                _airports = allLocations
+                    .Where(location => string.Equals(location.Type, "Airports", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in PersistAirportsToJsonAsync: {ex.Message}");
-                return new List<Location>();
+                Console.WriteLine($"Error loading airports: {ex.Message}");
+                _airports = new List<Airport>();
             }
         }
 
-        public async Task<List<Location>> SearchAirportsAsync(string query)
+        public async Task<List<Airport>> SearchAirportsAsync(string query)
         {
-            if (string.IsNullOrWhiteSpace(query)) return new List<Location>();
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<Airport>();
 
-            return Airports
+            return await Task.FromResult(_airports
                 .Where(a => a.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                            a.IataCode.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                            a.Address.CityName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                            a.Address.CountryName.Contains(query, StringComparison.OrdinalIgnoreCase))
-                .Take(5)
-                .ToList();
+                           a.IataCode.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                           a.City.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                           a.Country.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .Take(10)
+                .ToList());
         }
     }
 }

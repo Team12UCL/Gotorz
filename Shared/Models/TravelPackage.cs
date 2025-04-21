@@ -16,6 +16,9 @@ namespace Shared.Models
         public DateTime ReturnDate { get; set; }
         public int Adults { get; set; }
         //public decimal Price { get; set; }
+        public string? OriginCity { get; set; }
+        public string? DestinationCity { get; set; }
+
     }
 }
 
