@@ -1,0 +1,151 @@
+﻿@page "/chat"
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.Authorization
+@using Shared.Models
+
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveWebAssembly
+
+<h3>Chat</h3>
+
+@if (hubConnection?.State == HubConnectionState.Connected)
+{
+    <p>Connected</p>
+}
+else
+{
+    <p>Connecting...</p>
+}
+
+<div class="d-flex flex-column h-100 border rounded shadow-sm p-3 bg-white" style="max-height: 75vh;">
+    <div class="form-group mb-2">
+        <input @bind="messageInput" @bind:event="oninput" @onkeydown="HandleKeyPress" placeholder="Type a message..." class="form-control" />
+        <button @onclick="SendMessage" class="btn btn-primary mt-2">Send</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(typingUser) && typingUser != user)
+    {
+        <div class="text-muted mb-2">@typingUser is typing...</div>
+    }
+
+    <div class="mt-3 overflow-auto" style="flex-grow: 1;" @ref="scrollContainer">
+        @foreach (var message in messages)
+        {
+            <div class="d-flex mb-2 @(message.IsOwnMessage ? "justify-content-end" : "justify-content-start")">
+                <div class="px-3 py-2 rounded-pill small shadow-sm text-white
+                    @(message.IsOwnMessage ? "bg-primary" : "bg-secondary")">
+                    <strong>@message.User:</strong> @message.Text
+                    <div class="text-end text-white-50 small">
+                        @message.Timestamp.ToLocalTime().ToString("g")
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private HubConnection hubConnection;
+    private string user;
+    private string userId;
+    private string messageInput;
+    private List<ChatMessageViewModel> messages = new();
+    private ElementReference scrollContainer;
+    private string typingUser;
+    private Timer typingDebounce;
+
+    private class ChatMessageViewModel
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string User { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public bool IsOwnMessage { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = authState.User;
+
+        user = currentUser.Identity?.Name ?? "Anonymous";
+        userId = currentUser.FindFirst(c => c.Type == "sub")?.Value
+              ?? currentUser.FindFirst(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value
+              ?? "";
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("https://localhost:7063/chathub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        await hubConnection.StartAsync();
+
+        var history = await hubConnection.InvokeAsync<List<ChatMessage>>("GetMessageHistory");
+
+        foreach (var msg in history.AsEnumerable().Reverse())
+        {
+            messages.Insert(0, new ChatMessageViewModel
+                {
+                    UserId = msg.UserId,
+                    User = msg.UserName,
+                    Text = msg.Text,
+                    Timestamp = msg.Timestamp,
+                    IsOwnMessage = msg.UserId == userId
+                });
+        }
+
+        hubConnection.On<string, string, string>("ReceiveMessage", (senderId, senderName, message) =>
+        {
+            messages.Insert(0, new ChatMessageViewModel
+                {
+                    UserId = senderId,
+                    User = senderName,
+                    Text = message,
+                    Timestamp = DateTime.Now,
+                    IsOwnMessage = senderId == userId
+                });
+
+            InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<string>("UserTyping", (sender) =>
+        {
+            typingUser = sender;
+            InvokeAsync(StateHasChanged);
+
+            typingDebounce?.Dispose();
+            typingDebounce = new Timer(_ =>
+            {
+                typingUser = null;
+                InvokeAsync(StateHasChanged);
+            }, null, 2000, Timeout.Infinite);
+        });
+    }
+
+    private async Task SendMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(userId) && !string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(messageInput))
+        {
+            await hubConnection.SendAsync("SendMessage", userId, user, messageInput);
+            messageInput = string.Empty;
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(user))
+        {
+            await hubConnection.SendAsync("Typing", user);
+        }
+
+        if (e.Key == "Enter")
+        {
+            await SendMessage();
+        }
+    }
+}
