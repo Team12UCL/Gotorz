@@ -56,9 +56,8 @@
 		<strong>Dates:</strong> @pkg.DepartureDate.ToString("yyyy-MM-dd")
 		→ @pkg.ReturnDate.ToString("yyyy-MM-dd") <br />
 		<strong>Price:</strong>
-		@pkg.OutboundFlight?.Price?.Currency
-		@(pkg.OutboundFlight?.Price?.Total ?? "0") + @(pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Total ?? "0")
-		@pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Currency
+		<strong>Price:</strong>
+		@CalculatePackagePrice(pkg) @(pkg.OutboundFlight?.Price?.Currency ?? pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Currency ?? "EUR")
 		<br />
 		<button class="summary-button">Book</button>
 	</div>
@@ -92,7 +91,24 @@
 			p.DestinationCity?.Contains(destinationCityFilter, StringComparison.OrdinalIgnoreCase) == true)
 	);
 
+	private decimal CalculatePackagePrice(TravelPackage pkg)
+	{
+		decimal total = 0;
+		total += TryParsePrice(pkg.OutboundFlight?.Price?.Total);
+		total += TryParsePrice(pkg.ReturnFlight?.Price?.Total);
+		total += TryParsePrice(pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Total);
+		return total;
+	}
 
+	private decimal TryParsePrice(string? price)
+	{
+		return decimal.TryParse(price,
+			System.Globalization.NumberStyles.Any,
+			System.Globalization.CultureInfo.InvariantCulture,
+			out var result)
+			? result
+			: 0;
+	}
 
 
 }
