@@ -24,6 +24,16 @@
 		<input type="date" @bind="returnDate" />
 	</div>
 	<div>
+		<label>Date Range</label>
+		<select @bind="dateFlexibilityDays">
+			<option value="0">Exact date</option>
+			<option value="3">± 3 days</option>
+			<option value="7">± 1 week</option>
+			<option value="30">± 1 month</option>
+		</select>
+	</div>
+
+	<div>
 		<label>Number of travelers</label>
 		<select @bind="travelers">
 			@for (int i = 1; i <= 10; i++)
@@ -46,9 +56,8 @@
 		<strong>Dates:</strong> @pkg.DepartureDate.ToString("yyyy-MM-dd")
 		→ @pkg.ReturnDate.ToString("yyyy-MM-dd") <br />
 		<strong>Price:</strong>
-		@pkg.OutboundFlight?.Price?.Currency
-		@(pkg.OutboundFlight?.Price?.Total ?? "0") + @(pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Total ?? "0")
-		@pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Currency
+		<strong>Price:</strong>
+		@CalculatePackagePrice(pkg) @(pkg.OutboundFlight?.Price?.Currency ?? pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Currency ?? "EUR")
 		<br />
 		<button class="summary-button">Book</button>
 	</div>
@@ -63,18 +72,43 @@
 	private string? originCityFilter;
 	private string? destinationCityFilter;
 	private int travelers = 1;
+	private int dateFlexibilityDays = 0;
+
 
 	private IEnumerable<TravelPackage> FilteredPackages =>
 	PackageService.Packages.Where(p =>
-		(!departureDate.HasValue || p.DepartureDate >= departureDate.Value) &&
-		(!returnDate.HasValue || p.ReturnDate <= returnDate.Value) &&
+		(!departureDate.HasValue ||
+	(p.DepartureDate >= departureDate.Value.AddDays(-dateFlexibilityDays) &&
+		p.DepartureDate <= departureDate.Value.AddDays(dateFlexibilityDays))) &&
+
+	(!returnDate.HasValue ||
+	(p.ReturnDate >= returnDate.Value.AddDays(-dateFlexibilityDays) &&
+		p.ReturnDate <= returnDate.Value.AddDays(dateFlexibilityDays)))
+	&&
 		(string.IsNullOrWhiteSpace(originCityFilter) ||
 			p.OriginCity?.Contains(originCityFilter, StringComparison.OrdinalIgnoreCase) == true) &&
 		(string.IsNullOrWhiteSpace(destinationCityFilter) ||
 			p.DestinationCity?.Contains(destinationCityFilter, StringComparison.OrdinalIgnoreCase) == true)
 	);
 
+	private decimal CalculatePackagePrice(TravelPackage pkg)
+	{
+		decimal total = 0;
+		total += TryParsePrice(pkg.OutboundFlight?.Price?.Total);
+		total += TryParsePrice(pkg.ReturnFlight?.Price?.Total);
+		total += TryParsePrice(pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Total);
+		return total;
+	}
 
+	private decimal TryParsePrice(string? price)
+	{
+		return decimal.TryParse(price,
+			System.Globalization.NumberStyles.Any,
+			System.Globalization.CultureInfo.InvariantCulture,
+			out var result)
+			? result
+			: 0;
+	}
 
 
 }
