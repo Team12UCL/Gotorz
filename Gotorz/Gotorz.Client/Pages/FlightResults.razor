@@ -1,0 +1,153 @@
+﻿@using Shared.Models
+@inject ILogger<FlightResults> Logger
+
+<div class="flight-results">
+    <!-- Outbound Flights -->
+    <div class="outbound-flights">
+        <h4>✈️ Outbound Flights</h4>
+        @if (IsLoadingFlights)
+        {
+            <div class="loading-container">
+                <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+                <p>Searching for outbound flights...</p>
+            </div>
+        }
+        else if (OutboundFlights?.Count() == 0)
+        {
+            <div class="error-message">
+                No flight offers found. Please change your search.
+            </div>
+        }
+        else if (FlightError)
+        {
+            <div class="error-message">
+                Error loading flight data. Please try again.
+            </div>
+        }
+        else if (OutboundFlights?.Any() == true)
+        {
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Carrier</th>
+                        <th>Duration</th>
+                        <th>Price</th>
+                        <th>Route</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var flight in OutboundFlights)
+                    {
+                        <tr class="@(SelectedOutboundFlight == flight ? "selected-row" : "")">
+                            <td>
+                                <input type="radio" name="outboundFlight" value="@flight"
+                                       @onchange="@(() => OnOutboundFlightSelected.InvokeAsync(flight))"
+                                       checked="@(SelectedOutboundFlight == flight)" />
+                            </td>
+                            <td>@flight.Itineraries[0].Segments[0].CarrierCode</td>
+                            <td>@flight.Itineraries[0].Duration.Replace("PT", "")</td>
+                            <td>@flight.Price.Currency @flight.Price.Total</td>
+                            <td>
+                                @foreach (var segment in flight.Itineraries[0].Segments)
+                                {
+                                    <div>
+                                        @segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
+                                        ➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p>No outbound flight offers available.</p>
+        }
+    </div>
+
+    <!-- Return Flights -->
+    <div class="return-flights">
+        <h4>✈️ Return Flights</h4>
+        @if (IsLoadingFlights)
+        {
+            <div class="loading-container">
+                <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+                <p>Searching for return flights...</p>
+            </div>
+        }
+        else if (ReturnFlights?.Count() == 0)
+        {
+            <div class="error-message">
+                No flight offers found. Please change your search.
+            </div>
+        }
+        else if (FlightError)
+        {
+            <div class="error-message">
+                Error loading flight data. Please try again.
+            </div>
+        }
+        else if (ReturnFlights?.Any() == true)
+        {
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Carrier</th>
+                        <th>Duration</th>
+                        <th>Price</th>
+                        <th>Route</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var flight in ReturnFlights)
+                    {
+                        <tr class="@(SelectedReturnFlight == flight ? "selected-row" : "")">
+                            <td>
+                                <input type="radio" name="returnFlight" value="@flight"
+                                       @onchange="@(() => OnReturnFlightSelected.InvokeAsync(flight))"
+                                       checked="@(SelectedReturnFlight == flight)" />
+                            </td>
+                            <td>@flight.Itineraries[0].Segments[0].CarrierCode</td>
+                            <td>@flight.Itineraries[0].Duration.Replace("PT", "")</td>
+                            <td>@flight.Price.Currency @flight.Price.Total</td>
+                            <td>
+                                @foreach (var segment in flight.Itineraries[0].Segments)
+                                {
+                                    <div>
+                                        @segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
+                                        ➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else if (!IsLoadingFlights && HasReturnDate)
+        {
+            <p>No return flight offers available.</p>
+        }
+        else if (!HasReturnDate)
+        {
+            <p>One-way trip selected (no return date).</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<FlightOffer> OutboundFlights { get; set; } = new();
+    [Parameter] public List<FlightOffer> ReturnFlights { get; set; } = new();
+    [Parameter] public FlightOffer? SelectedOutboundFlight { get; set; }
+    [Parameter] public FlightOffer? SelectedReturnFlight { get; set; }
+    [Parameter] public bool IsLoadingFlights { get; set; }
+    [Parameter] public bool FlightError { get; set; }
+    [Parameter] public bool HasReturnDate { get; set; }
+
+    [Parameter] public EventCallback<FlightOffer> OnOutboundFlightSelected { get; set; }
+    [Parameter] public EventCallback<FlightOffer> OnReturnFlightSelected { get; set; }
+}
