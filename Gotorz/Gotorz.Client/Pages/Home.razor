@@ -19,16 +19,18 @@
 						 OnSelectionChanged="HandleSelectionChange" />
 		</div>
 
-		<div class="summary-container">
-			<BookingSummary OutboundFlight="selectedOutboundFlight"
-							ReturnFlight="selectedReturnFlight"
-							Hotel="selectedHotel"
-							DepartureDate="departureDate"
-							ReturnDate="returnDate"
-							Adults="adults"
-							OnPackageCreated="CreatePackage"
-							PackageCreationMessage="packageCreationMessage"
-							PackageCreationSuccess="packageCreationSuccess" />
+		<div class="search-summary-wrapper">
+			<div class="summary-container">
+				<BookingSummary OutboundFlight="selectedOutboundFlight"
+								ReturnFlight="selectedReturnFlight"
+								Hotel="selectedHotel"
+								DepartureDate="departureDate"
+								ReturnDate="returnDate"
+								Adults="adults"
+								OnPackageCreated="CreatePackage"
+								PackageCreationMessage=@packageCreationMessage
+								PackageCreationSuccess="packageCreationSuccess" />
+			</div>
 		</div>
 	</div>
 
@@ -74,7 +76,7 @@
 	private bool isLoadingHotels = false;
 	private bool flightError = false;
 	private bool hotelError = false;
-	private string packageCreationMessage = "";
+	private string packageCreationMessage = null;
 	private bool packageCreationSuccess = false;
 
 	private void HandleSelectionChange()
@@ -157,6 +159,8 @@
 				};
 
 			PackageService.Packages.Add(package);
+
+			// Set success message
 			packageCreationMessage = "Package created successfully!";
 			packageCreationSuccess = true;
 
@@ -165,11 +169,25 @@
 			selectedReturnFlight = null;
 			selectedHotel = null;
 			currentSearchMode = SearchMode.None;
+
+			// Auto-clear message after 5 seconds
+			_ = ClearMessageAfterDelay();
 		}
-		catch
+		catch (Exception ex)
 		{
-			packageCreationMessage = "Failed to create package";
+			// Set error message
+			packageCreationMessage = $"Failed to create package"; // add logging with {ex.Message} ?
 			packageCreationSuccess = false;
+
+			// Auto-clear error after 8 seconds
+			_ = ClearMessageAfterDelay(8000);
 		}
+	}
+
+	private async Task ClearMessageAfterDelay(int delayMs = 5000)
+	{
+		await Task.Delay(delayMs);
+		packageCreationMessage = null; 
+		StateHasChanged();
 	}
 }

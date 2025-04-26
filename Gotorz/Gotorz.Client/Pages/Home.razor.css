@@ -2,51 +2,48 @@
 .booking-container {
 	display: flex;
 	flex-direction: column;
-	gap: 25px;
+	gap: 0; /* Remove gap to prevent pushing content down */
 	margin-top: 20px;
 	width: 100%;
+	position: relative;
 }
 
-/* Top row containing search panel and booking summary */
+/* Top row - now just contains search panel */
 .top-row {
+	width: 100%;
+	display: block; /* Change from flex */
+}
+
+.search-summary-wrapper {
 	display: flex;
 	gap: 25px;
 	width: 100%;
+	position: relative;
+	background: white; /* Ensure solid background */
+	z-index: 2; /* Keep above results */
+	padding-bottom: 20px; /* Instead of margin */
 }
 
-/* Search panel container (left side) */
+/* Search panel container */
 .search-panel-container {
 	flex: 3;
 	min-width: 0;
 }
 
-/* Booking summary container (right side) */
+/* Booking summary container */
 .summary-container {
 	flex: 1;
 	min-width: 350px;
+	position: sticky;
+	top: 20px; /* Same as booking-summary's top */
+	align-self: flex-start;
+	height: fit-content;
 }
 
-/* Results panel container (full width bottom) */
+/* Results panel container */
 .results-container {
 	width: 100%;
+	position: relative;
+	z-index: 1;
+	margin-top: 0; /* Reset negative margin */
 }
-
-/* Responsive layout for tablets/mobile */
-/*@media (max-width: 1200px) {
-	.top-row {
-		flex-direction: column;
-		gap: 20px;
-	}
-
-	.summary-container {
-		min-width: 100%;*/ /* Full width on mobile */
-		/*order: -1;*/ /* Move summary above search on mobile */
-	/*}
-}*/
-
-/* Small mobile devices */
-/*@media (max-width: 576px) {
-	.booking-container {
-		gap: 15px;
-	}
-}*/
