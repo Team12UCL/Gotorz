@@ -206,14 +206,22 @@ button {
 	font-size: 0.9em;
 }
 
-/* Error styles */
-.error-message {
-	color: #721c24;
-	background-color: #f8d7da;
-	border: 1px solid #f5c6cb;
+.success-message {
+	background-color: #dff0d8;
+	color: #3c763d;
 	padding: 10px;
+	margin: 10px 0;
 	border-radius: 4px;
-	margin-top: 10px;
+	border: 1px solid #d6e9c6;
+}
+
+.error-message {
+	background-color: #f2dede;
+	color: #a94442;
+	padding: 10px;
+	margin: 10px 0;
+	border-radius: 4px;
+	border: 1px solid #ebccd1;
 }
 
 /* Loading animation */
