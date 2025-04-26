@@ -10,158 +10,166 @@
 <h3>Create Travel Package</h3>
 
 <div class="booking-container">
-    <SearchPanel @ref="searchPanel"
-                 OnSearchFlights="SearchFlights"
-                 OnSearchHotels="SearchHotels"
-                 OnSelectionChanged="HandleSelectionChange"/>
+	<!-- Top Row: Search Panel and Booking Summary -->
+	<div class="top-row">
+		<div class="search-panel-container">
+			<SearchPanel @ref="searchPanel"
+						 OnSearchFlights="SearchFlights"
+						 OnSearchHotels="SearchHotels"
+						 OnSelectionChanged="HandleSelectionChange" />
+		</div>
 
-    <div class="results-summary-area">
-        <ResultsPanel CurrentSearchMode="currentSearchMode"
-                      OutboundFlights="outboundFlights"
-                      ReturnFlights="returnFlights"
-                      HotelOffers="hotelOffers"
-                      SelectedOutboundFlight="selectedOutboundFlight"
-                      SelectedReturnFlight="selectedReturnFlight"
-                      SelectedHotel="selectedHotel"
-                      OnFlightSelected="@(tuple => SelectFlight(tuple.flight, tuple.isOutbound))"
-                      OnHotelSelected="SelectHotel"
-                      IsLoadingFlights="isLoadingFlights"
-                      IsLoadingHotels="isLoadingHotels"
-                      FlightError="flightError"
-                      HotelError="hotelError"/>
+		<div class="summary-container">
+			<BookingSummary OutboundFlight="selectedOutboundFlight"
+							ReturnFlight="selectedReturnFlight"
+							Hotel="selectedHotel"
+							DepartureDate="departureDate"
+							ReturnDate="returnDate"
+							Adults="adults"
+							OnPackageCreated="CreatePackage"
+							PackageCreationMessage="packageCreationMessage"
+							PackageCreationSuccess="packageCreationSuccess" />
+		</div>
+	</div>
 
-        <BookingSummary OutboundFlight="selectedOutboundFlight"
-                        ReturnFlight="selectedReturnFlight"
-                        Hotel="selectedHotel"
-                        DepartureDate="departureDate"
-                        ReturnDate="returnDate"
-                        Adults="adults"
-                        OnPackageCreated="CreatePackage"
-                        PackageCreationMessage="packageCreationMessage"
-                        PackageCreationSuccess="packageCreationSuccess"/>
-    </div>
+	<!-- Bottom Row: Results Panel -->
+	<div class="results-container">
+		<ResultsPanel CurrentSearchMode="currentSearchMode"
+					  OutboundFlights="outboundFlights"
+					  ReturnFlights="returnFlights"
+					  HotelOffers="hotelOffers"
+					  SelectedOutboundFlight="selectedOutboundFlight"
+					  SelectedReturnFlight="selectedReturnFlight"
+					  SelectedHotel="selectedHotel"
+					  OnFlightSelected="@(tuple => SelectFlight(tuple.flight, tuple.isOutbound))"
+					  OnHotelSelected="SelectHotel"
+					  IsLoadingFlights="isLoadingFlights"
+					  IsLoadingHotels="isLoadingHotels"
+					  FlightError="flightError"
+					  HotelError="hotelError" />
+	</div>
 </div>
 
 @code {
-    private SearchPanel searchPanel;
-    private SearchMode currentSearchMode = SearchMode.None;
+	private SearchPanel searchPanel;
+	private SearchMode currentSearchMode = SearchMode.None;
 
-    // Flight data
-    private List<FlightOffer> outboundFlights = new();
-    private List<FlightOffer> returnFlights = new();
-    private FlightOffer? selectedOutboundFlight;
-    private FlightOffer? selectedReturnFlight;
+	// Flight data
+	private List<FlightOffer> outboundFlights = new();
+	private List<FlightOffer> returnFlights = new();
+	private FlightOffer? selectedOutboundFlight;
+	private FlightOffer? selectedReturnFlight;
 
-    // Hotel data
-    private HotelOfferRootModel? hotelOffers;
-    private HotelData? selectedHotel;
+	// Hotel data
+	private HotelOfferRootModel? hotelOffers;
+	private HotelData? selectedHotel;
 
-    // Search parameters
-    private DateTime? departureDate;
-    private DateTime? returnDate;
-    private int adults = 1;
+	// Search parameters
+	private DateTime? departureDate;
+	private DateTime? returnDate;
+	private int adults = 1;
 
-    // UI states
-    private bool isLoadingFlights = false;
-    private bool isLoadingHotels = false;
-    private bool flightError = false;
-    private bool hotelError = false;
-    private string packageCreationMessage = "";
-    private bool packageCreationSuccess = false;
+	// UI states
+	private bool isLoadingFlights = false;
+	private bool isLoadingHotels = false;
+	private bool flightError = false;
+	private bool hotelError = false;
+	private string packageCreationMessage = "";
+	private bool packageCreationSuccess = false;
 
-    private void HandleSelectionChange()
-    {
-        departureDate = searchPanel.DepartureDate;
-        returnDate = searchPanel.ReturnDate;
-        adults = searchPanel.Adults;
-    }
+	private void HandleSelectionChange()
+	{
+		departureDate = searchPanel.DepartureDate;
+		returnDate = searchPanel.ReturnDate;
+		adults = searchPanel.Adults;
+	}
 
-    private void SelectFlight(FlightOffer flight, bool isOutbound)
-    {
-        if (isOutbound) selectedOutboundFlight = flight;
-        else selectedReturnFlight = flight;
-    }
+	private void SelectFlight(FlightOffer flight, bool isOutbound)
+	{
+		if (isOutbound) selectedOutboundFlight = flight;
+		else selectedReturnFlight = flight;
+	}
 
-    private void SelectHotel(HotelData hotel) => selectedHotel = hotel;
+	private void SelectHotel(HotelData hotel) => selectedHotel = hotel;
 
-    private async Task SearchFlights()
-    {
-        if (!searchPanel.CanSearchFlights) return;
+	private async Task SearchFlights()
+	{
+		if (!searchPanel.CanSearchFlights) return;
 
-        currentSearchMode = SearchMode.Flights;
-        isLoadingFlights = true;
-        flightError = false;
+		currentSearchMode = SearchMode.Flights;
+		isLoadingFlights = true;
+		flightError = false;
 
-        try
-        {
-            outboundFlights = await searchPanel.FetchFlightData(isOutbound: true);
-            if (returnDate.HasValue)
-            {
-                returnFlights = await searchPanel.FetchFlightData(isOutbound: false);
-            }
-        }
-        catch
-        {
-            flightError = true;
-        }
-        finally
-        {
-            isLoadingFlights = false;
-        }
-    }
+		try
+		{
+			outboundFlights = await searchPanel.FetchFlightData(isOutbound: true);
+			if (returnDate.HasValue)
+			{
+				returnFlights = await searchPanel.FetchFlightData(isOutbound: false);
+			}
+		}
+		catch
+		{
+			flightError = true;
+		}
+		finally
+		{
+			isLoadingFlights = false;
+		}
+	}
 
-    private async Task SearchHotels()
-    {
-        if (!searchPanel.CanSearchHotels) return;
+	private async Task SearchHotels()
+	{
+		if (!searchPanel.CanSearchHotels) return;
 
-        currentSearchMode = SearchMode.Hotels;
-        isLoadingHotels = true;
-        hotelError = false;
+		currentSearchMode = SearchMode.Hotels;
+		isLoadingHotels = true;
+		hotelError = false;
 
-        try
-        {
-            hotelOffers = await searchPanel.FetchHotelData();
-        }
-        catch
-        {
-            hotelError = true;
-        }
-        finally
-        {
-            isLoadingHotels = false;
-        }
-    }
+		try
+		{
+			hotelOffers = await searchPanel.FetchHotelData();
+		}
+		catch
+		{
+			hotelError = true;
+		}
+		finally
+		{
+			isLoadingHotels = false;
+		}
+	}
 
-    private void CreatePackage()
-    {
-        try
-        {
-            var package = new TravelPackage
-            {
-                OutboundFlight = selectedOutboundFlight,
-                ReturnFlight = selectedReturnFlight,
-                Hotel = selectedHotel,
-                DepartureDate = departureDate.Value,
-                ReturnDate = returnDate ?? DateTime.MinValue,
-                Adults = adults,
-                OriginCity = searchPanel.OriginCityName,
-                DestinationCity = searchPanel.DestinationCityName
-            };
+	private void CreatePackage()
+	{
+		try
+		{
+			var package = new TravelPackage
+				{
+					OutboundFlight = selectedOutboundFlight,
+					ReturnFlight = selectedReturnFlight,
+					Hotel = selectedHotel,
+					DepartureDate = departureDate.Value,
+					ReturnDate = returnDate ?? DateTime.MinValue,
+					Adults = adults,
+					OriginCity = searchPanel.OriginCityName,
+					DestinationCity = searchPanel.DestinationCityName
+				};
 
-            PackageService.Packages.Add(package);
-            packageCreationMessage = "Package created successfully!";
-            packageCreationSuccess = true;
+			PackageService.Packages.Add(package);
+			packageCreationMessage = "Package created successfully!";
+			packageCreationSuccess = true;
 
-            // Reset selections
-            selectedOutboundFlight = null;
-            selectedReturnFlight = null;
-            selectedHotel = null;
-            currentSearchMode = SearchMode.None;
-        }
-        catch
-        {
-            packageCreationMessage = "Failed to create package";
-            packageCreationSuccess = false;
-        }
-    }
+			// Reset selections
+			selectedOutboundFlight = null;
+			selectedReturnFlight = null;
+			selectedHotel = null;
+			currentSearchMode = SearchMode.None;
+		}
+		catch
+		{
+			packageCreationMessage = "Failed to create package";
+			packageCreationSuccess = false;
+		}
+	}
 }
