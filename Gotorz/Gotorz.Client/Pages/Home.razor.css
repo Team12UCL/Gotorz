@@ -1,49 +1,42 @@
-﻿/* Main layout container */
+﻿/* Home.razor.css */
 .booking-container {
 	display: flex;
 	flex-direction: column;
-	gap: 0; /* Remove gap to prevent pushing content down */
-	margin-top: 20px;
+	gap: 2rem;
+	padding: 1rem;
 	width: 100%;
-	position: relative;
+	max-width: 1400px; /* Adjust as needed */
+	margin: 0 auto;
 }
 
-/* Top row - now just contains search panel */
 .top-row {
+	display: flex;
+	gap: 2rem;
 	width: 100%;
-	display: block; /* Change from flex */
+}
+
+.search-panel-container {
+	flex: 2;
+	min-width: 400px; /* Changed from max-width to min-width */
 }
 
 .search-summary-wrapper {
-	display: flex;
-	gap: 25px;
-	width: 100%;
-	position: relative;
-	background: white; /* Ensure solid background */
-	z-index: 2; /* Keep above results */
-	padding-bottom: 20px; /* Instead of margin */
-}
-
-/* Search panel container */
-.search-panel-container {
-	flex: 3;
-	min-width: 0;
-}
-
-/* Booking summary container */
-.summary-container {
 	flex: 1;
-	min-width: 350px;
+	min-width: 300px;
+	max-width: 450px;
+}
+
+.summary-container {
+	border: 1px solid #ccc;
+	padding: 1rem;
+	border-radius: 8px;
+	background-color: #f9f9f9;
 	position: sticky;
-	top: 20px; /* Same as booking-summary's top */
-	align-self: flex-start;
+	top: 20px; /* Adjust based on your header height */
 	height: fit-content;
 }
 
-/* Results panel container */
 .results-container {
 	width: 100%;
-	position: relative;
-	z-index: 1;
-	margin-top: 0; /* Reset negative margin */
+	margin-top: 1rem;
 }
