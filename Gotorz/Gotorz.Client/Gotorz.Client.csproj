@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Pages\CreateBooking\" />
     <Folder Include="wwwroot\images\" />
   </ItemGroup>
 
