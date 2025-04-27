@@ -135,11 +135,11 @@
 												@onchange="@(() => SelectOutboundFlight(flight))"
 												checked="@(selectedOutboundFlight == flight)" />
 											</td>
-											<td>@flight.Itineraries[0].Segments[0].CarrierCode</td>
-											<td>@flight.Itineraries[0].Duration.Replace("PT", "")</td>
+											<td>@flight.Itineraries.ToList()[0].Segments.ToList()[0].CarrierCode</td>
+											<td>@flight.Itineraries.ToList()[0].Duration.Replace("PT", "")</td>
 											<td>@flight.Price.Currency @flight.Price.Total</td>
 											<td>
-												@foreach (var segment in flight.Itineraries[0].Segments)
+												@foreach (var segment in flight.Itineraries.ToList()[0].Segments)
 												{
 													<div>
 														@segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
@@ -201,11 +201,11 @@
 												@onchange="@(() => SelectReturnFlight(flight))"
 												checked="@(selectedReturnFlight == flight)" />
 											</td>
-											<td>@flight.Itineraries[0].Segments[0].CarrierCode</td>
-											<td>@flight.Itineraries[0].Duration.Replace("PT", "")</td>
+											<td>@flight.Itineraries.ToList()[0].Segments.ToList()[0].CarrierCode</td>
+											<td>@flight.Itineraries.ToList()[0].Duration.Replace("PT", "")</td>
 											<td>@flight.Price.Currency @flight.Price.Total</td>
 											<td>
-												@foreach (var segment in flight.Itineraries[0].Segments)
+												@foreach (var segment in flight.Itineraries.ToList()[0].Segments)
 												{
 													<div>
 														@segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
@@ -315,10 +315,10 @@
 					@if (selectedOutboundFlight != null)
 					{
 						<div class="summary-item">
-							<strong>Outbound:</strong> @selectedOutboundFlight.Itineraries[0].Segments[0].Departure.IataCode to
-							@selectedOutboundFlight.Itineraries[0].Segments[^1].Arrival.IataCode
+							<strong>Outbound:</strong> @selectedOutboundFlight.Itineraries.ToList()[0].Segments.ToList()[0].Departure.IataCode to
+							@selectedOutboundFlight.Itineraries.ToList()[0].Segments.ToList()[^1].Arrival.IataCode
 							<div class="summary-detail">
-								<span>Departs: @selectedOutboundFlight.Itineraries[0].Segments[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
+								<span>Departs: @selectedOutboundFlight.Itineraries.ToList()[0].Segments.ToList()[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
 								<span>@selectedOutboundFlight.Price.Total @selectedOutboundFlight.Price.Currency</span>
 							</div>
 						</div>
@@ -327,10 +327,10 @@
 					@if (selectedReturnFlight != null)
 					{
 						<div class="summary-item">
-							<strong>Return:</strong> @selectedReturnFlight.Itineraries[0].Segments[0].Departure.IataCode to
-							@selectedReturnFlight.Itineraries[0].Segments[^1].Arrival.IataCode
+							<strong>Return:</strong> @selectedReturnFlight.Itineraries.ToList()[0].Segments.ToList()[0].Departure.IataCode to
+							@selectedReturnFlight.Itineraries.ToList()[0].Segments.ToList()[^1].Arrival.IataCode
 							<div class="summary-detail">
-								<span>Departs: @selectedReturnFlight.Itineraries[0].Segments[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
+								<span>Departs: @selectedReturnFlight.Itineraries.ToList()[0].Segments.ToList()[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
 								<span>@selectedReturnFlight.Price.Total @selectedReturnFlight.Price.Currency</span>
 							</div>
 						</div>
@@ -699,13 +699,15 @@
 		{
 			Logger.LogInformation($"Fetching flights from {originLocationCode} to {destinationLocationCode} on {departureDate}");
 			var outboundUrl = $"api/flight/search?originLocationCode={originLocationCode}&destinationLocationCode={destinationLocationCode}&departureDate={departureDate:yyyy-MM-dd}&adults={adults}";
-			outboundFlights = (await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(outboundUrl))?.Data ?? new List<FlightOffer>();
+			var outboundResponse = await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(outboundUrl);
+			outboundFlights = outboundResponse?.Data?.ToList() ?? new List<FlightOffer>();
 
 			if (returnDate.HasValue)
 			{
 				Logger.LogInformation($"Fetching return flights from {destinationLocationCode} to {originLocationCode} on {returnDate}");
 				var returnUrl = $"api/flight/search?originLocationCode={destinationLocationCode}&destinationLocationCode={originLocationCode}&departureDate={returnDate:yyyy-MM-dd}&adults={adults}";
-				returnFlights = (await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(returnUrl))?.Data ?? new List<FlightOffer>();
+				var returnResponse = await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(returnUrl);
+				returnFlights = returnResponse?.Data?.ToList() ?? new List<FlightOffer>();
 			}
 		}
 		catch (Exception ex)

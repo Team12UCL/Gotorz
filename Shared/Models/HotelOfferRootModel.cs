@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -9,27 +11,36 @@ namespace Shared.Models
 {
     public class CityCodeResponse
     {
-        public string CityCode { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public string CityCode { get; set; }
     }
     public class HotelOfferRootModel
     {
-        public List<HotelData> Data { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public List<HotelData> Data { get; set; }
         public Meta Meta { get; set; }
         public Dictionaries Dictionaries { get; set; }
     }
 
     public class HotelData
     {
-        public string Type { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public string Type { get; set; }
         public Hotel Hotel { get; set; }
         public List<HotelOffer> Offers { get; set; }
-        public Dictionary<string, string> Links { get; set; }
+		[NotMapped]
+		public Dictionary<string, string> Links { get; set; }
 
     }
 
     public class Hotel
     {
-        public string Name { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public string Name { get; set; }
         public string CityCode { get; set; }
         public string HotelId { get; set; }
         public GeoCode GeoCode { get; set; }
@@ -43,13 +54,17 @@ namespace Shared.Models
 
     public class GeoCode
     {
-        public double Latitude { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public double Latitude { get; set; }
         public double Longitude { get; set; }
     }
 
     public class Address
     {
-        public string CountryCode { get; set; }
+        [Key]
+        public Guid Id { get; set; } = Guid.NewGuid();
+		public string CountryCode { get; set; }
         public string StateCode { get; set; }
         public string CityName { get; set; }
         public List<string> Lines { get; set; }
@@ -58,20 +73,25 @@ namespace Shared.Models
 
     public class Contact
     {
-        public string Phone { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public string Phone { get; set; }
         public string Fax { get; set; }
     }
 
     public class Media
     {
-        public string Uri { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public string Uri { get; set; }
         public string Category { get; set; }
     }
 
     public class HotelOffer
     {
-        public string Id { get; set; }
-        public Room Room { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public Room Room { get; set; }
         [JsonPropertyName("price")]
         public HotelPrice Price { get; set; }
         public string CheckInDate { get; set; }
@@ -82,19 +102,25 @@ namespace Shared.Models
 
     public class Room
     {
-        public string Type { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public string Type { get; set; }
         public TypeEstimated TypeEstimated { get; set; }
         public RoomDescription Description { get; set; }
     }
 
     public class RoomDescription
     {
-        public string Text { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public string Text { get; set; }
         public string Lang { get; set; }
     }
     public class TypeEstimated
     {
-        public string Category { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public string Category { get; set; }
         public int Beds { get; set; }
         public string BedType { get; set; }
     }
@@ -102,17 +128,23 @@ namespace Shared.Models
 
     public class HotelPrice
     {
-        public string Currency { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public string Currency { get; set; }
         public string Total { get; set; }
     }
     public class HotelIdRoot
     {
-        public List<HotelIdData> Data { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public List<HotelIdData> Data { get; set; }
     }
 
     public class HotelIdData
     {
-        public string Type { get; set; }
+		[Key]
+		public Guid Id { get; set; } = Guid.NewGuid();
+		public string Type { get; set; }
         public string HotelId { get; set; }
         public string Name { get; set; }
     }

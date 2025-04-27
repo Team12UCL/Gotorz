@@ -1,0 +1,798 @@
+﻿
+@page "/admin/users"
+@attribute [Authorize(Roles = "Admin")]
+@using Gotorz.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Admin - Manage Users</PageTitle>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">User Management</h5>
+        <button class="btn btn-light" @onclick="CreateNewUser">
+            <i class="bi bi-person-plus me-1"></i> Add New User
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between mb-3">
+            <div class="input-group" style="max-width: 400px;">
+                <input type="text" class="form-control" placeholder="Search users..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterUsers" />
+                <button class="btn btn-outline-secondary" type="button" @onclick="FilterUsers">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+            <div>
+                <select class="form-select"  @onchange="() => FilterUsers()">
+                    <option value="">All Roles</option>
+                    <option value="Admin">Admin</option>
+                    <option value="SalesAgent">Sales Agent</option>
+                    <option value="User">User</option>
+                </select>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <button class="nav-link @(activeTab == "users" ? "active" : "")" @onclick='() => SetActiveTab("users")'>
+                    Users
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(activeTab == "activity" ? "active" : "")" @onclick='() => SetActiveTab("activity")'>
+                    Activity Logs
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(activeTab == "gdpr" ? "active" : "")" @onclick='() => SetActiveTab("gdpr")'>
+                    GDPR Requests
+                </button>
+            </li>
+        </ul>
+
+        @if (activeTab == "users")
+        {
+            @if (loading)
+            {
+                <div class="text-center my-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading users...</p>
+                </div>
+            }
+            else if (filteredUsers.Count == 0)
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i> No users found. 
+                    @if (!string.IsNullOrWhiteSpace(searchTerm) || !string.IsNullOrWhiteSpace(roleFilter))
+                    {
+                        <span>Try a different search or <button class="btn btn-link p-0" @onclick="ClearFilters">clear filters</button>.</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th @onclick='() => SortTable("Name")'>
+                                    Name <SortIndicator Field="Name" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                                </th>
+                                <th @onclick='() => SortTable("Email")'>
+                                    Email <SortIndicator Field="Email" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                                </th>
+                                <th @onclick='() => SortTable("Role")'>
+                                    Role <SortIndicator Field="Role" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                                </th>
+                                <th @onclick='() => SortTable("LastLogin")'>
+                                    Last Active <SortIndicator Field="LastLogin" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                                </th>
+                                <th @onclick='() => SortTable("Status")'>
+                                    Status <SortIndicator Field="Status" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                                </th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in filteredUsers)
+                            {
+                                <tr>
+                                    <td>@user.FirstName @user.LastName</td>
+                                    <td>@user.Email</td>
+                                    <td>
+                                        @if (user.IsEditing)
+                                        {
+                                            <select class="form-select form-select-sm" @bind="user.TempRole">
+                                                <option value="User">User</option>
+                                                <option value="SalesAgent">Sales Agent</option>
+                                                <option value="Admin">Admin</option>
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            @user.Role
+                                        }
+                                    </td>
+                                    <td>@user.LastLogin.ToString("g")</td>
+                                    <td>
+                                        @if (user.IsEditing)
+                                        {
+                                            <select class="form-select form-select-sm" @bind="user.TempStatus">
+                                                <option value="Active">Active</option>
+                                                <option value="Locked">Locked</option>
+                                                <option value="Pending">Pending</option>
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-@GetStatusBadgeColor(user.Status)">@user.Status</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            @if (user.IsEditing)
+                                            {
+                                                <button class="btn btn-sm btn-success" @onclick="() => SaveUser(user)">
+                                                    <i class="bi bi-check"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-secondary" @onclick="() => CancelEdit(user)">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => EditUser(user)">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-info" @onclick="() => ViewUserDetails(user.Id)">
+                                                    <i class="bi bi-info-circle"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" @onclick="() => ResetPassword(user)">
+                                                    <i class="bi bi-key"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUserPrompt(user)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <span>Showing @filteredUsers.Count of @allUsers.Count users</span>
+                    </div>
+                    <nav>
+                        <ul class="pagination">
+                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                <button class="page-link" @onclick="PreviousPage">Previous</button>
+                            </li>
+                            @for (int i = 1; i <= totalPages; i++)
+                            {
+                                var pageNumber = i;
+                                <li class="page-item @(currentPage == pageNumber ? "active" : "")">
+                                    <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
+                                </li>
+                            }
+                            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                <button class="page-link" @onclick="NextPage">Next</button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+        else if (activeTab == "activity")
+        {
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Activity Logs</h6>
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Date Range</span>
+                        <input type="date" class="form-control" @bind="logStartDate">
+                        <span class="input-group-text">to</span>
+                        <input type="date" class="form-control" @bind="logEndDate">
+                        <button class="btn btn-outline-primary" @onclick="FilterActivityLogs">Apply Filter</button>
+                        <button class="btn btn-outline-secondary" @onclick="ExportActivityLogs">
+                            <i class="bi bi-download me-1"></i> Export
+                        </button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>IP Address</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in activityLogs)
+                                {
+                                    <tr>
+                                        <td>@log.Timestamp.ToString("g")</td>
+                                        <td>@log.UserEmail</td>
+                                        <td>@log.Action</td>
+                                        <td>@log.IpAddress</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-link" @onclick="() => ToggleLogDetails(log)">
+                                                Details
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    @if (log.ShowDetails)
+                                    {
+                                        <tr>
+                                            <td colspan="5" class="bg-light">
+                                                <pre class="mb-0" style="white-space: pre-wrap;">@log.Details</pre>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (activeTab == "gdpr")
+        {
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">GDPR Data Requests</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Request Date</th>
+                                    <th>User</th>
+                                    <th>Request Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var request in gdprRequests)
+                                {
+                                    <tr>
+                                        <td>@request.RequestDate.ToString("g")</td>
+                                        <td>@request.UserEmail</td>
+                                        <td>@request.RequestType</td>
+                                        <td>
+                                            <span class="badge bg-@GetGdprStatusBadgeColor(request.Status)">@request.Status</span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                @if (request.Status == "Pending")
+                                                {
+                                                    <button class="btn btn-sm btn-success" @onclick="() => ProcessGdprRequest(request, true)">
+                                                        Approve
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger" @onclick="() => ProcessGdprRequest(request, false)">
+                                                        Reject
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-sm btn-outline-info" disabled>
+                                                        Processed
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (showDeleteConfirmation)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the user <strong>@userToDelete?.Email</strong>?</p>
+                    <p class="text-danger"><small>This action cannot be undone and may affect related data.</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showResetPasswordConfirmation)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Reset Password</h5>
+                    <button type="button" class="btn-close" @onclick="CancelResetPassword"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to reset the password for <strong>@userToResetPassword?.Email</strong>?</p>
+                    <p>A reset link will be sent to the user's email address.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelResetPassword">Cancel</button>
+                    <button type="button" class="btn btn-warning" @onclick="ConfirmResetPassword">Reset Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string activeTab = "users";
+    private bool loading = true;
+    private string searchTerm = "";
+    private string roleFilter = "";
+    private string currentSortField = "Name";
+    private bool isAscending = true;
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => (int)Math.Ceiling(filteredUsers.Count / (double)pageSize);
+    
+    // Delete confirmation
+    private bool showDeleteConfirmation = false;
+    private UserViewModel userToDelete;
+    
+    // Reset password confirmation
+    private bool showResetPasswordConfirmation = false;
+    private UserViewModel userToResetPassword;
+    
+    // Activity logs
+    private DateTime logStartDate = DateTime.Now.AddDays(-7);
+    private DateTime logEndDate = DateTime.Now;
+    
+    // Mock data
+    private List<UserViewModel> allUsers = new List<UserViewModel>();
+    private List<UserViewModel> filteredUsers = new List<UserViewModel>();
+    private List<ActivityLogViewModel> activityLogs = new List<ActivityLogViewModel>();
+    private List<GdprRequestViewModel> gdprRequests = new List<GdprRequestViewModel>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // In a real application, this would be loading from a service/API
+        await Task.Delay(500); // Simulate network delay
+        
+        // Generate sample users
+        allUsers = GenerateSampleUsers();
+        FilterAndSortUsers();
+        
+        // Generate sample activity logs
+        activityLogs = GenerateSampleActivityLogs();
+        
+        // Generate sample GDPR requests
+        gdprRequests = GenerateSampleGdprRequests();
+        
+        loading = false;
+    }
+
+    private List<UserViewModel> GenerateSampleUsers()
+    {
+        var users = new List<UserViewModel>();
+        var roles = new[] { "Admin", "SalesAgent", "User" };
+        var statuses = new[] { "Active", "Locked", "Pending" };
+        var firstNames = new[] { "John", "Jane", "Robert", "Emily", "Michael", "Sarah", "David", "Lisa", "William", "Emma" };
+        var lastNames = new[] { "Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Garcia", "Rodriguez", "Wilson" };
+        
+        var random = new Random();
+        
+        // Admin user
+        users.Add(new UserViewModel
+        {
+            Id = Guid.NewGuid().ToString(),
+            FirstName = "Admin",
+            LastName = "User",
+            Email = "admin@godtur.com",
+            Role = "Admin",
+            Status = "Active",
+            LastLogin = DateTime.Now.AddHours(-2),
+            RegistrationDate = DateTime.Now.AddMonths(-6)
+        });
+        
+        // Sales agent
+        users.Add(new UserViewModel
+        {
+            Id = Guid.NewGuid().ToString(),
+            FirstName = "Sales",
+            LastName = "Agent",
+            Email = "agent@godtur.com",
+            Role = "SalesAgent",
+            Status = "Active",
+            LastLogin = DateTime.Now.AddHours(-5),
+            RegistrationDate = DateTime.Now.AddMonths(-4)
+        });
+        
+        // Generate random users
+        for (int i = 0; i < 25; i++)
+        {
+            var firstName = firstNames[random.Next(firstNames.Length)];
+            var lastName = lastNames[random.Next(lastNames.Length)];
+            var email = $"{firstName.ToLower()}.{lastName.ToLower()}{i}@example.com";
+            var role = roles[random.Next(1, roles.Length)]; // Skip Admin role for random users
+            var status = statuses[random.Next(statuses.Length)];
+            var registrationDate = DateTime.Now.AddDays(-random.Next(1, 180));
+            var lastLogin = status == "Active" ? 
+                registrationDate.AddDays(random.Next(1, (DateTime.Now - registrationDate).Days)) : 
+                registrationDate;
+            
+            users.Add(new UserViewModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                Role = role,
+                Status = status,
+                LastLogin = lastLogin,
+                RegistrationDate = registrationDate
+            });
+        }
+        
+        return users;
+    }
+
+    private List<ActivityLogViewModel> GenerateSampleActivityLogs()
+    {
+        var logs = new List<ActivityLogViewModel>();
+        var actions = new[] { "Login", "Logout", "BookingCreated", "PaymentProcessed", "ProfileUpdated", "PasswordChanged" };
+        var ipAddresses = new[] { "192.168.1.1", "10.0.0.1", "172.16.0.1", "198.51.100.1", "203.0.113.1" };
+        var random = new Random();
+        
+        for (int i = 0; i < 50; i++)
+        {
+            var user = allUsers[random.Next(allUsers.Count)];
+            var action = actions[random.Next(actions.Length)];
+            var timestamp = DateTime.Now.AddDays(-random.Next(0, 30)).AddHours(-random.Next(0, 24)).AddMinutes(-random.Next(0, 60));
+            var ipAddress = ipAddresses[random.Next(ipAddresses.Length)];
+            
+            string details = action switch
+            {
+                "Login" => "User logged in successfully.",
+                "Logout" => "User logged out.",
+                "BookingCreated" => $"Booking created with reference GT-{DateTime.Now:yyyyMMdd}-{random.Next(1000, 9999)}.",
+                "PaymentProcessed" => $"Payment processed for ${random.Next(100, 3000)}.{random.Next(0, 100):D2}.",
+                "ProfileUpdated" => "User profile information updated.",
+                "PasswordChanged" => "User changed their password.",
+                _ => "Action details not available."
+            };
+            
+            logs.Add(new ActivityLogViewModel
+            {
+                Id = i,
+                UserEmail = user.Email,
+                Action = action,
+                Timestamp = timestamp,
+                IpAddress = ipAddress,
+                Details = details,
+                ShowDetails = false
+            });
+        }
+        
+        return logs.OrderByDescending(l => l.Timestamp).ToList();
+    }
+
+    private List<GdprRequestViewModel> GenerateSampleGdprRequests()
+    {
+        var requests = new List<GdprRequestViewModel>();
+        var requestTypes = new[] { "DataExport", "DataDeletion", "OptOut" };
+        var statuses = new[] { "Pending", "Approved", "Rejected", "Completed" };
+        var random = new Random();
+        
+        for (int i = 0; i < 10; i++)
+        {
+            var user = allUsers[random.Next(allUsers.Count)];
+            var requestType = requestTypes[random.Next(requestTypes.Length)];
+            var requestDate = DateTime.Now.AddDays(-random.Next(1, 30));
+            var status = i < 3 ? "Pending" : statuses[random.Next(1, statuses.Length)];
+            
+            requests.Add(new GdprRequestViewModel
+            {
+                Id = i,
+                UserEmail = user.Email,
+                RequestType = requestType,
+                RequestDate = requestDate,
+                Status = status,
+                ProcessedDate = status == "Pending" ? null : requestDate.AddDays(random.Next(1, 5))
+            });
+        }
+        return requests.OrderByDescending(r => r.RequestDate).ToList();
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private void FilterUsers()
+    {
+        FilterAndSortUsers();
+        currentPage = 1;
+    }
+
+    private void FilterActivityLogs()
+    {
+        // In a real application, this would fetch logs from the server
+        // Here we're just filtering the mock data
+        activityLogs = GenerateSampleActivityLogs()
+            .Where(l => l.Timestamp >= logStartDate && l.Timestamp <= logEndDate.AddDays(1))
+            .ToList();
+    }
+
+    private void ExportActivityLogs()
+    {
+        // In a real application, this would generate and download a CSV file
+        // Here we just show a demo message
+        Console.WriteLine("Exporting activity logs...");
+    }
+
+    private void ToggleLogDetails(ActivityLogViewModel log)
+    {
+        log.ShowDetails = !log.ShowDetails;
+    }
+
+    private void ProcessGdprRequest(GdprRequestViewModel request, bool approve)
+    {
+        request.Status = approve ? "Approved" : "Rejected";
+        request.ProcessedDate = DateTime.Now;
+        
+        // In a real application, this would also trigger the appropriate data processing
+    }
+
+    private void FilterAndSortUsers()
+    {
+        // Apply search and role filters
+        filteredUsers = allUsers.Where(u => 
+            (string.IsNullOrWhiteSpace(searchTerm) || 
+             u.FirstName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             u.LastName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+             u.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(roleFilter) || u.Role == roleFilter)
+        ).ToList();
+
+        // Apply sorting
+        switch (currentSortField)
+        {
+            case "Name":
+                filteredUsers = isAscending 
+                    ? filteredUsers.OrderBy(u => u.LastName).ThenBy(u => u.FirstName).ToList() 
+                    : filteredUsers.OrderByDescending(u => u.LastName).ThenByDescending(u => u.FirstName).ToList();
+                break;
+            case "Email":
+                filteredUsers = isAscending 
+                    ? filteredUsers.OrderBy(u => u.Email).ToList() 
+                    : filteredUsers.OrderByDescending(u => u.Email).ToList();
+                break;
+            case "Role":
+                filteredUsers = isAscending 
+                    ? filteredUsers.OrderBy(u => u.Role).ToList() 
+                    : filteredUsers.OrderByDescending(u => u.Role).ToList();
+                break;
+            case "LastLogin":
+                filteredUsers = isAscending 
+                    ? filteredUsers.OrderBy(u => u.LastLogin).ToList() 
+                    : filteredUsers.OrderByDescending(u => u.LastLogin).ToList();
+                break;
+            case "Status":
+                filteredUsers = isAscending 
+                    ? filteredUsers.OrderBy(u => u.Status).ToList() 
+                    : filteredUsers.OrderByDescending(u => u.Status).ToList();
+                break;
+        }
+    }
+
+    private void SortTable(string field)
+    {
+        if (currentSortField == field)
+        {
+            isAscending = !isAscending;
+        }
+        else
+        {
+            currentSortField = field;
+            isAscending = true;
+        }
+        
+        FilterAndSortUsers();
+    }
+
+    private void ClearFilters()
+    {
+        searchTerm = "";
+        roleFilter = "";
+        FilterUsers();
+    }
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+        }
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+        }
+    }
+
+    private void GoToPage(int page)
+    {
+        currentPage = page;
+    }
+
+    private void CreateNewUser()
+    {
+        NavigationManager.NavigateTo("/admin/users/create");
+    }
+
+    private void ViewUserDetails(string id)
+    {
+        NavigationManager.NavigateTo($"/admin/users/{id}");
+    }
+
+    private void EditUser(UserViewModel user)
+    {
+        user.IsEditing = true;
+        user.TempRole = user.Role;
+        user.TempStatus = user.Status;
+    }
+
+    private void CancelEdit(UserViewModel user)
+    {
+        user.IsEditing = false;
+    }
+
+    private void SaveUser(UserViewModel user)
+    {
+        user.Role = user.TempRole;
+        user.Status = user.TempStatus;
+        user.IsEditing = false;
+        
+        // In a real application, this would call an API to update the user
+    }
+
+    private void DeleteUserPrompt(UserViewModel user)
+    {
+        userToDelete = user;
+        showDeleteConfirmation = true;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteConfirmation = false;
+        userToDelete = null;
+    }
+
+    private void ConfirmDelete()
+    {
+        if (userToDelete != null)
+        {
+            // In a real application, this would call an API
+            allUsers.Remove(userToDelete);
+            FilterAndSortUsers();
+        }
+        
+        showDeleteConfirmation = false;
+        userToDelete = null;
+    }
+
+    private void ResetPassword(UserViewModel user)
+    {
+        userToResetPassword = user;
+        showResetPasswordConfirmation = true;
+    }
+
+    private void CancelResetPassword()
+    {
+        showResetPasswordConfirmation = false;
+        userToResetPassword = null;
+    }
+
+    private void ConfirmResetPassword()
+    {
+        if (userToResetPassword != null)
+        {
+            // In a real application, this would call an API to send a password reset email
+            Console.WriteLine($"Password reset for {userToResetPassword.Email}");
+        }
+        
+        showResetPasswordConfirmation = false;
+        userToResetPassword = null;
+    }
+
+    private string GetStatusBadgeColor(string status)
+    {
+        return status switch
+        {
+            "Active" => "success",
+            "Pending" => "warning",
+            "Locked" => "danger",
+            _ => "secondary"
+        };
+    }
+
+    private string GetGdprStatusBadgeColor(string status)
+    {
+        return status switch
+        {
+            "Pending" => "warning",
+            "Approved" => "success",
+            "Rejected" => "danger",
+            "Completed" => "info",
+            _ => "secondary"
+        };
+    }
+
+    // View models
+    public class UserViewModel
+    {
+        public string Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Email { get; set; }
+        public string Role { get; set; }
+        public string Status { get; set; }
+        public DateTime LastLogin { get; set; }
+        public DateTime RegistrationDate { get; set; }
+        
+        // Edit mode properties
+        public bool IsEditing { get; set; }
+        public string TempRole { get; set; }
+        public string TempStatus { get; set; }
+    }
+
+    public class ActivityLogViewModel
+    {
+        public int Id { get; set; }
+        public string UserEmail { get; set; }
+        public string Action { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string IpAddress { get; set; }
+        public string Details { get; set; }
+        public bool ShowDetails { get; set; }
+    }
+
+    public class GdprRequestViewModel
+    {
+        public int Id { get; set; }
+        public string UserEmail { get; set; }
+        public string RequestType { get; set; }
+        public DateTime RequestDate { get; set; }
+        public string Status { get; set; }
+        public DateTime? ProcessedDate { get; set; }
+    }
+}

@@ -1,0 +1,301 @@
+﻿
+@using Microsoft.AspNetCore.Authorization
+@using Shared.Models
+@using Gotorz.Services
+
+
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject AdminDashboardService AdminDashboardService
+
+@rendermode InteractiveServer
+
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Admin Dashboard</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Dashboard</li>
+    </ol>
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            @errorMessage
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Dashboard Overview</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Total Bookings
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@totalBookings</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-journal-check fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Revenue (Total)
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">$@totalSales.ToString("N0")</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-currency-dollar fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Open Support Tickets
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@openTickets</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-headset fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div> *@
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Total Users
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@totalUsers</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-people fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Recent Bookings</h6>
+                        </div>
+                        <div class="card-body">
+                            @if (recentBookings.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Reference</th>
+                                                <th>Customer</th>
+                                                <th>Date</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var booking in recentBookings)
+                                            {
+                                                <tr @onclick="() => NavigateToBookingDetails(booking.BookingId)">
+                                                    <td>@booking.BookingReference</td>
+                                                    @* <td>@booking.PrimaryContactName</td> *@
+                                                    <td>@booking.BookingDate.ToString("MM/dd/yyyy")</td>
+                                                    <td>$@booking.TotalAmount.ToString("N2")</td>
+                                                    <td>
+                                                        <span class="badge bg-@GetStatusColor(booking.Status.ToString())">@booking.Status</span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-3">
+                                    <p class="text-muted">No recent bookings</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @* <div class="col-lg-6">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Recent Support Tickets</h6>
+                        </div>
+                        <div class="card-body">
+                            @if (recentTickets.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Ticket #</th>
+                                                <th>Subject</th>
+                                                <th>Date</th>
+                                                <th>Priority</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var ticket in recentTickets)
+                                            {
+                                                <tr @onclick="() => NavigateToTicketDetails(ticket.Id)">
+                                                    <td>@ticket.TicketNumber</td>
+                                                    <td>@ticket.Subject</td>
+                                                    <td>@ticket.CreatedAt.ToString("MM/dd/yyyy")</td>
+                                                    <td>
+                                                        <span class="badge bg-@GetPriorityColor(ticket.Priority)">@ticket.Priority</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-@GetTicketStatusColor(ticket.Status)">@ticket.Status</span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-3">
+                                    <p class="text-muted">No recent support tickets</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div> *@
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private int totalBookings;
+    private decimal totalSales;
+    private int totalUsers;
+    private int activeUsers;
+    private List<Booking> recentBookings = new List<Booking>();
+    private string errorMessage;
+    private bool isLoading = true;
+    private DashboardStats dashboardStats;
+
+    protected override async Task OnInitializedAsync()
+    {
+		await LoadDashboardStats();
+    }
+
+    private async Task LoadDashboardStats()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+           
+
+            dashboardStats = await AdminDashboardService.GetDashboardStatsAsync();
+            totalBookings = dashboardStats.TotalBookings;
+            totalSales = dashboardStats.TotalSales;
+            totalUsers = dashboardStats.TotalUsers;
+            activeUsers = dashboardStats.ActiveUsers;
+            recentBookings = dashboardStats.RecentBookings ?? new List<Booking>();
+            isLoading = false;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading dashboard stats: {ex.Message}";
+            Console.WriteLine(errorMessage);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private string GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Confirmed" => "success",
+            "Pending" => "warning",
+            "Cancelled" => "danger",
+            _ => "secondary"
+        };
+    }
+
+    private string GetPriorityColor(string priority)
+    {
+        return priority switch
+        {
+            "High" => "danger",
+            "Medium" => "warning",
+            "Low" => "info",
+            _ => "secondary"
+        };
+    }
+
+    private string GetTicketStatusColor(string status)
+    {
+        return status switch
+        {
+            "Open" => "danger",
+            "In Progress" => "warning",
+            "Resolved" => "success",
+            "Closed" => "secondary",
+            _ => "secondary"
+        };
+    }
+
+    private void NavigateToBookingDetails(Guid id)
+    {
+        NavigationManager.NavigateTo($"/admin/bookings/{id}");
+    }
+
+    private void NavigateToTicketDetails(Guid id)
+    {
+        NavigationManager.NavigateTo($"/admin/support/{id}");
+    }
+}

@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Server.Services;
 using Microsoft.AspNetCore.SignalR;
+using Gotorz.Services;
+using Microsoft.AspNetCore.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +33,7 @@ builder.Services.AddScoped<TravelPackageService>();
 builder.Services.AddScoped<FlightService>();
 builder.Services.AddScoped<HotelService>();
 builder.Services.AddSingleton<AirportService>();
+builder.Services.AddScoped<ActivityLogService>();
 
 builder.Services.AddCors(options =>
 {
@@ -39,8 +42,19 @@ builder.Services.AddCors(options =>
             .WithOrigins("https://localhost:7216") // Client port
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .SetIsOriginAllowed(origin => true));
+			.AllowCredentials()
+			.SetIsOriginAllowed(origin => true));
 });
+
+builder.Services.AddScoped(sp =>
+{
+	var navigationManager = sp.GetRequiredService<NavigationManager>();
+	return new HttpClient
+	{
+		BaseAddress = new Uri(navigationManager.BaseUri)
+	};
+});
+
 
 
 builder.Services.AddAuthentication(options =>
@@ -49,6 +63,10 @@ builder.Services.AddAuthentication(options =>
         options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
     })
     .AddIdentityCookies();
+
+
+builder.Services.AddScoped<AdminDashboardService>();
+
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -62,8 +80,25 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, AdditionalUserClaimsPrincipalFactory>();
+
+
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Logging.AddConsole();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+	options.Events.OnRedirectToLogin = context =>
+	{
+		context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+		return Task.CompletedTask;
+	};
+	options.Events.OnRedirectToAccessDenied = context =>
+	{
+		context.Response.StatusCode = StatusCodes.Status403Forbidden;
+		return Task.CompletedTask;
+	};
+});
 
 var app = builder.Build();
 
@@ -85,6 +120,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 app.UseCors("AllowBlazorClient");
+
+
 
 app.UseAuthentication();
 app.UseAuthorization();

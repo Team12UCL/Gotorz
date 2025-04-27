@@ -1,0 +1,89 @@
+﻿
+@page "/admin"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "Admin")]
+@rendermode InteractiveServer
+
+<PageTitle>Admin Dashboard - Gotorz</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Admin Navigation</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <button class="list-group-item list-group-item-action @(activeTab == "dashboard" ? "active" : "")" 
+                            @onclick='() => SetActiveTab("dashboard")'>
+                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    </button>
+                    <button class="list-group-item list-group-item-action @(activeTab == "packages" ? "active" : "")" 
+                            @onclick='() => SetActiveTab("packages")'>
+                        <i class="bi bi-box me-2"></i> Travel Packages
+                    </button>
+                    <button class="list-group-item list-group-item-action @(activeTab == "bookings" ? "active" : "")" 
+                            @onclick='() => SetActiveTab("bookings")'>
+                        <i class="bi bi-journal-check me-2"></i> Bookings
+                    </button>
+                    <button class="list-group-item list-group-item-action @(activeTab == "users" ? "active" : "")" 
+                            @onclick='() => SetActiveTab("users")'>
+                        <i class="bi bi-people me-2"></i> User Management
+                    </button>
+                    <button class="list-group-item list-group-item-action @(activeTab == "support" ? "active" : "")" 
+                            @onclick='() => SetActiveTab("support")'>
+                        <i class="bi bi-headset me-2"></i> Support Tickets
+                    </button>
+                    <button class="list-group-item list-group-item-action @(activeTab == "reports" ? "active" : "")" 
+                            @onclick='() => SetActiveTab("reports")'>
+                        <i class="bi bi-graph-up me-2"></i> Reports
+                    </button>
+                    <button class="list-group-item list-group-item-action @(activeTab == "settings" ? "active" : "")" 
+                            @onclick='() => SetActiveTab("settings")'>
+                        <i class="bi bi-gear me-2"></i> Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            @if (activeTab == "dashboard")
+            {
+                <AdminDashboard />
+            }
+            else if (activeTab == "packages")
+            {
+                <AdminPackages />
+            }
+            else if (activeTab == "bookings")
+            {
+                <AdminBookings />
+            }
+            else if (activeTab == "users")
+            {
+                <AdminUsers />
+            }
+            else if (activeTab == "support")
+            {
+                <AdminSupport />
+            }
+            else if (activeTab == "reports")
+            {
+                <AdminReports />
+            }
+            else if (activeTab == "settings")
+            {
+                <AdminSettings />
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string activeTab = "dashboard";
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+    }
+}

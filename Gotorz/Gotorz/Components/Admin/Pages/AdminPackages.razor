@@ -1,0 +1,455 @@
+﻿
+@page "/admin/packages"
+@using Shared.Models
+@inject NavigationManager NavigationManager
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+<PageTitle>Admin - Manage Travel Packages</PageTitle>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Travel Packages Management</h5>
+        <button class="btn btn-light" @onclick="CreateNewPackage">
+            <i class="bi bi-plus-circle me-1"></i> Add New Package
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search packages..." @bind="searchTerm" @bind:event="oninput" @onkeyup="FilterPackages" />
+                <button class="btn btn-outline-secondary" type="button" @onclick="FilterPackages">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+
+        @if (loading)
+        {
+            <div class="text-center my-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading packages...</p>
+            </div>
+        }
+        else if (filteredPackages.Count == 0)
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i> No travel packages found. 
+                @if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    <span>Try a different search term or <button class="btn btn-link p-0" @onclick="ClearSearch">clear search</button>.</span>
+                }
+                else
+                {
+                    <span>Start by creating a new package.</span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th @onclick='() => SortTable("Name")'>
+                                Name <SortIndicator Field="Name" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th @onclick='() => SortTable("Destination")'>
+                                Destination <SortIndicator Field="Destination" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th @onclick='() => SortTable("Price")'>
+                                Price <SortIndicator Field="Price" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th @onclick='() => SortTable("Duration")'>
+                                Duration <SortIndicator Field="Duration" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th @onclick='() => SortTable("Status")'>
+                                Status <SortIndicator Field="Status" CurrentSortField="@currentSortField" IsAscending="@isAscending" />
+                            </th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var package in filteredPackages)
+                        {
+                            <tr @onclick="() => ViewPackageDetails(package.TravelPackageId)" style="cursor: pointer;">
+                                <td>@package.OriginCity</td>
+                                <td>@package.DestinationCity</td>
+                                @* <td>$@package.TotalPrice.ToString("N2")</td> *@
+                                <td>@package.Adults</td>
+                                @* <td>
+                                    <span class="badge bg-@GetStatusBadgeColor(package.Status)">@package.Status</span>
+                                </td>
+                                <td class="text-center" @onclick:stopPropagation>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => EditPackage(package.Id)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePackagePrompt(package)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td> *@
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                    <span>Showing @filteredPackages.Count of @allPackages.Count packages</span>
+                </div>
+                <nav>
+                    <ul class="pagination">
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="PreviousPage">Previous</button>
+                        </li>
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            var pageNumber = i;
+                            <li class="page-item @(currentPage == pageNumber ? "active" : "")">
+                                <button class="page-link" @onclick="() => GoToPage(pageNumber)">@pageNumber</button>
+                            </li>
+                        }
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="NextPage">Next</button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+@if (showDeleteConfirmation)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the travel package <strong>@packageToDelete?.OriginCity -> @packageToDelete.DestinationCity</strong>?</p>
+                    <p class="text-danger"><small>This action cannot be undone.</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    @using Microsoft.AspNetCore.Authorization;
+
+    private List<TravelPackage> allPackages = new List<TravelPackage>();
+    private List<TravelPackage> filteredPackages = new List<TravelPackage>();
+    private bool loading = true;
+    private string searchTerm = "";
+    private string currentSortField = "Name";
+    private bool isAscending = true;
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => (int)Math.Ceiling(filteredPackages.Count / (double)pageSize);
+    
+    // Delete confirmation
+    private bool showDeleteConfirmation = false;
+    private TravelPackage packageToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // In a real application, this would be loading from a service/API
+        await Task.Delay(500); // Simulate network delay
+        
+        // Mock data
+        allPackages = new List<TravelPackage>
+        {
+            new TravelPackage
+            {
+                TravelPackageId = Guid.NewGuid(),
+                Name = "New York City Escape",
+                Description = "Experience the magic of NYC with this premium package",
+             
+                DepartureDate = DateTime.Now.AddDays(30),
+                ReturnDate = DateTime.Now.AddDays(37),
+                
+                OriginCity = "LAX",
+                DestinationCity = "JFK",
+                
+				Status = TravelPackageStatus.Available,
+            },
+            new TravelPackage
+            {
+                TravelPackageId = Guid.NewGuid(),
+                Name = "Paris Romance",
+                Description = "Romantic getaway in the city of love",
+               
+                DepartureDate = DateTime.Now.AddDays(60),
+                ReturnDate = DateTime.Now.AddDays(70),
+                
+                OriginCity = "SFO",
+                DestinationCity = "CDG",
+               
+				Status = TravelPackageStatus.Limited,
+            },
+            new TravelPackage
+            {
+                TravelPackageId = Guid.NewGuid(),
+                Name = "Tokyo Adventure",
+                Description = "Explore the vibrant culture of Tokyo",
+                
+                DepartureDate = DateTime.Now.AddDays(90),
+                ReturnDate = DateTime.Now.AddDays(104),
+                
+                OriginCity = "SEA",
+                DestinationCity = "HND",
+              
+				Status = TravelPackageStatus.Available,
+            },
+            new TravelPackage
+            {
+                TravelPackageId = Guid.NewGuid(),
+                Name = "Caribbean Cruise",
+                Description = "Relaxing beach vacation in the Caribbean",
+                
+                DepartureDate = DateTime.Now.AddDays(45),
+                ReturnDate = DateTime.Now.AddDays(52),
+               
+                OriginCity = "MIA",
+                DestinationCity = "SJU",
+                
+				Status = TravelPackageStatus.Sold_Out,
+            },
+            new TravelPackage
+            {
+                TravelPackageId = Guid.NewGuid(),
+                Name = "London Explorer",
+                Description = "Discover the history and culture of London",
+                
+                DepartureDate = DateTime.Now.AddDays(75),
+                ReturnDate = DateTime.Now.AddDays(82),
+              
+                OriginCity = "JFK",
+                DestinationCity = "LHR",
+               
+				Status = TravelPackageStatus.Available,
+            }
+        };
+        
+        // Generate more sample data
+        for (int i = 0; i < 20; i++)
+        {
+            var cities = new[] { "Rome", "Barcelona", "Sydney", "Dubai", "Bangkok" };
+            var airports = new[] { "FCO", "BCN", "SYD", "DXB", "BKK" };
+            var hotels = new[] { "Grand Hotel", "Luxury Resort", "City Center Hotel", "Beachfront Resort", "Boutique Hotel" };
+            var cityIndex = i % 5;
+            
+            allPackages.Add(new TravelPackage
+            {
+                    TravelPackageId = Guid.NewGuid(),
+                Name = $"{cities[cityIndex]} Getaway",
+                Description = $"Explore the beauty of {cities[cityIndex]}",
+                
+                DepartureDate = DateTime.Now.AddDays(30 + (i * 5)),
+                ReturnDate = DateTime.Now.AddDays(37 + (i * 5)),
+               
+                OriginCity = "JFK",
+                DestinationCity = airports[cityIndex],
+                
+                    Status = i % 10 == 0 ? TravelPackageStatus.Sold_Out : (i % 5 == 0 ? TravelPackageStatus.Limited : TravelPackageStatus.Available)
+            });
+        }
+        
+        FilterAndSortPackages();
+        loading = false;
+    }
+
+    private void FilterPackages()
+    {
+        FilterAndSortPackages();
+        currentPage = 1;
+    }
+
+    private void FilterAndSortPackages()
+    {
+        // Apply search filter
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredPackages = new List<TravelPackage>(allPackages);
+        }
+        else
+        {
+            var term = searchTerm.ToLower();
+            filteredPackages = allPackages.Where(p => 
+                p.Name.ToLower().Contains(term) || 
+                p.Description.ToLower().Contains(term) ||
+                p.DestinationCity.ToLower().Contains(term) ||
+                
+                p.Status.ToString().ToLower().Contains(term)
+            ).ToList();
+        }
+
+        // Apply sorting
+        switch (currentSortField)
+        {
+            case "Name":
+                filteredPackages = isAscending 
+                    ? filteredPackages.OrderBy(p => p.Name).ToList() 
+                    : filteredPackages.OrderByDescending(p => p.Name).ToList();
+                break;
+            case "Destination":
+                filteredPackages = isAscending 
+                    ? filteredPackages.OrderBy(p => p.DestinationCity).ToList() 
+                    : filteredPackages.OrderByDescending(p => p.DestinationCity).ToList();
+                break;
+            // case "Price":
+            //     filteredPackages = isAscending 
+            //         ? filteredPackages.OrderBy(p => p.TotalPrice).ToList() 
+            //         : filteredPackages.OrderByDescending(p => p.TotalPrice).ToList();
+            //     break;
+            // case "Duration":
+            //     filteredPackages = isAscending 
+            //         ? filteredPackages.OrderBy(p => p.DurationInDays).ToList() 
+            //         : filteredPackages.OrderByDescending(p => p.DurationInDays).ToList();
+            //     break;
+            case "Status":
+                filteredPackages = isAscending 
+                    ? filteredPackages.OrderBy(p => p.Status).ToList() 
+                    : filteredPackages.OrderByDescending(p => p.Status).ToList();
+                break;
+        }
+    }
+
+    private void SortTable(string field)
+    {
+        if (currentSortField == field)
+        {
+            isAscending = !isAscending;
+        }
+        else
+        {
+            currentSortField = field;
+            isAscending = true;
+        }
+        
+        FilterAndSortPackages();
+    }
+
+    private void ClearSearch()
+    {
+        searchTerm = "";
+        FilterPackages();
+    }
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+        }
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+        }
+    }
+
+    private void GoToPage(int page)
+    {
+        currentPage = page;
+    }
+
+    private void ViewPackageDetails(Guid id)
+    {
+        NavigationManager.NavigateTo($"/admin/packages/{id}");
+    }
+
+    private void CreateNewPackage()
+    {
+        NavigationManager.NavigateTo("/admin/packages/create");
+    }
+
+    private void EditPackage(Guid id)
+    {
+        NavigationManager.NavigateTo($"/admin/packages/edit/{id}");
+    }
+
+    private void DeletePackagePrompt(TravelPackage package)
+    {
+        packageToDelete = package;
+        showDeleteConfirmation = true;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteConfirmation = false;
+        packageToDelete = null;
+    }
+
+    private void ConfirmDelete()
+    {
+        if (packageToDelete != null)
+        {
+            // In a real application, this would call an API
+            allPackages.Remove(packageToDelete);
+            FilterAndSortPackages();
+        }
+        
+        showDeleteConfirmation = false;
+        packageToDelete = null;
+    }
+
+    private string GetStatusBadgeColor(string status)
+    {
+        return status switch
+        {
+            "Available" => "success",
+            "Limited" => "warning",
+            "Sold Out" => "danger",
+            _ => "secondary"
+        };
+    }
+}
+
+@code {
+    public class SortIndicator : ComponentBase
+    {
+        [Parameter]
+        public string Field { get; set; }
+        
+        [Parameter]
+        public string CurrentSortField { get; set; }
+        
+        [Parameter]
+        public bool IsAscending { get; set; }
+        
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder __builder)
+        {
+            if (Field == CurrentSortField)
+            {
+                if (IsAscending)
+                {
+                    __builder.AddMarkupContent(0, "<i class=\"bi bi-sort-up\"></i>");
+                }
+                else
+                {
+                    __builder.AddMarkupContent(0, "<i class=\"bi bi-sort-down\"></i>");
+                }
+            }
+            else
+            {
+                __builder.AddMarkupContent(0, "<i class=\"bi bi-sort\" style=\"opacity: 0.3;\"></i>");
+            }
+        }
+    }
+}
