@@ -1,0 +1,260 @@
+@page "/admin/activity"
+@using Gotorz.Services.Admin
+@using Microsoft.AspNetCore.Authorization
+@using Shared.Models
+
+@attribute [Authorize(Roles = "Admin")]
+@inject AdminActivityLogService AdminActivityLogService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+@rendermode InteractiveServer
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Activity Logs</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active">Activity Logs</li>
+    </ol>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            @errorMessage
+        </div>
+    }
+
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Activity Logs</h5>
+            <button class="btn btn-sm btn-light" @onclick="ExportActivityLogs">
+                <i class="bi bi-download me-2"></i>Export to CSV
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Activity Type</label>
+                        <select class="form-control" @bind="filterActivityType">
+                            <option value="">All Types</option>
+                            <option value="Login">Login</option>
+                            <option value="Booking">Booking</option>
+                            <option value="Payment">Payment</option>
+                            <option value="AdminAction">Admin Action</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>IP Address</label>
+                        <input type="text" class="form-control" @bind="filterIpAddress" placeholder="Filter by IP Address" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>User Agent</label>
+                        <input type="text" class="form-control" @bind="filterUserAgent" placeholder="Filter by User Agent" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Resource Type</label>
+                        <input type="text" class="form-control" @bind="filterResourceType" placeholder="Filter by Resource Type" />
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" class="form-control" @bind="startDate" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" class="form-control" @bind="endDate" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group mt-4">
+                        <button class="btn btn-primary w-100" @onclick="LoadActivityLogs">Apply Filters</button>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group mt-4">
+                        <button class="btn btn-secondary w-100" @onclick="ResetFilters">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="d-flex justify-content-center my-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>User ID</th>
+                                <th>Activity Type</th>
+                                <th>Description</th>
+                                <th>IP Address</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in activityLogs)
+                            {
+                                <tr>
+                                    <td>@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                    <td>@log.UserId</td>
+                                    <td>@log.ActivityType</td>
+                                    <td>@log.Description</td>
+                                    <td>@log.IpAddress</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" @onclick="() => ToggleDetails(log)">
+                                            @(log.ShowDetails ? "Hide" : "Show")
+                                        </button>
+                                    </td>
+                                </tr>
+                                @if (log.ShowDetails)
+                                {
+                                    <tr>
+                                        <td colspan="6">
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <p><strong>User Agent:</strong> @log.UserAgent</p>
+                                                    <p><strong>Session ID:</strong> @log.SessionId</p>
+                                                    <p><strong>Resource Type:</strong> @log.ResourceType</p>
+                                                    <p><strong>Resource ID:</strong> @log.ResourceId</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <span>Showing @(skip + 1) to @(Math.Min(skip + take, totalLogs)) of @totalLogs entries</span>
+                    </div>
+                    <div>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary" @onclick="PreviousPage" disabled="@(skip == 0)">
+                                Previous
+                            </button>
+                            <button class="btn btn-outline-primary" @onclick="NextPage" disabled="@(skip + take >= totalLogs)">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ActivityLog> activityLogs = new();
+    private string? filterActivityType;
+    private string? filterIpAddress;
+    private string? filterUserAgent;
+    private string? filterResourceType;
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private int skip = 0;
+    private int take = 25;
+    private int totalLogs = 0;
+    private string? errorMessage;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadActivityLogs();
+    }
+
+    private async Task LoadActivityLogs()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            activityLogs = await AdminActivityLogService.GetActivityLogsAsync(
+                filterActivityType, startDate, endDate, skip, take,
+                filterIpAddress, filterUserAgent, filterResourceType);
+            
+            // In a real implementation, you would also get the total count for pagination
+            // This is a simplified example
+            totalLogs = activityLogs.Count + skip;
+            if (activityLogs.Count == take)
+                totalLogs += 1; // Indicate there might be more
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading activity logs: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ExportActivityLogs()
+    {
+        try
+        {
+            var csvData = await AdminActivityLogService.ExportActivityLogsAsync(
+                null, filterActivityType, startDate, endDate, filterIpAddress, filterResourceType);
+            
+            // Use JS Interop to download the file
+            var filename = $"activity_logs_{DateTime.Now:yyyyMMdd}.csv";
+            await JSRuntime.InvokeVoidAsync("downloadFile", filename, "text/csv", Convert.ToBase64String(csvData));
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error exporting activity logs: {ex.Message}";
+        }
+    }
+
+    private void ToggleDetails(ActivityLog log)
+    {
+        log.ShowDetails = !log.ShowDetails;
+    }
+
+    private async Task NextPage()
+    {
+        skip += take;
+        await LoadActivityLogs();
+    }
+
+    private async Task PreviousPage()
+    {
+        skip = Math.Max(0, skip - take);
+        await LoadActivityLogs();
+    }
+
+    private async Task ResetFilters()
+    {
+        filterActivityType = null;
+        filterIpAddress = null;
+        filterUserAgent = null;
+        filterResourceType = null;
+        startDate = null;
+        endDate = null;
+        skip = 0;
+        await LoadActivityLogs();
+    }
+}

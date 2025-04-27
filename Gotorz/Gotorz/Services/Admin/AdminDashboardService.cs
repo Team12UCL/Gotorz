@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
 
-namespace Gotorz.Services
+namespace Gotorz.Services.Admin
 {
 	public class AdminDashboardService
 	{

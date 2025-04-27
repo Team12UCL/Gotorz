@@ -79,7 +79,15 @@ namespace Gotorz.Services
 			}
 		}
 
-		public async Task<List<ActivityLog>> GetAllActivityLogsAsync(string? activityType = null, DateTime? startDate = null, DateTime? endDate = null, int skip = 0, int take = 100)
+		public async Task<List<ActivityLog>> GetAllActivityLogsAsync(
+			string? activityType = null, 
+			DateTime? startDate = null, 
+			DateTime? endDate = null, 
+			int skip = 0, 
+			int take = 100,
+			string? ipAddress = null,
+			string? userAgent = null,
+			string? resourceType = null)
 		{
 			try
 			{
@@ -100,6 +108,21 @@ namespace Gotorz.Services
 					query = query.Where(a => a.Timestamp <= endDate.Value);
 				}
 
+				if (!string.IsNullOrEmpty(ipAddress))
+				{
+					query = query.Where(a => a.IpAddress.Contains(ipAddress));
+				}
+
+				if (!string.IsNullOrEmpty(userAgent))
+				{
+					query = query.Where(a => a.UserAgent.Contains(userAgent));
+				}
+
+				if (!string.IsNullOrEmpty(resourceType))
+				{
+					query = query.Where(a => a.ResourceType.Contains(resourceType));
+				}
+
 				return await query
 					.OrderByDescending(a => a.Timestamp)
 					.Skip(skip)
@@ -109,11 +132,17 @@ namespace Gotorz.Services
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error retrieving activity logs");
-				return new List<ActivityLog>();
+				throw;
 			}
 		}
 
-		public async Task<byte[]?> ExportActivityLogsAsCsvAsync(string? userId = null, string? activityType = null, DateTime? startDate = null, DateTime? endDate = null)
+		public async Task<byte[]> ExportActivityLogsAsCsvAsync(
+			string? userId = null, 
+			string? activityType = null, 
+			DateTime? startDate = null, 
+			DateTime? endDate = null,
+			string? ipAddress = null,
+			string? resourceType = null)
 		{
 			try
 			{
@@ -139,6 +168,16 @@ namespace Gotorz.Services
 					query = query.Where(a => a.Timestamp <= endDate.Value);
 				}
 
+				if (!string.IsNullOrEmpty(ipAddress))
+				{
+					query = query.Where(a => a.IpAddress.Contains(ipAddress));
+				}
+
+				if (!string.IsNullOrEmpty(resourceType))
+				{
+					query = query.Where(a => a.ResourceType.Contains(resourceType));
+				}
+
 				var logs = await query
 					.OrderByDescending(a => a.Timestamp)
 					.ToListAsync();
@@ -148,12 +187,12 @@ namespace Gotorz.Services
 				using (var writer = new System.IO.StreamWriter(memoryStream))
 				{
 					// Write header
-					writer.WriteLine("ID,UserID,ActivityType,Description,Timestamp,IPAddress");
+					writer.WriteLine("ID,UserID,ActivityType,Description,Timestamp,IPAddress,UserAgent,ResourceType,ResourceId");
 
 					// Write data rows
 					foreach (var log in logs)
 					{
-						writer.WriteLine($"{log.Id},{log.UserId},{log.ActivityType},{EscapeCsvField(log.Description)},{log.Timestamp:yyyy-MM-dd HH:mm:ss},{log.IpAddress}");
+						writer.WriteLine($"{log.Id},{log.UserId},{log.ActivityType},{EscapeCsvField(log.Description)},{log.Timestamp:yyyy-MM-dd HH:mm:ss},{log.IpAddress},{EscapeCsvField(log.UserAgent)},{log.ResourceType},{log.ResourceId}");
 					}
 
 					writer.Flush();
@@ -163,7 +202,7 @@ namespace Gotorz.Services
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error exporting activity logs to CSV");
-				return Array.Empty<byte>();
+				throw;
 			}
 		}
 

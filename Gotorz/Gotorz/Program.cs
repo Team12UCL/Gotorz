@@ -11,6 +11,7 @@ using Server.Services;
 using Microsoft.AspNetCore.SignalR;
 using Gotorz.Services;
 using Microsoft.AspNetCore.Components;
+using Gotorz.Services.Admin;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,7 +66,14 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 
+builder.Services.AddScoped<RoleManagementService>();
+
+builder.Services.AddScoped<AdminUserService>();
+builder.Services.AddScoped<AdminRoleService>();
+builder.Services.AddScoped<AdminBookingService>();
+builder.Services.AddScoped<AdminActivityLogService>();
 builder.Services.AddScoped<AdminDashboardService>();
+
 
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");

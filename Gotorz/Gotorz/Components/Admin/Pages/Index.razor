@@ -1,7 +1,7 @@
 ﻿
 @page "/admin"
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Policy = "Admin")]
+@attribute [Authorize(Roles = "Admin")]
 @rendermode InteractiveServer
 
 <PageTitle>Admin Dashboard - Gotorz</PageTitle>

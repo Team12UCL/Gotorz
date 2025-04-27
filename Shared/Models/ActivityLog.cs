@@ -26,5 +26,7 @@ namespace Shared.Models
 		public string SessionId { get; set; }
 		public string ResourceId { get; set; }  // ID of affected resource (booking, payment, etc.)
 		public string ResourceType { get; set; }  // Type of affected resource
+
+		public bool ShowDetails { get; set; } = false;  // Flag to show/hide details in the UI
 	}
 }
