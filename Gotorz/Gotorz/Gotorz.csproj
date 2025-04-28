@@ -5,6 +5,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-Gotorz-8a8f5d50-2e1e-4123-a933-0e929c029600</UserSecretsId>
+	  
+<!-- THIS CODE IS FOR TESTING PURPOSES -->
+	  <PreserveCompilationContext>true</PreserveCompilationContext>
+	  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+<!-- END OF TESTING CODE -->
+	  
   </PropertyGroup>
 
   <ItemGroup>
