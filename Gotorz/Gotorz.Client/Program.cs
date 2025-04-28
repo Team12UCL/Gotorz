@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 builder.Services.AddSingleton<TravelPackageService>();
+builder.Services.AddSingleton<PricingService>();
 
 builder.Services.AddScoped(sp => new HttpClient
 {

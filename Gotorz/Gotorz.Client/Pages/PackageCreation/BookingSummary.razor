@@ -1,5 +1,7 @@
-﻿@using Shared.Models
+﻿@using Gotorz.Client.Services
+@using Shared.Models
 @using Shared.Models.AmadeusCityResponse
+@inject PricingService PricingService
 
 <div class="booking-summary">
     <h4>Booking Summary</h4>
@@ -45,14 +47,18 @@
                                 @Hotel.Offers?.FirstOrDefault()?.CheckOutDate
                             </span>
                             <span>
-                                @ConvertToEUR(Hotel.Offers?.FirstOrDefault()?.Price?.Total,
-                                         Hotel.Offers?.FirstOrDefault()?.Price?.Currency) EUR
+                                @{
+                                    var offer = Hotel.Offers?.FirstOrDefault();
+                                    var price = offer?.Price?.Total ?? "0";
+                                    var currency = offer?.Price?.Currency ?? "EUR";
+                                    var eurPrice = PricingService.ConvertToEUR(price, currency, HotelOffers);
+                                }
+                                @eurPrice EUR
                             </span>
                         </div>
                     </div>
                 </div>
             }
-
             @if (CalculateTotalPrice() > 0)
             {
                 <div class="summary-total">
@@ -101,38 +107,6 @@
 
     private decimal CalculateTotalPrice()
     {
-        decimal total = 0;
-        total += ConvertToEUR(OutboundFlight?.Price?.Total, OutboundFlight?.Price?.Currency);
-        total += ConvertToEUR(ReturnFlight?.Price?.Total, ReturnFlight?.Price?.Currency);
-        total += ConvertToEUR(Hotel?.Offers?.FirstOrDefault()?.Price?.Total,
-                            Hotel?.Offers?.FirstOrDefault()?.Price?.Currency);
-        return total;
-    }
-
-    private decimal ConvertToEUR(string? price, string? currency)
-    {
-        var raw = TryParsePrice(price);
-        if (string.IsNullOrWhiteSpace(currency) || currency == "EUR") return raw;
-
-        var conversion = HotelOffers?.Dictionaries?.CurrencyConversionLookupRates?.GetValueOrDefault(currency);
-        if (conversion == null || conversion.Target != "EUR") return raw;
-
-        if (decimal.TryParse(conversion.Rate, System.Globalization.NumberStyles.Any,
-            System.Globalization.CultureInfo.InvariantCulture, out var rate))
-        {
-            return Math.Round(raw * rate, conversion.TargetDecimalPlaces);
-        }
-
-        return raw;
-    }
-
-    private decimal TryParsePrice(string? price)
-    {
-        return decimal.TryParse(price,
-            System.Globalization.NumberStyles.Any,
-            System.Globalization.CultureInfo.InvariantCulture,
-            out var result)
-            ? result
-            : 0;
+        return PricingService.CalculateTotalPrice(OutboundFlight, ReturnFlight, Hotel, HotelOffers);
     }
 }

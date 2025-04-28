@@ -12,6 +12,7 @@ namespace Shared.Models
         public FlightOffer OutboundFlight {get; set; }
         public FlightOffer? ReturnFlight {get; set; }
         public HotelData Hotel { get; set; }
+        public HotelOfferRootModel HotelOfferRoot { get; set; } // Added, because HotelData data structure does not contain pricing conversions
         public DateTime DepartureDate { get; set; }
         public DateTime ReturnDate { get; set; }
         public int Adults { get; set; }

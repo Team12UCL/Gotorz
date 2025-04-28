@@ -28,6 +28,7 @@ builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 builder.Services.AddHttpClient<AmadeusAuthService>();
 
+builder.Services.AddSingleton<PricingService>();
 builder.Services.AddScoped<IStripeService, StripeService>(); 
 builder.Services.AddScoped<TravelPackageService>();
 builder.Services.AddScoped<FlightService>();

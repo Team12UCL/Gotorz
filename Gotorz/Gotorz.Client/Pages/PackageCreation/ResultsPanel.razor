@@ -1,6 +1,8 @@
-﻿@using Shared.Enums
+﻿@using Gotorz.Client.Services
+@using Shared.Enums
 @using Shared.Models
 @using Shared.Models.AmadeusCityResponse
+@inject PricingService PricingService
 
 <div class="results-area">
     @if (CurrentSearchMode == SearchMode.Flights)
@@ -193,8 +195,9 @@
                                         var offer = hotel.Offers?.FirstOrDefault();
                                         var price = offer?.Price?.Total ?? "0";
                                         var currency = offer?.Price?.Currency ?? "EUR";
+                                        var eurPrice = PricingService.ConvertToEUR(price, currency, HotelOffers);
                                     }
-                                    @price @currency
+                                    @price @currency (@eurPrice EUR)
                                 </td>
                                 <td>
                                     @if (offer?.BoardType != null)
