@@ -15,6 +15,22 @@ namespace Gotorz.Client.Services
             return total;
         }
 
+        // Method overload for packages.razor that uses the stored conversion rates in TravelPackage.cs (since it doesn't have the hotel offers)
+        public decimal CalculateTotalPrice(FlightOffer? outboundFlight,
+                                    FlightOffer? returnFlight,
+                                    HotelData? hotel, Dictionary<string, decimal>? conversionRates,
+                                    int travelers = 1)
+        {
+            decimal total = 0;
+            // Multiply flight prices by number of travelers
+            total += ConvertToEUR(outboundFlight?.Price?.Total, outboundFlight?.Price?.Currency, conversionRates) * travelers;
+            total += ConvertToEUR(returnFlight?.Price?.Total, returnFlight?.Price?.Currency, conversionRates) * travelers;
+            // Hotel price is per stay, not per person
+            total += ConvertToEUR(hotel?.Offers?.FirstOrDefault()?.Price?.Total,
+                                hotel?.Offers?.FirstOrDefault()?.Price?.Currency, conversionRates);
+            return total;
+        }
+
         public decimal ConvertToEUR(string? price, string? currency, HotelOfferRootModel? hotelOffers)
         {
             var raw = TryParsePrice(price);
@@ -33,6 +49,23 @@ namespace Gotorz.Client.Services
             }
 
             return raw;
+        }
+
+        // Method overload for packages.razor that uses the stored conversion rates in TravelPackage.cs (since it doesn't have the hotel offers)
+        public decimal ConvertToEUR(string? price, string? currency, Dictionary<string, decimal>? conversionRates)
+        {
+            var raw = TryParsePrice(price);
+
+            // If currency is already EUR or missing, just return the raw amount
+            if (string.IsNullOrWhiteSpace(currency) || currency == "EUR") return raw;
+
+            // Use conversion rate if available
+            if (conversionRates != null && conversionRates.TryGetValue(currency, out var rate))
+            {
+                return Math.Round(raw * rate, 2);
+            }
+
+            return raw; // If conversion not available, return raw amount
         }
 
         public decimal TryParsePrice(string? price)

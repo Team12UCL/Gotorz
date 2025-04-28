@@ -61,7 +61,12 @@
 		<!-- EDIT: Use PricingService instead-->
 		<strong>Price:</strong>
 		@{
-			var price = PricingService.CalculateTotalPrice(pkg.OutboundFlight, pkg.ReturnFlight, pkg.Hotel, null);
+			var price = PricingService.CalculateTotalPrice(
+			pkg.OutboundFlight,
+			pkg.ReturnFlight,
+			pkg.Hotel,
+			pkg.CurrencyConversionRates,
+			travelers);
 		}
 		@price EUR		<br />
 		<button class="summary-button">Book</button>

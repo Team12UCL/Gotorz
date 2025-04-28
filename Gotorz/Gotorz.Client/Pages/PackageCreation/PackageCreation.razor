@@ -158,8 +158,25 @@
 					ReturnDate = returnDate ?? DateTime.MinValue,
 					Adults = adults,
 					OriginCity = searchPanel.OriginCityName,
-					DestinationCity = searchPanel.DestinationCityName
+					DestinationCity = searchPanel.DestinationCityName,
+					CreatedDate = DateTime.Now
 				};
+
+			// Extract currency conversion rates from hotelOffers to store with the new package (necessary since Packages.razor doesn't have hotel references which store the rates)
+			if (hotelOffers?.Dictionaries?.CurrencyConversionLookupRates != null)
+			{
+				foreach (var entry in hotelOffers.Dictionaries.CurrencyConversionLookupRates)
+				{
+					if (entry.Value.Target == "EUR" &&
+						decimal.TryParse(entry.Value.Rate,
+										System.Globalization.NumberStyles.Any,
+										System.Globalization.CultureInfo.InvariantCulture,
+										out var rate))
+					{
+						package.CurrencyConversionRates[entry.Key] = rate;
+					}
+				}
+			}
 
 			PackageService.Packages.Add(package);
 
