@@ -6,6 +6,7 @@
 @rendermode InteractiveWebAssembly
 
 <PageTitle>Create Travel Package</PageTitle>
+<NavLink href="/stripetest">Test Stripe</NavLink>
 
 <h3>Create Travel Package</h3>
 
@@ -53,6 +54,7 @@
 </div>
 
 @code {
+	// reference to the SearchPanel component for accessing its properties and methods directly
 	private SearchPanel searchPanel;
 	private SearchMode currentSearchMode = SearchMode.None;
 

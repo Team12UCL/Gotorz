@@ -297,5 +297,6 @@
         }
     }
 
+    // when the component is disposed (e.g. navgating away from the page), Blazor automatically calls this Dispose() method (add any other clean-up if necessary)
     public void Dispose() => _debounceTimer?.Dispose();
 }
