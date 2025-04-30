@@ -15,23 +15,23 @@
 	<div class="top-row">
 		<div class="search-panel-container">
 			<SearchPanel @ref="searchPanel"
-						 OnSearchFlights="SearchFlights"
-						 OnSearchHotels="SearchHotels"
-						 OnSelectionChanged="HandleSelectionChange" />
+			OnSearchFlights="SearchFlights"
+			OnSearchHotels="SearchHotels"
+			OnSelectionChanged="HandleSelectionChange" />
 		</div>
 
 		<div class="search-summary-wrapper">
 			<div class="summary-container">
 				<BookingSummary OutboundFlight="selectedOutboundFlight"
-								ReturnFlight="selectedReturnFlight"
-								Hotel="selectedHotel"
-								DepartureDate="departureDate"
-								ReturnDate="returnDate"
-								Adults="adults"
-								OnPackageCreated="CreatePackage"
-								PackageCreationMessage=@packageCreationMessage
-								PackageCreationSuccess="packageCreationSuccess"
-								HotelOffers="hotelOffers" />
+				ReturnFlight="selectedReturnFlight"
+				Hotel="selectedHotel"
+				DepartureDate="departureDate"
+				ReturnDate="returnDate"
+				Adults="adults"
+				OnPackageCreated="CreatePackage"
+				PackageCreationMessage=@packageCreationMessage
+				PackageCreationSuccess="packageCreationSuccess"
+				HotelOffers="hotelOffers" />
 			</div>
 		</div>
 	</div>
@@ -39,18 +39,18 @@
 	<!-- Bottom Row: Results Panel -->
 	<div class="results-container">
 		<ResultsPanel CurrentSearchMode="currentSearchMode"
-					  OutboundFlights="outboundFlights"
-					  ReturnFlights="returnFlights"
-					  HotelOffers="hotelOffers"
-					  SelectedOutboundFlight="selectedOutboundFlight"
-					  SelectedReturnFlight="selectedReturnFlight"
-					  SelectedHotel="selectedHotel"
-					  OnFlightSelected="@(tuple => SelectFlight(tuple.flight, tuple.isOutbound))"
-					  OnHotelSelected="SelectHotel"
-					  IsLoadingFlights="isLoadingFlights"
-					  IsLoadingHotels="isLoadingHotels"
-					  FlightError="flightError"
-					  HotelError="hotelError" />
+		OutboundFlights="outboundFlights"
+		ReturnFlights="returnFlights"
+		HotelOffers="hotelOffers"
+		SelectedOutboundFlight="selectedOutboundFlight"
+		SelectedReturnFlight="selectedReturnFlight"
+		SelectedHotel="selectedHotel"
+		OnFlightSelected="@(tuple => SelectFlight(tuple.flight, tuple.isOutbound))"
+		OnHotelSelected="SelectHotel"
+		IsLoadingFlights="isLoadingFlights"
+		IsLoadingHotels="isLoadingHotels"
+		FlightError="flightError"
+		HotelError="hotelError" />
 	</div>
 </div>
 
@@ -101,6 +101,9 @@
 	{
 		if (!searchPanel.CanSearchFlights) return;
 
+		// Fix for missing return flights on first search (return date not being synced between components = no return flights search)
+		HandleSelectionChange();
+
 		currentSearchMode = SearchMode.Flights;
 		isLoadingFlights = true;
 		flightError = false;
@@ -111,6 +114,10 @@
 			if (returnDate.HasValue)
 			{
 				returnFlights = await searchPanel.FetchFlightData(isOutbound: false);
+			}
+			else
+			{
+				returnFlights = new List<FlightOffer>();
 			}
 		}
 		catch
@@ -126,6 +133,8 @@
 	private async Task SearchHotels()
 	{
 		if (!searchPanel.CanSearchHotels) return;
+
+		HandleSelectionChange();
 
 		currentSearchMode = SearchMode.Hotels;
 		isLoadingHotels = true;

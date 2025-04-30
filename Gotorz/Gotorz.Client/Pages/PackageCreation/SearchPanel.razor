@@ -11,7 +11,7 @@
         <input type="text" id="origin" placeholder="Enter origin airport"
         class="autocomplete-input"
         @bind="OriginSearchQuery"
-        @oninput="async e => await OnSearchQueryChanged(e, true)" />
+               @oninput="async e => await OnSearchQueryChanged(e, true)" />
         <div class="autocomplete-dropdown" style="display:@(OriginAirportSuggestions.Any() ? "block" : "none")">
             @foreach (var airport in OriginAirportSuggestions)
             {
