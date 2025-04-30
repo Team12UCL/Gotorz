@@ -2,7 +2,7 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
-using Gotorz; // Your Server project
+using Gotorz;
 
 namespace Gotorz.Tests.Server.Controllers
 {
@@ -16,23 +16,19 @@ namespace Gotorz.Tests.Server.Controllers
         }
 
         [Theory]
-        [InlineData("")] // Empty city name
+        [InlineData("")]
         public async Task SuggestCities_InvalidQuery_ReturnsBadRequest(string query)
         {
-            // Arrange
             var url = $"api/hotel/suggest-cities?query={query}";
 
-            // Act
             var response = await _client.GetAsync(url);
 
-            // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
         public async Task GetHotelOffers_MissingParameters_ReturnsBadRequest()
         {
-            // Missing cityCode, checkInDate, checkOutDate
             var url = "api/hotel/search?cityCode=&checkInDate=&checkOutDate=&adults=1";
 
             var response = await _client.GetAsync(url);
@@ -43,26 +39,20 @@ namespace Gotorz.Tests.Server.Controllers
         [Fact]
         public async Task GetCityCode_EmptyCityName_ReturnsBadRequest()
         {
-            // Arrange
             var url = "api/hotel/get-city-code?cityName=";
 
-            // Act
             var response = await _client.GetAsync(url);
 
-            // Assert
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
         public async Task SuggestCities_ValidQuery_ReturnsOkWithResults()
         {
-            // Arrange
-            var url = "api/hotel/suggest-cities?query=Paris"; // Assume Amadeus API or local test data responds
+            var url = "api/hotel/suggest-cities?query=Paris";
 
-            // Act
             var response = await _client.GetAsync(url);
 
-            // Assert
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             var cities = await response.Content.ReadFromJsonAsync<List<Shared.Models.AmadeusCityResponse.CityData>>();
@@ -73,13 +63,10 @@ namespace Gotorz.Tests.Server.Controllers
         [Fact]
         public async Task GetCityCode_ValidCityName_ReturnsCityCode()
         {
-            // Arrange
             var url = "api/hotel/get-city-code?cityName=Paris";
 
-            // Act
             var response = await _client.GetAsync(url);
 
-            // Assert
             Assert.True(response.IsSuccessStatusCode);
 
             var payload = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();

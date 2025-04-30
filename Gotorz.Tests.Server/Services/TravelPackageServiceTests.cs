@@ -11,7 +11,6 @@ namespace Gotorz.Tests.Server.Services
         [Fact]
         public void AddPackage_ShouldStorePackageCorrectly()
         {
-            // Arrange
             var service = new TravelPackageService();
             var package = new TravelPackage
             {
@@ -47,10 +46,8 @@ namespace Gotorz.Tests.Server.Services
                 DestinationCity = "Paris"
             };
 
-            // Act
             service.Packages.Add(package);
 
-            // Assert
             Assert.Single(service.Packages);
             Assert.Equal("Copenhagen", service.Packages[0].OriginCity);
             Assert.Equal("Paris", service.Packages[0].DestinationCity);
@@ -61,10 +58,8 @@ namespace Gotorz.Tests.Server.Services
         [Fact]
         public void Packages_ShouldBeEmpty_OnInitialization()
         {
-            // Arrange
             var service = new TravelPackageService();
 
-            // Act & Assert
             Assert.Empty(service.Packages);
         }
     }

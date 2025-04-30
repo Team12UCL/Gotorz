@@ -11,14 +11,11 @@ namespace Gotorz.Tests.Server.Services
         [Fact]
         public async Task SearchAirportsAsync_ReturnsMatchingAirports()
         {
-            // Arrange
-            var service = new AirportService(); // You are loading from airports.json
-            var query = "Copenhagen"; // Example search query
+            var service = new AirportService();
+            var query = "Copenhagen";
 
-            // Act
             var result = await service.SearchAirportsAsync(query);
 
-            // Assert
             Assert.NotNull(result);
             Assert.All(result, airport =>
                 Assert.True(
@@ -33,14 +30,11 @@ namespace Gotorz.Tests.Server.Services
         [Fact]
         public async Task SearchAirportsAsync_WithEmptyQuery_ReturnsEmptyList()
         {
-            // Arrange
             var service = new AirportService();
             var emptyQuery = "";
 
-            // Act
             var result = await service.SearchAirportsAsync(emptyQuery);
 
-            // Assert
             Assert.NotNull(result);
             Assert.Empty(result);
         }
@@ -48,14 +42,11 @@ namespace Gotorz.Tests.Server.Services
         [Fact]
         public async Task SearchAirportsAsync_WithNoMatches_ReturnsEmptyList()
         {
-            // Arrange
             var service = new AirportService();
             var query = "Nonexistent Airport";
 
-            // Act
             var result = await service.SearchAirportsAsync(query);
 
-            // Assert
             Assert.NotNull(result);
             Assert.Empty(result);
         }

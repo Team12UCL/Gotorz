@@ -34,7 +34,6 @@ namespace Gotorz.Tests.Server.Services
         [Fact]
         public async Task GetFlightOffersAsync_ReturnsFlightOffers()
         {
-            // Arrange
             var flightService = CreateFlightService(out var handlerMock, out var authServiceMock);
 
             authServiceMock.Setup(a => a.GetAccessTokenAsync()).ReturnsAsync("fake-token");
@@ -95,10 +94,8 @@ namespace Gotorz.Tests.Server.Services
                     Content = new StringContent(fakeFlightOffersJson, Encoding.UTF8, "application/json")
                 });
 
-            // Act
             var result = await flightService.GetFlightOffersAsync("FRA", "LHR", "2025-05-01", 1);
 
-            // Assert
             Assert.NotNull(result);
             Assert.NotEmpty(result.Data);
             Assert.Equal("1", result.Data[0].Id);

@@ -35,7 +35,6 @@ namespace Gotorz.Tests.Server.Services
         [Fact]
         public async Task GetHotelOffersAsync_ReturnsOffers()
         {
-            // Arrange
             var hotelService = CreateHotelService(out var handlerMock, out var authServiceMock);
 
             authServiceMock.Setup(a => a.GetAccessTokenAsync()).ReturnsAsync("fake-token");
@@ -70,7 +69,6 @@ namespace Gotorz.Tests.Server.Services
                 Dictionaries = new Dictionaries()
             });
 
-            // Responses list
             var responses = new Queue<HttpResponseMessage>(new[]
             {
                 new HttpResponseMessage
@@ -93,10 +91,8 @@ namespace Gotorz.Tests.Server.Services
                 )
                 .ReturnsAsync(() => responses.Dequeue());
 
-            // Act
             var result = await hotelService.GetHotelOffersAsync("PAR", "2025-05-01", "2025-05-05", 2);
 
-            // Assert
             Assert.NotNull(result);
             Assert.NotEmpty(result.Data);
             Assert.Equal("Test Hotel", result.Data[0].Hotel.Name);
