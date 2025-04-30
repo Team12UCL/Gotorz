@@ -101,7 +101,7 @@
 	{
 		if (!searchPanel.CanSearchFlights) return;
 
-		// Fix for missing return flights on first search (return date not being synced between components = no return flights search)
+		// Fix for missing return flights on first search
 		HandleSelectionChange();
 
 		currentSearchMode = SearchMode.Flights;
