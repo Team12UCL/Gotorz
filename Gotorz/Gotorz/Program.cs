@@ -1,5 +1,5 @@
 using Gotorz.Client.Pages;
-using Gotorz.Client.Services;
+
 using Shared.Models;
 using Gotorz.Components;
 using Gotorz.Components.Account;
@@ -30,7 +30,8 @@ builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 builder.Services.AddHttpClient<AmadeusAuthService>();
 
-builder.Services.AddScoped<TravelPackageService>();
+
+builder.Services.AddScoped<ITravelPackageService, Gotorz.Services.TravelPackageService>();
 builder.Services.AddScoped<FlightService>();
 builder.Services.AddScoped<HotelService>();
 builder.Services.AddSingleton<AirportService>();
@@ -43,18 +44,17 @@ builder.Services.AddCors(options =>
             .WithOrigins("https://localhost:7216") // Client port
             .AllowAnyMethod()
             .AllowAnyHeader()
-			.AllowCredentials()
 			.SetIsOriginAllowed(origin => true));
 });
 
-builder.Services.AddScoped(sp =>
-{
-	var navigationManager = sp.GetRequiredService<NavigationManager>();
-	return new HttpClient
-	{
-		BaseAddress = new Uri(navigationManager.BaseUri)
-	};
-});
+//builder.Services.AddScoped(sp =>
+//{
+//	var navigationManager = sp.GetRequiredService<NavigationManager>();
+//	return new HttpClient
+//	{
+//		BaseAddress = new Uri(navigationManager.BaseUri)
+//	};
+//});
 
 
 

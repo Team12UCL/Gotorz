@@ -1,4 +1,4 @@
-﻿@page "/flightsearch"
+﻿@* @page "/flightsearch"
 @using Shared.Models
 @inject Client.Services.TravelPackageService PackageService
 @rendermode InteractiveWebAssembly   
@@ -15,11 +15,11 @@ else
         @foreach (var pkg in PackageService.Packages)
         {
             <li style="margin-bottom: 20px;">
-                <strong>Flight:</strong> @pkg.OutboundFlight?.Id — @pkg.OutboundFlight?.Price?.Currency @pkg.OutboundFlight?.Price?.Total <br />
-                <strong>Flight:</strong> @pkg.ReturnFlight?.Id — @pkg.ReturnFlight?.Price?.Currency @pkg.ReturnFlight?.Price?.Total <br />
-                <strong>Hotel:</strong> @pkg.Hotel?.Hotel?.Name — @pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Total @pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Currency <br />
+                <strong>Flight:</strong> @pkg.OutboundFlight?.OfferId — @pkg.OutboundFlight?.Currency @pkg.OutboundFlight?.TotalPrice <br />
+                <strong>Flight:</strong> @pkg.ReturnFlight?.OfferId — @pkg.ReturnFlight?.Currency @pkg.ReturnFlight?.TotalPrice <br />
+                <strong>Hotel:</strong> @pkg.Hotel?.Name — @pkg.Hotel?.Offers?.FirstOrDefault()?.TotalPrice @pkg.Hotel?.Offers?.FirstOrDefault()?.Currency <br />
                 <strong>Departure date:</strong> @pkg.DepartureDate.ToString("yyyy-MM-dd")
             </li>
         }
     </ul>
-}
+} *@

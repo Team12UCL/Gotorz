@@ -1,11 +1,10 @@
 ﻿@page "/"
 @using Shared.Models
-@using Client.Services
 @using System.Diagnostics
 @using Shared.Models
 @using Shared.Models.AmadeusCityResponse
 @inject HttpClient HttpClient
-@inject TravelPackageService PackageService
+
 @rendermode InteractiveWebAssembly
 @inject ILogger<Home> Logger
 
@@ -137,13 +136,13 @@
 											</td>
 											<td>@flight.Itineraries.ToList()[0].Segments.ToList()[0].CarrierCode</td>
 											<td>@flight.Itineraries.ToList()[0].Duration.Replace("PT", "")</td>
-											<td>@flight.Price.Currency @flight.Price.Total</td>
+											<td>@flight.Currency @flight.TotalPrice</td>
 											<td>
 												@foreach (var segment in flight.Itineraries.ToList()[0].Segments)
 												{
 													<div>
-														@segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
-														➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+														@segment.DepartureAirport at @segment.DepartureTime.ToString("HH:mm (yyyy-MM-dd)") <br>
+														➝ @segment.ArrivalAirport at @segment.ArrivalTime.ToString("HH:mm (yyyy-MM-dd)")
 													</div>
 												}
 											</td>
@@ -203,13 +202,13 @@
 											</td>
 											<td>@flight.Itineraries.ToList()[0].Segments.ToList()[0].CarrierCode</td>
 											<td>@flight.Itineraries.ToList()[0].Duration.Replace("PT", "")</td>
-											<td>@flight.Price.Currency @flight.Price.Total</td>
+											<td>@flight.Currency @flight.TotalPrice</td>
 											<td>
 												@foreach (var segment in flight.Itineraries.ToList()[0].Segments)
 												{
 													<div>
-														@segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
-														➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+														@segment.DepartureAirport at @segment.DepartureTime.ToString("HH:mm (yyyy-MM-dd)") <br>
+														➝ @segment.ArrivalAirport at @segment.ArrivalTime.ToString("HH:mm (yyyy-MM-dd)")
 													</div>
 												}
 											</td>
@@ -240,7 +239,7 @@
 							<p>Searching for hotels...</p>
 						</div>
 					}
-					else if (hotelOffers?.Data.Count() == 0)
+					else if (hotelOffers == null)
 					{
 						<div class="error-message">
 							No hotel offers found. Please change your search.
@@ -252,7 +251,7 @@
 							Error loading hotel data. Please try again.
 						</div>
 					}
-					else if (hotelOffers?.Data?.Any() == true)
+					else if (hotelOffers?.Any() == true)
 					{
 						<table class="results-table">
 							<thead>
@@ -264,7 +263,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								@foreach (var hotel in hotelOffers.Data)
+								@foreach (var hotel in hotelOffers)
 								{
 									<tr class="@(selectedHotel == hotel ? "selected-row" : "")">
 										<td>
@@ -274,22 +273,22 @@
 										</td>
 										<td>
 											<strong>
-												<a href="https://www.google.com/search?q=@Uri.EscapeDataString(hotel.Hotel.Name)" target="_blank">
-													@hotel.Hotel.Name
+												<a href="https://www.google.com/search?q=@Uri.EscapeDataString(hotel.Name)" target="_blank">
+													@hotel.Name
 												</a>
 											</strong>
 										</td>
 										@{
 											var offer = hotel.Offers?.FirstOrDefault();
-											var converted = ConvertToEUR(offer?.Price?.Total, offer?.Price?.Currency);
+											var converted = ConvertToEUR(offer?.TotalPrice.ToString(), offer?.Currency);
 										}
 										@converted EUR
-										<td>
+										@* <td>
 											@if (hotel.Offers?.FirstOrDefault()?.BoardType != null)
 											{
 												<div>Board: @hotel.Offers.FirstOrDefault().BoardType</div>
 											}
-										</td>
+										</td> *@
 									</tr>
 								}
 							</tbody>
@@ -315,11 +314,11 @@
 					@if (selectedOutboundFlight != null)
 					{
 						<div class="summary-item">
-							<strong>Outbound:</strong> @selectedOutboundFlight.Itineraries.ToList()[0].Segments.ToList()[0].Departure.IataCode to
-							@selectedOutboundFlight.Itineraries.ToList()[0].Segments.ToList()[^1].Arrival.IataCode
+							<strong>Outbound:</strong> @selectedOutboundFlight.Itineraries.ToList()[0].Segments.ToList()[0].DepartureAirport to
+							@selectedOutboundFlight.Itineraries.ToList()[0].Segments.ToList()[^1].ArrivalAirport
 							<div class="summary-detail">
-								<span>Departs: @selectedOutboundFlight.Itineraries.ToList()[0].Segments.ToList()[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
-								<span>@selectedOutboundFlight.Price.Total @selectedOutboundFlight.Price.Currency</span>
+								<span>Departs: @selectedOutboundFlight.Itineraries.ToList()[0].Segments.ToList()[0].DepartureTime.ToString("HH:mm (yyyy-MM-dd)")</span>
+								<span>@selectedOutboundFlight.TotalPrice @selectedOutboundFlight.Currency</span>
 							</div>
 						</div>
 					}
@@ -327,11 +326,11 @@
 					@if (selectedReturnFlight != null)
 					{
 						<div class="summary-item">
-							<strong>Return:</strong> @selectedReturnFlight.Itineraries.ToList()[0].Segments.ToList()[0].Departure.IataCode to
-							@selectedReturnFlight.Itineraries.ToList()[0].Segments.ToList()[^1].Arrival.IataCode
+							<strong>Return:</strong> @selectedReturnFlight.Itineraries.ToList()[0].Segments.ToList()[0].DepartureAirport to
+							@selectedReturnFlight.Itineraries.ToList()[0].Segments.ToList()[^1].ArrivalAirport
 							<div class="summary-detail">
-								<span>Departs: @selectedReturnFlight.Itineraries.ToList()[0].Segments.ToList()[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
-								<span>@selectedReturnFlight.Price.Total @selectedReturnFlight.Price.Currency</span>
+								<span>Departs: @selectedReturnFlight.Itineraries.ToList()[0].Segments.ToList()[0].DepartureTime.ToString("HH:mm (yyyy-MM-dd)")</span>
+								<span>@selectedReturnFlight.TotalPrice @selectedReturnFlight.Currency</span>
 							</div>
 						</div>
 					}
@@ -342,10 +341,10 @@
 					<div class="summary-section">
 						<h5>Selected Hotel</h5>
 						<div class="summary-item">
-							<strong>@selectedHotel.Hotel.Name</strong>
+							<strong>@selectedHotel.Name</strong>
 							<div class="summary-detail">
 								<span>Period: @selectedHotel.Offers?.FirstOrDefault()?.CheckInDate to @selectedHotel.Offers?.FirstOrDefault()?.CheckOutDate</span>
-								<span>@ConvertToEUR(selectedHotel.Offers?.FirstOrDefault()?.Price?.Total, selectedHotel.Offers?.FirstOrDefault()?.Price?.Currency) EUR</span>
+								<span>@ConvertToEUR(selectedHotel.Offers?.FirstOrDefault()?.TotalPrice.ToString(), selectedHotel.Offers?.FirstOrDefault()?.Currency) EUR</span>
 							</div>
 						</div>
 					</div>
@@ -387,8 +386,8 @@
 	private FlightOffer? selectedOutboundFlight;
 	private FlightOffer? selectedReturnFlight;
 
-	private HotelOfferRootModel? hotelOffers;
-	private HotelData? selectedHotel;
+	private List<Hotel>? hotelOffers;
+	private Hotel? selectedHotel;
 
 	// Search parameters
 	private string originSearchQuery = "";
@@ -454,10 +453,10 @@
 	private decimal CalculateTotalPrice()
 	{
 		decimal total = 0;
-		total += ConvertToEUR(selectedOutboundFlight?.Price?.Total, selectedOutboundFlight?.Price?.Currency);
-		total += ConvertToEUR(selectedReturnFlight?.Price?.Total, selectedReturnFlight?.Price?.Currency);
-		total += ConvertToEUR(selectedHotel?.Offers?.FirstOrDefault()?.Price?.Total,
-									selectedHotel?.Offers?.FirstOrDefault()?.Price?.Currency);
+		total += ConvertToEUR(selectedOutboundFlight?.TotalPrice.ToString(), selectedOutboundFlight?.Currency);
+		total += ConvertToEUR(selectedReturnFlight?.TotalPrice.ToString(), selectedReturnFlight?.Currency);
+		total += ConvertToEUR(selectedHotel?.Offers?.FirstOrDefault()?.TotalPrice.ToString(),
+									selectedHotel?.Offers?.FirstOrDefault()?.Currency);
 		return total;
 	}
 
@@ -471,28 +470,29 @@
 			Logger.LogWarning("Currency is EUR or not provided, returning raw price.");
 			return raw;
 		}
+		return raw; // Placeholder for conversion logic
+		// var conversion = hotelOffers?.Dictionaries?.CurrencyConversionLookupRates?.GetValueOrDefault(currency);
+		
+		// if (conversion == null)
+		// {
+		// 	Logger.LogWarning("No conversion rate found for currency: {Currency}", currency);
+		// 	return raw;
+		// }
 
-		var conversion = hotelOffers?.Dictionaries?.CurrencyConversionLookupRates?.GetValueOrDefault(currency);
-		if (conversion == null)
-		{
-			Logger.LogWarning("No conversion rate found for currency: {Currency}", currency);
-			return raw;
-		}
+		// Logger.LogWarning("Found conversion rate: {Rate} (Target: {Target}, Decimals: {Decimals})",
+		// 	conversion.Rate, conversion.Target, conversion.TargetDecimalPlaces);
 
-		Logger.LogWarning("Found conversion rate: {Rate} (Target: {Target}, Decimals: {Decimals})",
-			conversion.Rate, conversion.Target, conversion.TargetDecimalPlaces);
+		// if (conversion.Target == "EUR" &&
+		// 	decimal.TryParse(conversion.Rate, System.Globalization.NumberStyles.Any,
+		// 		System.Globalization.CultureInfo.InvariantCulture, out var rate))
+		// {
+		// 	var converted = Math.Round(raw * rate, conversion.TargetDecimalPlaces);
+		// 	Logger.LogWarning("Converted price: {Converted}", converted);
+		// 	return converted;
+		// }
 
-		if (conversion.Target == "EUR" &&
-			decimal.TryParse(conversion.Rate, System.Globalization.NumberStyles.Any,
-				System.Globalization.CultureInfo.InvariantCulture, out var rate))
-		{
-			var converted = Math.Round(raw * rate, conversion.TargetDecimalPlaces);
-			Logger.LogWarning("Converted price: {Converted}", converted);
-			return converted;
-		}
-
-		Logger.LogWarning("Conversion failed or target not EUR, returning raw price.");
-		return raw;
+		// Logger.LogWarning("Conversion failed or target not EUR, returning raw price.");
+		// return raw;
 	}
 
 
@@ -621,7 +621,7 @@
 	// Selectors set the selected flight or hotel from results
 	private void SelectOutboundFlight(FlightOffer flight) => selectedOutboundFlight = flight;
 	private void SelectReturnFlight(FlightOffer flight) => selectedReturnFlight = flight;
-	private void SelectHotel(HotelData hotel) => selectedHotel = hotel;
+	private void SelectHotel(Hotel hotel) => selectedHotel = hotel;
 
 	// Search functions for flights and hotels with validation and SearchMode
 	private async Task SearchFlights()
@@ -671,9 +671,9 @@
 		{
 			await FetchHotelData();
 
-			if (hotelOffers?.Data == null || !hotelOffers.Data.Any())
+			if (hotelOffers == null || !hotelOffers.Any())
 			{
-				hotelOffers = new HotelOfferRootModel { Data = new List<HotelData>() };
+				hotelOffers = new List<Hotel>();
 			}
 		}
 		catch (Exception ex)
@@ -699,15 +699,15 @@
 		{
 			Logger.LogInformation($"Fetching flights from {originLocationCode} to {destinationLocationCode} on {departureDate}");
 			var outboundUrl = $"api/flight/search?originLocationCode={originLocationCode}&destinationLocationCode={destinationLocationCode}&departureDate={departureDate:yyyy-MM-dd}&adults={adults}";
-			var outboundResponse = await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(outboundUrl);
-			outboundFlights = outboundResponse?.Data?.ToList() ?? new List<FlightOffer>();
+			var outboundResponse = await HttpClient.GetFromJsonAsync<List<FlightOffer>>(outboundUrl);
+			outboundFlights = outboundResponse.Count > 0 ? outboundResponse :  new List<FlightOffer>();
 
 			if (returnDate.HasValue)
 			{
 				Logger.LogInformation($"Fetching return flights from {destinationLocationCode} to {originLocationCode} on {returnDate}");
 				var returnUrl = $"api/flight/search?originLocationCode={destinationLocationCode}&destinationLocationCode={originLocationCode}&departureDate={returnDate:yyyy-MM-dd}&adults={adults}";
-				var returnResponse = await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(returnUrl);
-				returnFlights = returnResponse?.Data?.ToList() ?? new List<FlightOffer>();
+				var returnResponse = await HttpClient.GetFromJsonAsync<List<FlightOffer>> (returnUrl);
+				returnFlights = returnResponse.Count > 0 ? returnResponse : new List<FlightOffer>();
 			}
 		}
 		catch (Exception ex)
@@ -735,14 +735,14 @@
 			var checkInDate = departureDate?.ToString("yyyy-MM-dd") ?? "";
 			var checkOutDate = returnDate?.ToString("yyyy-MM-dd") ?? "";
 
-			hotelOffers = await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(
+			hotelOffers = await HttpClient.GetFromJsonAsync<List<Hotel>>(
 				$"api/hotel/search?cityCode={destinationCityCode}&departureDate={departureDate:yyyy-MM-dd}&checkInDate={checkInDate}&checkOutDate={checkOutDate}&adults={adults}");
 		}
 		catch (Exception ex)
 		{
 			Logger.LogError($"Error fetching hotel offers: {ex.Message}");
 			hotelError = true;
-			hotelOffers = new HotelOfferRootModel { Data = new List<HotelData>() };
+			hotelOffers = new List<Hotel>();
 		}
 		finally
 		{
@@ -750,7 +750,7 @@
 		}
 	}
 
-	private void CreatePackage()
+	private async Task CreatePackage()
 	{
 		try
 		{
@@ -766,7 +766,14 @@
 					DestinationCity = destinationCityName
 				};
 
-			PackageService.Packages.Add(package);
+			var response = await HttpClient.PostAsJsonAsync("api/travelpackage/create", package);
+
+			if (!response.IsSuccessStatusCode)
+			{
+				packageCreationMessage = "Error creating package. Please try again.";
+				packageCreationSuccess = false;
+				return;
+			}
 
 			packageCreationMessage = "Success! Your travel package has been created.";
 			packageCreationSuccess = true;

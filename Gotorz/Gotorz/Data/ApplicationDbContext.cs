@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
 using System.Reflection.Emit;
@@ -15,95 +15,68 @@ namespace Gotorz.Data
 		public DbSet<Booking> Bookings { get; set; }
 		public DbSet<ActivityLog> ActivityLogs { get; set; }
 		public DbSet<ChatMessage> ChatMessages { get; set; } = default!;
-		public DbSet<FlightOfferRootModel> FlightOfferRootModels { get; set; }
-		public DbSet<FlightOffer> FlightOffers { get; set; }
+		public DbSet<FlightOffer> FlightOffer { get; set; }
 		public DbSet<Itinerary> Itineraries { get; set; }
-		public DbSet<Segment> Segments { get; set; }
-		public DbSet<Price> Prices { get; set; }
-		public DbSet<TravelerPricing> TravelerPricings { get; set; }
-		public DbSet<FareDetailsBySegment> FareDetailsBySegments { get; set; }
-		public DbSet<IncludedBags> IncludedBags { get; set; }
-		public DbSet<AdditionalService> AdditionalServices { get; set; }
+		public DbSet<FlightSegment> FlightSegments { get; set; }
+		public DbSet<Hotel> Hotel { get; set; }
+		public DbSet<HotelOffer> HotelOffer { get; set; }
+		public DbSet<TravelPackage> TravelPackages { get; set; }
+
 
 		protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-			builder.Entity<FlightOfferRootModel>()
-				.HasMany(f => f.Data)
-				.WithOne()
-				.OnDelete(DeleteBehavior.Cascade);
-
-			builder.Entity<FlightOffer>()
-	   .HasOne(f => f.FlightOfferRootModel)
-	   .WithMany(r => r.Data)
-	   .HasForeignKey(f => f.FlightOfferRootModelId)
-	   .OnDelete(DeleteBehavior.Cascade); // Keep this as Cascade
-
-			builder.Entity<Itinerary>()
-				.HasMany(i => i.Segments)
-				.WithOne()
-				.OnDelete(DeleteBehavior.Cascade);
-
-			builder.Entity<Price>()
-				.HasMany(p => p.Fees)
-				.WithOne()
-				.OnDelete(DeleteBehavior.Cascade);
-
-			builder.Entity<Price>()
-				.HasMany(p => p.AdditionalServices)
-				.WithOne()
-				.OnDelete(DeleteBehavior.Cascade);
-
-			builder.Entity<TravelerPricing>()
-				.HasMany(t => t.FareDetailsBySegments)
-				.WithOne()
-				.OnDelete(DeleteBehavior.Cascade);
-
-			builder.Entity<FareDetailsBySegment>()
-		.HasOne(f => f.TravelerPricing)
-		.WithMany(t => t.FareDetailsBySegments)
-		.HasForeignKey(f => f.TravelerPricingId)
-	
-		.OnDelete(DeleteBehavior.Cascade);
-			builder.Entity<FareDetailsBySegment>()
-	   .HasOne(f => f.IncludedCheckedBags)
-	   .WithOne(b => b.CheckedBags)
-	   .HasForeignKey<IncludedBags>(b => b.CheckedBagsFareDetailsBySegmentId)
-	   .OnDelete(DeleteBehavior.Restrict);
-
-		
-			builder.Entity<FareDetailsBySegment>()
-				.HasOne(f => f.IncludedCabinBags)
-				.WithOne(b => b.CabinBags)
-				.HasForeignKey<IncludedBags>(b => b.CabinBagsFareDetailsBySegmentId)
-				.OnDelete(DeleteBehavior.Restrict);
-
-			builder.Entity<AdditionalService>()
-	   .HasOne(a => a.Price)
-	   .WithMany(p => p.AdditionalServices)
-	   .HasForeignKey(a => a.PriceId)
-	   .OnDelete(DeleteBehavior.Cascade);
-
-			builder.Entity<Fee>()
-		.HasOne(f => f.Price)
-		.WithMany(p => p.Fees)
-		.HasForeignKey(f => f.PriceId)
-		.OnDelete(DeleteBehavior.Cascade);
-			builder.Entity<Segment>()
-		.HasOne(s => s.Itinerary)
-		.WithMany(i => i.Segments)
-		.HasForeignKey(s => s.ItineraryId)
-		.OnDelete(DeleteBehavior.Cascade);
 
 
-			// Example configuration for ChatMessage
+
 			builder.Entity<ChatMessage>(entity =>
 			{
 				entity.HasKey(e => e.Id);
 				entity.Property(e => e.UserName).IsRequired();
 				entity.Property(e => e.Text).IsRequired();
 				entity.Property(e => e.Timestamp).IsRequired();
+			});
+
+			// Hotel → HotelOffer (1-to-many)
+			builder.Entity<Hotel>()
+	.HasMany(h => h.Offers)
+	.WithOne(o => o.Hotel)
+	.HasForeignKey(o => o.HotelDbId)
+	.OnDelete(DeleteBehavior.Cascade);
+
+			// FlightOffer → Itineraries (1-to-many)
+			builder.Entity<FlightOffer>()
+				.HasMany(f => f.Itineraries)
+				.WithOne()
+				.HasForeignKey(i => i.FlightOfferId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			// Itinerary → FlightSegments (1-to-many)
+			builder.Entity<Itinerary>()
+				.HasMany(i => i.Segments)
+				.WithOne()
+				.HasForeignKey(s => s.FlightSegmentId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			builder.Entity<TravelPackage>(entity =>
+			{
+				entity.HasKey(tp => tp.TravelPackageId);
+
+				entity.HasOne(tp => tp.OutboundFlight)
+					.WithMany()
+					.HasForeignKey(tp => tp.OutboundFlightId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasOne(tp => tp.ReturnFlight)
+					.WithMany()
+					.HasForeignKey(tp => tp.ReturnFlightId)
+					.OnDelete(DeleteBehavior.Restrict);
+
+				entity.HasOne(tp => tp.Hotel)
+					.WithMany()
+					.HasForeignKey(tp => tp.HotelId)
+					.OnDelete(DeleteBehavior.Restrict);
 			});
 		}
     }

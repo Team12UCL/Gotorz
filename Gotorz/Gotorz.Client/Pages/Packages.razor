@@ -1,7 +1,7 @@
 ﻿@page "/packages"
 @using Shared.Models
-@inject Client.Services.TravelPackageService PackageService
 @rendermode InteractiveWebAssembly
+@inject HttpClient HttpClient
 
 <h3>Find din rejse</h3>
 
@@ -57,7 +57,7 @@
 		→ @pkg.ReturnDate.ToString("yyyy-MM-dd") <br />
 		<strong>Price:</strong>
 		<strong>Price:</strong>
-		@CalculatePackagePrice(pkg) @(pkg.OutboundFlight?.Price?.Currency ?? pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Currency ?? "EUR")
+		@CalculatePackagePrice(pkg) @(pkg.OutboundFlight?.Currency ?? "EUR")
 		<br />
 		<button class="summary-button">Book</button>
 	</div>
@@ -74,9 +74,18 @@
 	private int travelers = 1;
 	private int dateFlexibilityDays = 0;
 
+	private List<TravelPackage>? travelPackages = new();
+	private TravelPackage? selectedPackage;
+
+
+	protected override async Task OnInitializedAsync()
+	{
+		// Simulate asynchronous loading to demonstrate streaming rendering
+		travelPackages = await HttpClient.GetFromJsonAsync<List<TravelPackage>>("api/travelpackage/getall");
+	}
 
 	private IEnumerable<TravelPackage> FilteredPackages =>
-	PackageService.Packages.Where(p =>
+	travelPackages.Where(p =>
 		(!departureDate.HasValue ||
 	(p.DepartureDate >= departureDate.Value.AddDays(-dateFlexibilityDays) &&
 		p.DepartureDate <= departureDate.Value.AddDays(dateFlexibilityDays))) &&
@@ -94,9 +103,9 @@
 	private decimal CalculatePackagePrice(TravelPackage pkg)
 	{
 		decimal total = 0;
-		total += TryParsePrice(pkg.OutboundFlight?.Price?.Total);
-		total += TryParsePrice(pkg.ReturnFlight?.Price?.Total);
-		total += TryParsePrice(pkg.Hotel?.Offers?.FirstOrDefault()?.Price?.Total);
+		total += TryParsePrice(pkg.OutboundFlight?.TotalPrice.ToString());
+		total += TryParsePrice(pkg.ReturnFlight?.TotalPrice.ToString());
+		total += TryParsePrice(pkg.Hotel?.Offers?.FirstOrDefault()?.TotalPrice.ToString());
 		return total;
 	}
 

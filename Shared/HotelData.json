@@ -1,0 +1,431 @@
+﻿{
+	"data": [
+		{
+			"type": "hotel-offers",
+			"hotel": {
+				"type": "hotel",
+				"hotelId": "BRPARVDB",
+				"chainCode": "BR",
+				"dupeId": "700035209",
+				"name": "Renaissance Paris Vendome Hotel",
+				"cityCode": "PAR",
+				"latitude": 48.86195,
+				"longitude": 2.33592
+			},
+			"available": true,
+			"offers": [
+				{
+					"id": "SDA64V5FWN",
+					"checkInDate": "2025-05-07",
+					"checkOutDate": "2025-05-21",
+					"rateCode": "RAC",
+					"rateFamilyEstimated": {
+						"code": "PRO",
+						"type": "P"
+					},
+					"room": {
+						"type": "SLY",
+						"typeEstimated": {
+							"category": "DELUXE_ROOM",
+							"beds": 1,
+							"bedType": "KING"
+						},
+						"description": {
+							"text": "Stay Longer on Us, Save 10% or more as you stay longer\nPrestige, 1 King, Mini fridge,\n25sqm/269sqft-28sqm/301sqft, Wireless",
+							"lang": "EN"
+						}
+					},
+					"guests": { "adults": 1 },
+					"price": {
+						"currency": "EUR",
+						"base": "8772.80",
+						"total": "8932.12",
+						"variations": {
+							"average": { "base": "626.63" },
+							"changes": [
+								{
+									"startDate": "2025-05-07",
+									"endDate": "2025-05-08",
+									"base": "575.20"
+								},
+								{
+									"startDate": "2025-05-08",
+									"endDate": "2025-05-09",
+									"base": "583.20"
+								},
+								{
+									"startDate": "2025-05-09",
+									"endDate": "2025-05-10",
+									"base": "599.20"
+								},
+								{
+									"startDate": "2025-05-10",
+									"endDate": "2025-05-11",
+									"base": "591.20"
+								},
+								{
+									"startDate": "2025-05-11",
+									"endDate": "2025-05-12",
+									"base": "575.20"
+								},
+								{
+									"startDate": "2025-05-12",
+									"endDate": "2025-05-13",
+									"base": "583.20"
+								},
+								{
+									"startDate": "2025-05-13",
+									"endDate": "2025-05-14",
+									"base": "607.20"
+								},
+								{
+									"startDate": "2025-05-14",
+									"endDate": "2025-05-16",
+									"base": "703.20"
+								},
+								{
+									"startDate": "2025-05-16",
+									"endDate": "2025-05-18",
+									"base": "651.20"
+								},
+								{
+									"startDate": "2025-05-18",
+									"endDate": "2025-05-19",
+									"base": "607.20"
+								},
+								{
+									"startDate": "2025-05-19",
+									"endDate": "2025-05-20",
+									"base": "655.20"
+								},
+								{
+									"startDate": "2025-05-20",
+									"endDate": "2025-05-21",
+									"base": "687.20"
+								}
+							]
+						}
+					},
+					"policies": {
+						"cancellations": [
+							{
+								"description": { "text": "NON-REFUNDABLE RATE" },
+								"policyType": "CANCELLATION"
+							}
+						],
+						"paymentType": "deposit",
+						"refundable": { "cancellationRefund": "NON_REFUNDABLE" }
+					},
+					"self": "https://test.api.amadeus.com/v3/shopping/hotel-offers/SDA64V5FWN"
+				}
+			],
+			"self": "https://test.api.amadeus.com/v3/shopping/hotel-offers?hotelIds=BRPARVDB&adults=1&checkInDate=2025-05-07&checkOutDate=2025-05-21&currency=EUR"
+		},
+		{
+			"type": "hotel-offers",
+			"hotel": {
+				"type": "hotel",
+				"hotelId": "FGPARPAL",
+				"chainCode": "FG",
+				"dupeId": "700030505",
+				"name": "HOTEL PRINCE ALBERT LOUVRE",
+				"cityCode": "PAR",
+				"latitude": 48.866,
+				"longitude": 2.33157
+			},
+			"available": true,
+			"offers": [
+				{
+					"id": "UA0TDG3GA3",
+					"checkInDate": "2025-05-07",
+					"checkOutDate": "2025-05-21",
+					"rateCode": "BAR",
+					"rateFamilyEstimated": {
+						"code": "RAC",
+						"type": "P"
+					},
+					"category": "RAC",
+					"commission": { "percentage": "10" },
+					"room": {
+						"type": "C2D",
+						"typeEstimated": {
+							"category": "STANDARD_ROOM",
+							"beds": 2,
+							"bedType": "DOUBLE"
+						},
+						"description": {
+							"text": "RACKPRI\nDouble Room Classic-Double STD with shower-45SQM-Double bed(s)-AC-TV-Safe-No smoking-Iron and ironing board-Bathroom",
+							"lang": "EN"
+						}
+					},
+					"guests": { "adults": 1 },
+					"price": {
+						"currency": "EUR",
+						"base": "2030.00",
+						"total": "2030.00",
+						"variations": {
+							"average": { "base": "145.00" },
+							"changes": [
+								{
+									"startDate": "2025-05-07",
+									"endDate": "2025-05-21",
+									"base": "145.00",
+									"total": "145.00"
+								}
+							]
+						}
+					},
+					"policies": {
+						"cancellations": [
+							{
+								"deadline": "2025-04-07T00:00:00+01:00",
+								"policyType": "CANCELLATION"
+							}
+						],
+						"guarantee": {
+							"acceptedPayments": {
+								"creditCards": [ "CA", "VI" ],
+								"methods": [ "CREDIT_CARD" ],
+								"creditCardPolicies": [
+									{ "vendorCode": "CA" },
+									{ "vendorCode": "VI" }
+								]
+							}
+						},
+						"paymentType": "guarantee",
+						"refundable": { "cancellationRefund": "REFUNDABLE_UP_TO_DEADLINE" }
+					},
+					"self": "https://test.api.amadeus.com/v3/shopping/hotel-offers/UA0TDG3GA3"
+				}
+			],
+			"self": "https://test.api.amadeus.com/v3/shopping/hotel-offers?hotelIds=FGPARPAL&adults=1&checkInDate=2025-05-07&checkOutDate=2025-05-21&currency=EUR"
+		},
+		{
+			"type": "hotel-offers",
+			"hotel": {
+				"type": "hotel",
+				"hotelId": "RTPAREIF",
+				"chainCode": "RT",
+				"dupeId": "700054942",
+				"name": "GRG",
+				"cityCode": "PAR",
+				"latitude": 48.85052,
+				"longitude": 2.29245
+			},
+			"available": true,
+			"offers": [
+				{
+					"id": "8LUEWKDUVE",
+					"checkInDate": "2025-05-07",
+					"checkOutDate": "2025-05-21",
+					"rateCode": "2PL",
+					"boardType": "ROOM_ONLY",
+					"room": {
+						"type": "C2T",
+						"typeEstimated": {
+							"category": "STANDARD_ROOM",
+							"beds": 2,
+							"bedType": "SINGLE"
+						},
+						"description": {
+							"text": "Promotion Rate-Room only\nStandard Room with 2 single beds GB TEST GB",
+							"lang": "EN"
+						}
+					},
+					"guests": { "adults": 1 },
+					"price": {
+						"currency": "EUR",
+						"total": "2276.98",
+						"taxes": [
+							{
+								"applicableDate": {
+									"start": "2025-05-07",
+									"end": "2025-05-20"
+								},
+								"code": "COUNTRY_TAX",
+								"pricingFrequency": "PER_STAY",
+								"pricingMode": "PER_OCCUPANT",
+								"amount": "529.48",
+								"currency": "EUR",
+								"included": true
+							}
+						],
+						"variations": {
+							"average": { "total": "162.64" },
+							"changes": [
+								{
+									"startDate": "2025-05-07",
+									"endDate": "2025-05-09",
+									"base": "131.25",
+									"total": "131.25"
+								},
+								{
+									"startDate": "2025-05-09",
+									"endDate": "2025-05-12",
+									"base": "116.25",
+									"total": "116.25"
+								},
+								{
+									"startDate": "2025-05-12",
+									"endDate": "2025-05-16",
+									"base": "131.25",
+									"total": "131.25"
+								},
+								{
+									"startDate": "2025-05-16",
+									"endDate": "2025-05-19",
+									"base": "116.25",
+									"total": "116.25"
+								},
+								{
+									"startDate": "2025-05-19",
+									"endDate": "2025-05-21",
+									"base": "131.25",
+									"total": "131.25"
+								}
+							]
+						}
+					},
+					"policies": {
+						"cancellations": [
+							{
+								"deadline": "2025-05-06T18:01:00+01:00",
+								"description": { "text": "No cancellation charge applies prior to 18:00 (local time), up to 5 days prior to arrival. Beyond that time, deposit is not refundable, even if the booking is cancelled or modified." },
+								"policyType": "CANCELLATION"
+							}
+						],
+						"deposit": {
+							"acceptedPayments": {
+								"creditCards": [ "AX", "BF", "CA", "DC", "EC", "IK", "JC", "EE" ],
+								"methods": [ "CREDIT_CARD", "VCC_EXTERNAL_PROVIDER" ],
+								"creditCardPolicies": [
+									{ "vendorCode": "AX" },
+									{ "vendorCode": "BF" },
+									{ "vendorCode": "CA" },
+									{ "vendorCode": "DC" },
+									{ "vendorCode": "EC" },
+									{ "vendorCode": "IK" },
+									{ "vendorCode": "JC" },
+									{ "vendorCode": "EE" }
+								]
+							}
+						},
+						"paymentType": "deposit",
+						"refundable": { "cancellationRefund": "REFUNDABLE_UP_TO_DEADLINE" }
+					},
+					"self": "https://test.api.amadeus.com/v3/shopping/hotel-offers/8LUEWKDUVE"
+				}
+			],
+			"self": "https://test.api.amadeus.com/v3/shopping/hotel-offers?hotelIds=RTPAREIF&adults=1&checkInDate=2025-05-07&checkOutDate=2025-05-21&currency=EUR"
+		},
+		{
+			"type": "hotel-offers",
+			"hotel": {
+				"type": "hotel",
+				"hotelId": "XKPAR120",
+				"chainCode": "XK",
+				"dupeId": "501108178",
+				"name": "Diamond Hotel",
+				"cityCode": "PAR",
+				"latitude": 48.86831,
+				"longitude": 2.31222,
+				"contact": {
+					"phone": "33 51720106",
+					"fax": "33 51720563"
+				}
+			},
+			"available": true,
+			"offers": [
+				{
+					"id": "FLQBR1PIS7",
+					"checkInDate": "2025-05-07",
+					"checkOutDate": "2025-05-21",
+					"rateCode": "RAC",
+					"category": "RAC",
+					"description": {
+						"text": "Public rate",
+						"lang": "EN"
+					},
+					"room": {
+						"type": "A1K",
+						"name": "Deluxe King Room",
+						"typeEstimated": {
+							"category": "DELUXE_ROOM",
+							"beds": 1,
+							"bedType": "KING"
+						},
+						"description": {
+							"text": "Public rate\nDeluxe King Room",
+							"lang": "EN"
+						},
+						"occupancies": [
+							{ "maxOccupancy": 9 },
+							{
+								"maxOccupancy": 9,
+								"ageQualifyingCode": "10"
+							},
+							{
+								"maxOccupancy": 1,
+								"ageQualifyingCode": "8"
+							},
+							{
+								"maxOccupancy": 1,
+								"ageQualifyingCode": "12"
+							}
+						]
+					},
+					"guests": { "adults": 1 },
+					"price": {
+						"currency": "EUR",
+						"total": "11480.00",
+						"variations": {
+							"average": { "total": "820.00" },
+							"changes": [
+								{
+									"startDate": "2025-05-07",
+									"endDate": "2025-05-21",
+									"total": "820.00"
+								}
+							]
+						}
+					},
+					"policies": { "refundable": { "cancellationRefund": "UNKNOWN" } },
+					"self": "https://test.api.amadeus.com/v3/shopping/hotel-offers/FLQBR1PIS7"
+				}
+			],
+			"self": "https://test.api.amadeus.com/v3/shopping/hotel-offers?hotelIds=XKPAR120&adults=1&checkInDate=2025-05-07&checkOutDate=2025-05-21&currency=EUR"
+		}
+	],
+	"warnings": [
+		{
+			"code": 3203,
+			"title": "XX SYSTEM PROBLEM - RETRY LATER",
+			"detail": "Provider Error - XX SYSTEM PROBLEM - RETRY LATER",
+			"source": { "parameter": "hotelIds=BWPAR160" }
+		},
+		{
+			"code": 1257,
+			"title": "INVALID PROPERTY CODE",
+			"detail": "Provider Error - INVALID PROPERTY CODE",
+			"source": { "parameter": "hotelIds=MCPAR061" }
+		},
+		{
+			"code": 3289,
+			"title": "RATE NOT AVAILABLE FOR REQUESTED DATES",
+			"detail": "Provider Error - RATE NOT AVAILABLE FOR REQUESTED DATES",
+			"source": { "parameter": "hotelIds=RTPARBLA,RTPARFAY,RTPARMAI" }
+		},
+		{
+			"code": 10604,
+			"title": "INVALID OR MISSING DATA",
+			"detail": "Provider Error - INVALID OR MISSING DATA",
+			"source": { "parameter": "hotelIds=UIPAR296" }
+		},
+		{
+			"code": 3664,
+			"title": "NO ROOMS AVAILABLE AT REQUESTED PROPERTY",
+			"detail": "Provider Error - NO ROOMS AVAILABLE AT REQUESTED PROPERTY",
+			"source": { "parameter": "hotelIds=BWPAR789,HNPARKGU,UIPARROZ,VPPAR041,WIPAR729" }
+		}
+	]
+}
