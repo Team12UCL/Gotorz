@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Server.Services;
 using Microsoft.AspNetCore.SignalR;
+using Gotorz.Services;
 
 public class Program
 {

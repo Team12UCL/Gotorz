@@ -1,0 +1,112 @@
+﻿@using Gotorz.Client.Services
+@using Shared.Models
+@using Shared.Models.AmadeusCityResponse
+@inject PricingService PricingService
+
+<div class="booking-summary">
+    <h4>Booking Summary</h4>
+    <div class="summary-content">
+        @if (OutboundFlight != null || ReturnFlight != null || Hotel != null)
+        {
+            <div class="summary-section">
+                <h5>Selected Flights</h5>
+                @if (OutboundFlight != null)
+                {
+                    <div class="summary-item">
+                        <strong>Outbound:</strong> @OutboundFlight.Itineraries[0].Segments[0].Departure.IataCode to
+                        @OutboundFlight.Itineraries[0].Segments[^1].Arrival.IataCode
+                        <div class="summary-detail">
+                            <span>Departs: @OutboundFlight.Itineraries[0].Segments[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
+                            <span>@OutboundFlight.Price.Total @OutboundFlight.Price.Currency</span>
+                        </div>
+                    </div>
+                }
+
+                @if (ReturnFlight != null)
+                {
+                    <div class="summary-item">
+                        <strong>Return:</strong> @ReturnFlight.Itineraries[0].Segments[0].Departure.IataCode to
+                        @ReturnFlight.Itineraries[0].Segments[^1].Arrival.IataCode
+                        <div class="summary-detail">
+                            <span>Departs: @ReturnFlight.Itineraries[0].Segments[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
+                            <span>@ReturnFlight.Price.Total @ReturnFlight.Price.Currency</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (Hotel != null)
+            {
+                <div class="summary-section">
+                    <h5>Selected Hotel</h5>
+                    <div class="summary-item">
+                        <strong>@Hotel.Hotel.Name</strong>
+                        <div class="summary-detail">
+                            <span>
+                                Period: @Hotel.Offers?.FirstOrDefault()?.CheckInDate to
+                                @Hotel.Offers?.FirstOrDefault()?.CheckOutDate
+                            </span>
+                            <span>
+                                @{
+                                    var offer = Hotel.Offers?.FirstOrDefault();
+                                    var price = offer?.Price?.Total ?? "0";
+                                    var currency = offer?.Price?.Currency ?? "EUR";
+                                    var eurPrice = PricingService.ConvertToEUR(price, currency, HotelOffers);
+                                }
+                                @eurPrice EUR
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            }
+            @if (CalculateTotalPrice() > 0)
+            {
+                <div class="summary-total">
+                    <strong>Total Price:</strong> @CalculateTotalPrice() EUR
+                </div>
+            }
+
+            <button class="summary-button"
+                    @onclick="async () => await OnPackageCreated.InvokeAsync()"
+                    disabled="@(!CanCreatePackage())">
+                Complete Package
+            </button>
+        }
+        else
+        {
+            <p>No items selected yet</p>
+            <p class="hint-text">Select flights first, then accommodations to complete the package.</p>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(PackageCreationMessage))
+    {
+        <div class="@(PackageCreationSuccess ? "success-message" : "error-message")">
+            @PackageCreationMessage
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public FlightOffer? OutboundFlight { get; set; }
+    [Parameter] public FlightOffer? ReturnFlight { get; set; }
+    [Parameter] public HotelData? Hotel { get; set; }
+    [Parameter] public DateTime? DepartureDate { get; set; }
+    [Parameter] public DateTime? ReturnDate { get; set; }
+    [Parameter] public int Adults { get; set; }
+    [Parameter] public EventCallback OnPackageCreated { get; set; }
+    [Parameter] public string? PackageCreationMessage { get; set; }
+    [Parameter] public bool PackageCreationSuccess { get; set; }
+    [Parameter] public HotelOfferRootModel? HotelOffers { get; set; }
+
+    private bool CanCreatePackage() =>
+        OutboundFlight != null &&
+        (!ReturnDate.HasValue || ReturnFlight != null) &&
+        Hotel != null &&
+        DepartureDate.HasValue;
+
+    private decimal CalculateTotalPrice()
+    {
+        return PricingService.CalculateTotalPrice(OutboundFlight, ReturnFlight, Hotel, HotelOffers);
+    }
+}
