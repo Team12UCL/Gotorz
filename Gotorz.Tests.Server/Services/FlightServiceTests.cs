@@ -94,7 +94,7 @@ namespace Gotorz.Tests.Server.Services
                     Content = new StringContent(fakeFlightOffersJson, Encoding.UTF8, "application/json")
                 });
 
-            var result = await flightService.GetFlightOffersAsync("FRA", "LHR", "2025-05-01", 1);
+            var result = await flightService.GetFlightOffersAsync("FRA", "LHR", "2025-07-01", 1);
 
             Assert.NotNull(result);
             Assert.NotEmpty(result.Data);

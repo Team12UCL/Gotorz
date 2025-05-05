@@ -18,10 +18,10 @@ namespace Gotorz.Tests.Server.Controllers
         }
 
         [Theory]
-        [InlineData("", "JFK", "2025-05-01", 1)]
-        [InlineData("CDG", "", "2025-05-01", 1)]
+        [InlineData("", "JFK", "2025-07-01", 1)]
+        [InlineData("CDG", "", "2025-07-01", 1)]
         [InlineData("CDG", "JFK", "", 1)]
-        [InlineData("CDG", "JFK", "2025-05-01", 0)]
+        [InlineData("CDG", "JFK", "2025-07-01", 0)]
         public async Task GetFlightOffers_InvalidInputs_ReturnsBadRequest(string origin, string destination, string departureDate, int adults)
         {
             var url = $"api/flight/search?originLocationCode={origin}&destinationLocationCode={destination}&departureDate={departureDate}&adults={adults}";
@@ -34,7 +34,7 @@ namespace Gotorz.Tests.Server.Controllers
         [Fact]
         public async Task GetFlightOffers_ValidParameters_ReturnsOk()
         {
-            var url = "api/flight/search?originLocationCode=CPH&destinationLocationCode=PAR&departureDate=2025-05-01&adults=1";
+            var url = "api/flight/search?originLocationCode=CPH&destinationLocationCode=PAR&departureDate=2025-07-01&adults=1";
 
             var response = await _client.GetAsync(url);
 

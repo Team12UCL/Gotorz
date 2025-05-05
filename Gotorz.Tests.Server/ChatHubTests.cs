@@ -230,12 +230,15 @@ namespace Gotorz.Tests.Server
             var client = _factory.CreateDefaultClient();
             var baseUri = client.BaseAddress?.ToString() ?? "https://localhost:5001";
 
-            using (var scope = _factory.Services.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.ChatMessages.RemoveRange(db.ChatMessages);
-                await db.SaveChangesAsync();
-            }
+            await ClearChatMessages();
+
+            var testTag = "[TestRun]";
+            var messagesToSend = new List<(string UserId, string UserName, string Text)>
+    {
+        (Guid.NewGuid().ToString(), "User1", $"{testTag} First message!"),
+        (Guid.NewGuid().ToString(), "User2", $"{testTag} Second message!"),
+        (Guid.NewGuid().ToString(), "User3", $"{testTag} Third message!")
+    };
 
             var senderConnection = new HubConnectionBuilder()
                 .WithUrl($"{baseUri}chathub", options =>
@@ -247,19 +250,14 @@ namespace Gotorz.Tests.Server
 
             await senderConnection.StartAsync();
 
-            var messagesToSend = new List<(string UserId, string UserName, string Text)>
-    {
-        (Guid.NewGuid().ToString(), "User1", "First message!"),
-        (Guid.NewGuid().ToString(), "User2", "Second message!"),
-        (Guid.NewGuid().ToString(), "User3", "Third message!")
-    };
-
             foreach (var msg in messagesToSend)
             {
                 await senderConnection.SendAsync("SendMessage", msg.UserId, msg.UserName, msg.Text);
             }
 
             await senderConnection.DisposeAsync();
+
+            await Task.Delay(500);
 
             var historyConnection = new HubConnectionBuilder()
                 .WithUrl($"{baseUri}chathub", options =>
@@ -276,12 +274,27 @@ namespace Gotorz.Tests.Server
             await historyConnection.DisposeAsync();
 
             Assert.NotNull(history);
-            Assert.NotEmpty(history);
+
+            var testMessagesInHistory = history.Where(m => m.Text.Contains(testTag)).ToList();
 
             foreach (var sent in messagesToSend)
             {
-                Assert.Contains(history, m => m.Text == sent.Text && m.UserName == sent.UserName);
+                Assert.Contains(testMessagesInHistory, m =>
+                    m.Text.Trim().Equals(sent.Text.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                    m.UserName.Trim().Equals(sent.UserName.Trim(), StringComparison.OrdinalIgnoreCase));
             }
+
+            Assert.Equal(messagesToSend.Count, testMessagesInHistory.Count);
+
+            await ClearChatMessages();
+        }
+        private async Task ClearChatMessages()
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.ChatMessages.RemoveRange(db.ChatMessages);
+            await db.SaveChangesAsync();
         }
     }
+
 }
