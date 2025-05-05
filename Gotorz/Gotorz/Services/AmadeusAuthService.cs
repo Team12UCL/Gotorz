@@ -22,7 +22,7 @@ namespace Server.Services
             _clientSecret = _configuration["AmadeusAPI:ClientSecret"]!;
         }
 
-        public virtual async Task<string?> GetAccessTokenAsync()
+        public async Task<string?> GetAccessTokenAsync()
         {
             var requestContent = new StringContent(
                 $"grant_type=client_credentials&" +

@@ -11,98 +11,97 @@ using Server.Services;
 using Microsoft.AspNetCore.SignalR;
 using Gotorz.Services;
 
-public class Program
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents()
+    .AddInteractiveWebAssemblyComponents();
+
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<IdentityUserAccessor>();
+builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
+
+builder.Services.AddHttpClient("AmadeusClient");
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+
+builder.Services.AddHttpClient<AmadeusAuthService>();
+
+builder.Services.AddSingleton<PricingService>();
+builder.Services.AddScoped<IStripeService, StripeService>(); 
+builder.Services.AddScoped<TravelPackageService>();
+builder.Services.AddScoped<FlightService>();
+builder.Services.AddScoped<HotelService>();
+builder.Services.AddSingleton<AirportService>();
+
+builder.Services.AddCors(options =>
 {
-    public static void Main(string[] args)
+    options.AddPolicy("AllowBlazorClient",
+        policy => policy
+            .WithOrigins("https://localhost:7216") // Client port
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .SetIsOriginAllowed(origin => true));
+});
+
+
+builder.Services.AddAuthentication(options =>
     {
-        var builder = WebApplication.CreateBuilder(args);
+        options.DefaultScheme = IdentityConstants.ApplicationScheme;
+        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    })
+    .AddIdentityCookies();
 
-        // Add services to the container.
-        builder.Services.AddRazorComponents()
-            .AddInteractiveServerComponents()
-            .AddInteractiveWebAssemblyComponents();
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
+builder.Services.AddControllers();
+builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-        builder.Services.AddCascadingAuthenticationState();
-        builder.Services.AddScoped<IdentityUserAccessor>();
-        builder.Services.AddScoped<IdentityRedirectManager>();
-        builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
+builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddSignInManager()
+    .AddDefaultTokenProviders();
 
-        builder.Services.AddHttpClient("AmadeusClient");
-        builder.Logging.SetMinimumLevel(LogLevel.Information);
+builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+builder.Logging.AddConsole();
 
-        builder.Services.AddHttpClient<AmadeusAuthService>();
+var app = builder.Build();
 
-        builder.Services.AddScoped<TravelPackageService>();
-        builder.Services.AddScoped<FlightService>();
-        builder.Services.AddScoped<HotelService>();
-        builder.Services.AddSingleton<AirportService>();
-
-        builder.Services.AddCors(options =>
-        {
-            options.AddPolicy("AllowBlazorClient",
-                policy => policy
-                    .WithOrigins("https://localhost:7216")
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .SetIsOriginAllowed(origin => true));
-        });
-
-        builder.Services.AddAuthentication(options =>
-        {
-            options.DefaultScheme = IdentityConstants.ApplicationScheme;
-            options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-        })
-        .AddIdentityCookies();
-
-        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-        builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(connectionString));
-        builder.Services.AddControllers();
-        builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-
-        builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
-            .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddSignInManager()
-            .AddDefaultTokenProviders();
-
-        builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
-        builder.Logging.AddConsole();
-
-        var app = builder.Build();
-
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseWebAssemblyDebugging();
-            app.UseMigrationsEndPoint();
-        }
-        else
-        {
-            app.UseExceptionHandler("/Error", createScopeForErrors: true);
-            app.UseHsts();
-        }
-
-        app.UseHttpsRedirection();
-        app.UseStaticFiles();
-
-        app.UseRouting();
-        app.UseCors("AllowBlazorClient");
-
-        app.UseAuthentication();
-        app.UseAuthorization();
-
-        app.UseAntiforgery();
-
-        app.MapRazorComponents<App>()
-            .AddInteractiveServerRenderMode()
-            .AddInteractiveWebAssemblyRenderMode()
-            .AddAdditionalAssemblies(typeof(Gotorz.Client._Imports).Assembly);
-
-        app.MapAdditionalIdentityEndpoints();
-
-        app.MapControllers();
-        app.MapHub<ChatHub>("/chathub");
-
-        app.Run();
-    }
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseWebAssemblyDebugging();
+    app.UseMigrationsEndPoint();
 }
+else
+{
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+app.UseCors("AllowBlazorClient");
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseAntiforgery();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode()
+    .AddInteractiveWebAssemblyRenderMode()
+    .AddAdditionalAssemblies(typeof(Gotorz.Client._Imports).Assembly);
+
+app.MapAdditionalIdentityEndpoints();
+
+app.MapControllers();
+app.MapHub<ChatHub>("/chathub");
+
+app.Run();
