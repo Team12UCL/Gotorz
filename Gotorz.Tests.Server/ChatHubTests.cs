@@ -253,6 +253,7 @@ namespace Gotorz.Tests.Server
             foreach (var msg in messagesToSend)
             {
                 await senderConnection.SendAsync("SendMessage", msg.UserId, msg.UserName, msg.Text);
+                await Task.Delay(200);
             }
 
             await senderConnection.DisposeAsync();
@@ -268,6 +269,8 @@ namespace Gotorz.Tests.Server
                 .Build();
 
             await historyConnection.StartAsync();
+
+            await Task.Delay(500);
 
             var history = await historyConnection.InvokeAsync<List<ChatMessage>>("GetMessageHistory");
 
