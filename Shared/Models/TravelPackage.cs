@@ -19,6 +19,8 @@ namespace Shared.Models
         public string? OriginCity { get; set; }
         public string? DestinationCity { get; set; }
 
+        public Dictionary<string, decimal> CurrencyConversionRates { get; set; } = new();
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
     }
 }
 

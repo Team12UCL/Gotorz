@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Server.Services;
 using Microsoft.AspNetCore.SignalR;
+using Gotorz.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,8 @@ builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 builder.Services.AddHttpClient<AmadeusAuthService>();
 
+builder.Services.AddSingleton<PricingService>();
+builder.Services.AddScoped<IStripeService, StripeService>(); 
 builder.Services.AddScoped<TravelPackageService>();
 builder.Services.AddScoped<FlightService>();
 builder.Services.AddScoped<HotelService>();
