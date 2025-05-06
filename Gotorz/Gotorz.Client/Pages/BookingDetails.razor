@@ -1,0 +1,68 @@
+﻿@page "/bookingdetails/"
+@using Shared.Models
+@inject HttpClient Http
+@rendermode InteractiveWebAssembly
+
+<h3>BookingDetails</h3>
+
+@if (travelPackage == null)
+{
+	<p>Loading...</p>
+}
+else
+{
+	<p><strong>Destination:</strong> @travelPackage.DestinationCity</p>
+	<p><strong>Dates:</strong> @travelPackage.DepartureDate.ToShortDateString() - @travelPackage.ReturnDate.ToShortDateString()</p>
+
+	<h4>Traveler Information</h4>
+	@for (int i = 0; i < travelers.Count; i++)
+	{
+		<div class="traveler-form">
+			<h5>Traveler @(i + 1)</h5>
+			<input placeholder="Full name" @bind="travelers[i].FullName" />
+			<input placeholder="Passport number" @bind="travelers[i].PassportNumber" />
+			<input type="date" @bind="travelers[i].DateOfBirth" />
+			<input placeholder="Nationality" @bind="travelers[i].Nationality" />
+		</div>
+	}
+
+	<button @onclick="ContinueToPayment">Continue to Payment</button>
+}
+
+@code {
+	[Parameter] public Guid PackageId { get; set; }
+
+	private TravelPackage? travelPackage;
+	private List<PassengerInfo> travelers = new();
+
+	protected override async Task OnInitializedAsync()
+	{
+		try
+		{
+			travelPackage = await Http.GetFromJsonAsync<TravelPackage>($"api/travelpackage/{PackageId}");
+
+			// Midlertidigt: antag altid 2 rejsende (kan senere forbedres)
+			for (int i = 0; i < 2; i++)
+			{
+				travelers.Add(new PassengerInfo());
+			}
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Fejl under hentning: {ex.Message}");
+		}
+	}
+
+	private void ContinueToPayment()
+	{
+		Console.WriteLine("Ready for payment...");
+	}
+
+	public class PassengerInfo
+	{
+		public string FullName { get; set; } = string.Empty;
+		public string PassportNumber { get; set; } = string.Empty;
+		public DateTime DateOfBirth { get; set; }
+		public string Nationality { get; set; } = string.Empty;
+	}
+}
