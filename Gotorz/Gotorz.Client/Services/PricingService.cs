@@ -5,33 +5,33 @@ namespace Gotorz.Client.Services
 {
     public class PricingService
     {
-        public decimal CalculateTotalPrice(FlightOffer? outboundFlight, FlightOffer? returnFlight, HotelData? hotel, HotelOfferRootModel? hotelOffers)
+        public decimal CalculateTotalPrice(FlightOffer? outboundFlight, FlightOffer? returnFlight, Hotel? hotel, HotelOffer? hotelOffers)
         {
             decimal total = 0;
-            total += ConvertToEUR(outboundFlight?.Price?.Total, outboundFlight?.Price?.Currency, hotelOffers);
-            total += ConvertToEUR(returnFlight?.Price?.Total, returnFlight?.Price?.Currency, hotelOffers);
-            total += ConvertToEUR(hotel?.Offers?.FirstOrDefault()?.Price?.Total,
-                                hotel?.Offers?.FirstOrDefault()?.Price?.Currency, hotelOffers);
+            total += ConvertToEUR(outboundFlight?.TotalPrice.ToString(), outboundFlight?.Currency, hotelOffers);
+            total += ConvertToEUR(returnFlight?.TotalPrice.ToString(), returnFlight?.Currency, hotelOffers);
+            total += ConvertToEUR(hotel?.Offers?.FirstOrDefault()?.TotalPrice.ToString(),
+                                hotel?.Offers?.FirstOrDefault()?.Currency, hotelOffers);
             return total;
         }
 
         // Method overload for packages.razor that uses the stored conversion rates in TravelPackage.cs (since it doesn't have the hotel offers)
-        public decimal CalculateTotalPrice(FlightOffer? outboundFlight,
-                                    FlightOffer? returnFlight,
-                                    HotelData? hotel, Dictionary<string, decimal>? conversionRates,
-                                    int travelers = 1)
-        {
-            decimal total = 0;
-            // Multiply flight prices by number of travelers
-            total += ConvertToEUR(outboundFlight?.Price?.Total, outboundFlight?.Price?.Currency, conversionRates) * travelers;
-            total += ConvertToEUR(returnFlight?.Price?.Total, returnFlight?.Price?.Currency, conversionRates) * travelers;
-            // Hotel price is per stay, not per person
-            total += ConvertToEUR(hotel?.Offers?.FirstOrDefault()?.Price?.Total,
-                                hotel?.Offers?.FirstOrDefault()?.Price?.Currency, conversionRates);
-            return total;
-        }
+        //public decimal CalculateTotalPrice(FlightOffer? outboundFlight,
+        //                            FlightOffer? returnFlight,
+        //                            Hotel? hotel, Dictionary<string, decimal>? conversionRates,
+        //                            int travelers = 1)
+        //{
+        //    decimal total = 0;
+        //    // Multiply flight prices by number of travelers
+        //    total += ConvertToEUR(outboundFlight?.Price?.Total, outboundFlight?.Price?.Currency, conversionRates) * travelers;
+        //    total += ConvertToEUR(returnFlight?.Price?.Total, returnFlight?.Price?.Currency, conversionRates) * travelers;
+        //    // Hotel price is per stay, not per person
+        //    total += ConvertToEUR(hotel?.Offers?.FirstOrDefault()?.Price?.Total,
+        //                        hotel?.Offers?.FirstOrDefault()?.Price?.Currency, conversionRates);
+        //    return total;
+        //}
 
-        public decimal ConvertToEUR(string? price, string? currency, HotelOfferRootModel? hotelOffers)
+        public decimal ConvertToEUR(string? price, string? currency, HotelOffer? hotelOffers)
         {
             var raw = TryParsePrice(price);
 
@@ -39,14 +39,14 @@ namespace Gotorz.Client.Services
             if (string.IsNullOrWhiteSpace(currency) || currency == "EUR") return raw;
 
             // Try to get conversion rate from HotelOffers if available
-            var conversion = hotelOffers?.Dictionaries?.CurrencyConversionLookupRates?.GetValueOrDefault(currency);
-            if (conversion == null || conversion.Target != "EUR") return raw;
+            //var conversion = hotelOffers?.Dictionaries?.CurrencyConversionLookupRates?.GetValueOrDefault(currency);
+            //if (conversion == null || conversion.Target != "EUR") return raw;
 
-            if (decimal.TryParse(conversion.Rate, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out var rate))
-            {
-                return Math.Round(raw * rate, conversion.TargetDecimalPlaces);
-            }
+            //if (decimal.TryParse(conversion.Rate, System.Globalization.NumberStyles.Any,
+            //    System.Globalization.CultureInfo.InvariantCulture, out var rate))
+            //{
+            //    return Math.Round(raw * rate, conversion.TargetDecimalPlaces);
+            //}
 
             return raw;
         }

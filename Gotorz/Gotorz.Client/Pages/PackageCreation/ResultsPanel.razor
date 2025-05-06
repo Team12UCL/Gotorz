@@ -49,15 +49,15 @@
                                                @onchange="@(() => OnFlightSelected.InvokeAsync((flight, true)))"
                                                checked="@(SelectedOutboundFlight == flight)" />
                                     </td>
-                                    <td>@flight.Itineraries[0].Segments[0].CarrierCode</td>
-                                    <td>@flight.Itineraries[0].Duration.Replace("PT", "")</td>
-                                    <td>@flight.Price.Currency @flight.Price.Total</td>
+                                    <td>@flight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().CarrierCode</td>
+                                    <td>@flight.Itineraries.FirstOrDefault().Duration.Replace("PT", "")</td>
+                                    <td>@flight.Currency @flight.TotalPrice</td>
                                     <td>
-                                        @foreach (var segment in flight.Itineraries[0].Segments)
+                                        @foreach (var segment in flight.Itineraries.FirstOrDefault().Segments)
                                         {
                                             <div>
-                                                @segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
-                                                ➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+                                                @segment.DepartureAirport at @segment.DepartureTime.ToString("HH:mm (yyyy-MM-dd)") <br>
+                                                ➝ @segment.ArrivalAirport at @segment.ArrivalTime.ToString("HH:mm (yyyy-MM-dd)")
                                             </div>
                                         }
                                     </td>
@@ -115,15 +115,15 @@
                                                @onchange="@(() => OnFlightSelected.InvokeAsync((flight, false)))"
                                                checked="@(SelectedReturnFlight == flight)" />
                                     </td>
-                                    <td>@flight.Itineraries[0].Segments[0].CarrierCode</td>
-                                    <td>@flight.Itineraries[0].Duration.Replace("PT", "")</td>
-                                    <td>@flight.Price.Currency @flight.Price.Total</td>
+                                    <td>@flight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().CarrierCode</td>
+                                    <td>@flight.Itineraries.FirstOrDefault().Duration.Replace("PT", "")</td>
+                                    <td>@flight.Currency @flight.TotalPrice</td>
                                     <td>
-                                        @foreach (var segment in flight.Itineraries[0].Segments)
+                                        @foreach (var segment in flight.Itineraries.FirstOrDefault().Segments)
                                         {
                                             <div>
-                                                @segment.Departure.IataCode at @segment.Departure.At.ToString("HH:mm (yyyy-MM-dd)") <br>
-                                                ➝ @segment.Arrival.IataCode at @segment.Arrival.At.ToString("HH:mm (yyyy-MM-dd)")
+                                                @segment.DepartureAirport at @segment.DepartureTime.ToString("HH:mm (yyyy-MM-dd)") <br>
+                                                ➝ @segment.ArrivalAirport at @segment.ArrivalTime.ToString("HH:mm (yyyy-MM-dd)")
                                             </div>
                                         }
                                     </td>
@@ -160,7 +160,7 @@
                     Error loading hotel data. Please try again.
                 </div>
             }
-            else if (HotelOffers?.Data?.Any() == true)
+            else if (HotelData != null)
             {
                 <table class="results-table">
                     <thead>
@@ -172,7 +172,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var hotel in HotelOffers.Data)
+                        @foreach (var hotel in HotelData)
                         {
                             <tr class="@(SelectedHotel == hotel ? "selected-row" : "")">
                                 <td>
@@ -184,25 +184,25 @@
                                 </td>
                                 <td>
                                     <strong>
-                                        <a href="https://www.google.com/search?q=@Uri.EscapeDataString(hotel.Hotel.Name)"
+                                        <a href="https://www.google.com/search?q=@Uri.EscapeDataString(hotel.Name)"
                                            target="_blank">
-                                            @hotel.Hotel.Name
+                                            @hotel.Name
                                         </a>
                                     </strong>
                                 </td>
                                 <td>
                                     @{
                                         var offer = hotel.Offers?.FirstOrDefault();
-                                        var price = offer?.Price?.Total ?? "0";
-                                        var currency = offer?.Price?.Currency ?? "EUR";
-                                        var eurPrice = PricingService.ConvertToEUR(price, currency, HotelOffers);
+                                        var price = offer?.TotalPrice.ToString() ?? "0";
+                                        var currency = offer?.Currency ?? "EUR";
+                                        var eurPrice = PricingService.ConvertToEUR(price, currency, hotel.Offers.FirstOrDefault());
                                     }
                                     @price @currency (@eurPrice EUR)
                                 </td>
                                 <td>
-                                    @if (offer?.BoardType != null)
+                                    @if (offer?.Description != null)
                                     {
-                                        <div>Board: @offer.BoardType</div>
+                                        <div>Description: @offer.Description</div>
                                     }
                                 </td>
                             </tr>
@@ -224,12 +224,12 @@
     [Parameter] public SearchMode CurrentSearchMode { get; set; }
     [Parameter] public List<FlightOffer> OutboundFlights { get; set; } = new();
     [Parameter] public List<FlightOffer> ReturnFlights { get; set; } = new();
-    [Parameter] public HotelOfferRootModel? HotelOffers { get; set; }
+    [Parameter] public List<Hotel>? HotelData { get; set; }
     [Parameter] public FlightOffer? SelectedOutboundFlight { get; set; }
     [Parameter] public FlightOffer? SelectedReturnFlight { get; set; }
-    [Parameter] public HotelData? SelectedHotel { get; set; }
+    [Parameter] public Hotel? SelectedHotel { get; set; }
     [Parameter] public EventCallback<(FlightOffer flight, bool isOutbound)> OnFlightSelected { get; set; }
-    [Parameter] public EventCallback<HotelData> OnHotelSelected { get; set; }
+    [Parameter] public EventCallback<Hotel> OnHotelSelected { get; set; }
     [Parameter] public bool IsLoadingFlights { get; set; }
     [Parameter] public bool IsLoadingHotels { get; set; }
     [Parameter] public bool FlightError { get; set; }

@@ -271,8 +271,8 @@
                 ? $"api/flight/search?originLocationCode={OriginLocationCode}&destinationLocationCode={DestinationLocationCode}&departureDate={DepartureDate:yyyy-MM-dd}&adults={Adults}"
                 : $"api/flight/search?originLocationCode={DestinationLocationCode}&destinationLocationCode={OriginLocationCode}&departureDate={ReturnDate:yyyy-MM-dd}&adults={Adults}";
 
-            var result = await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(url);
-            return result?.Data ?? new List<FlightOffer>();
+            var result = await HttpClient.GetFromJsonAsync<List<FlightOffer>>(url);
+            return result ?? new List<FlightOffer>();
         }
         finally
         {
@@ -280,7 +280,7 @@
         }
     }
 
-    public async Task<HotelOfferRootModel> FetchHotelData()
+    public async Task<List<Hotel>> FetchHotelData()
     {
         IsSearchingHotels = true;
         try
@@ -288,7 +288,7 @@
             var checkInDate = DepartureDate?.ToString("yyyy-MM-dd") ?? string.Empty;
             var checkOutDate = ReturnDate?.ToString("yyyy-MM-dd") ?? checkInDate;
 
-            return await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(
+            return await HttpClient.GetFromJsonAsync<List<Hotel>>(
                 $"api/hotel/search?cityCode={DestinationCityCode}&checkInDate={checkInDate}&checkOutDate={checkOutDate}&adults={Adults}");
         }
         finally

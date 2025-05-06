@@ -2,7 +2,6 @@
 @using Shared.Models
 @using Shared.Models.AmadeusCityResponse
 @using Gotorz.Client.Services
-@inject Client.Services.TravelPackageService PackageService
 @inject PricingService PricingService
 @rendermode InteractiveWebAssembly
 @inject HttpClient HttpClient
@@ -66,8 +65,10 @@
 			pkg.OutboundFlight,
 			pkg.ReturnFlight,
 			pkg.Hotel,
-			pkg.CurrencyConversionRates,
-			travelers);
+			pkg.Hotel.Offers.FirstOrDefault()
+			//pkg.CurrencyConversionRates,
+			//travelers
+			);
 		}
 		@price EUR		<br />
 		<button class="summary-button">Book</button>
@@ -120,15 +121,15 @@
 		return total;
 	}
 
-	// private decimal TryParsePrice(string? price)
-	// {
-	// 	return decimal.TryParse(price,
-	// 		System.Globalization.NumberStyles.Any,
-	// 		System.Globalization.CultureInfo.InvariantCulture,
-	// 		out var result)
-	// 		? result
-	// 		: 0;
-	// }
+	private decimal TryParsePrice(string? price)
+	{
+		return decimal.TryParse(price,
+			System.Globalization.NumberStyles.Any,
+			System.Globalization.CultureInfo.InvariantCulture,
+			out var result)
+			? result
+			: 0;
+	}
 
 
 }

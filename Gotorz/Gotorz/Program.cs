@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.SignalR;
 using Gotorz.Services;
 using Microsoft.AspNetCore.Components;
 using Gotorz.Services.Admin;
+using Gotorz.Client.Services;
 
 public class Program
 {
@@ -83,8 +84,9 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, AdditionalUserClaimsPrincipalFactory>();
 
+		builder.Services.AddScoped<ActivityLogService>();
 
-builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+		builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Logging.AddConsole();
 
 builder.Services.ConfigureApplicationCookie(options =>

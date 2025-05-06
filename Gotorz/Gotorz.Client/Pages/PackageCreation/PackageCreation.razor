@@ -2,8 +2,8 @@
 @using Shared.Enums
 @using Shared.Models
 @using Client.Services
-@inject TravelPackageService PackageService
 @rendermode InteractiveWebAssembly
+@inject HttpClient HttpClient
 
 <PageTitle>Create Travel Package</PageTitle>
 <NavLink href="/stripetest">Test Stripe</NavLink>
@@ -41,7 +41,7 @@
 		<ResultsPanel CurrentSearchMode="currentSearchMode"
 		OutboundFlights="outboundFlights"
 		ReturnFlights="returnFlights"
-		HotelOffers="hotelOffers"
+		HotelData="hotels"
 		SelectedOutboundFlight="selectedOutboundFlight"
 		SelectedReturnFlight="selectedReturnFlight"
 		SelectedHotel="selectedHotel"
@@ -66,8 +66,9 @@
 	private FlightOffer? selectedReturnFlight;
 
 	// Hotel data
-	private HotelOfferRootModel? hotelOffers;
-	private HotelData? selectedHotel;
+	private List<Hotel>? hotels;
+	private HotelOffer? hotelOffers;
+	private Hotel? selectedHotel;
 
 	// Search parameters
 	private DateTime? departureDate;
@@ -95,7 +96,7 @@
 		else selectedReturnFlight = flight;
 	}
 
-	private void SelectHotel(HotelData hotel) => selectedHotel = hotel;
+	private void SelectHotel(Hotel hotel) => selectedHotel = hotel;
 
 	private async Task SearchFlights()
 	{
@@ -142,7 +143,7 @@
 
 		try
 		{
-			hotelOffers = await searchPanel.FetchHotelData();
+			hotels = await searchPanel.FetchHotelData();
 		}
 		catch
 		{
@@ -154,7 +155,7 @@
 		}
 	}
 
-	private void CreatePackage()
+	private async Task CreatePackage()
 	{
 		try
 		{
@@ -168,26 +169,36 @@
 					Adults = adults,
 					OriginCity = searchPanel.OriginCityName,
 					DestinationCity = searchPanel.DestinationCityName,
-					CreatedDate = DateTime.Now
+					//CreatedDate = DateTime.Now
 				};
 
 			// Extract currency conversion rates from hotelOffers to store with the new package (necessary since Packages.razor doesn't have hotel references which store the rates)
-			if (hotelOffers?.Dictionaries?.CurrencyConversionLookupRates != null)
-			{
-				foreach (var entry in hotelOffers.Dictionaries.CurrencyConversionLookupRates)
-				{
-					if (entry.Value.Target == "EUR" &&
-						decimal.TryParse(entry.Value.Rate,
-										System.Globalization.NumberStyles.Any,
-										System.Globalization.CultureInfo.InvariantCulture,
-										out var rate))
-					{
-						package.CurrencyConversionRates[entry.Key] = rate;
-					}
-				}
-			}
+			// if (hotelOffers?.Dictionaries?.CurrencyConversionLookupRates != null)
+			// {
+			// 	foreach (var entry in hotelOffers.Dictionaries.CurrencyConversionLookupRates)
+			// 	{
+			// 		if (entry.Value.Target == "EUR" &&
+			// 			decimal.TryParse(entry.Value.Rate,
+			// 							System.Globalization.NumberStyles.Any,
+			// 							System.Globalization.CultureInfo.InvariantCulture,
+			// 							out var rate))
+			// 		{
+			// 			package.CurrencyConversionRates[entry.Key] = rate;
+			// 		}
+			// 	}
+			// }
 
-			PackageService.Packages.Add(package);
+			//PackageService.Packages.Add(package);
+
+			var result = await HttpClient.PostAsJsonAsync("api/travelpackage/create", package);
+
+			if (!result.IsSuccessStatusCode)
+			{
+				// Handle error
+				packageCreationMessage = "Failed to create package";
+				packageCreationSuccess = false;
+				return;
+			}
 
 			// Set success message
 			packageCreationMessage = "Package created successfully!";

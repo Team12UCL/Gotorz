@@ -13,11 +13,11 @@
                 @if (OutboundFlight != null)
                 {
                     <div class="summary-item">
-                        <strong>Outbound:</strong> @OutboundFlight.Itineraries[0].Segments[0].Departure.IataCode to
-                        @OutboundFlight.Itineraries[0].Segments[^1].Arrival.IataCode
+                        <strong>Outbound:</strong> @OutboundFlight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().DepartureAirport to
+                        @OutboundFlight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().ArrivalAirport
                         <div class="summary-detail">
-                            <span>Departs: @OutboundFlight.Itineraries[0].Segments[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
-                            <span>@OutboundFlight.Price.Total @OutboundFlight.Price.Currency</span>
+                            <span>Departs: @OutboundFlight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().DepartureTime.ToString("HH:mm (yyyy-MM-dd)")</span>
+                            <span>@OutboundFlight.TotalPrice @OutboundFlight.Currency</span>
                         </div>
                     </div>
                 }
@@ -25,11 +25,11 @@
                 @if (ReturnFlight != null)
                 {
                     <div class="summary-item">
-                        <strong>Return:</strong> @ReturnFlight.Itineraries[0].Segments[0].Departure.IataCode to
-                        @ReturnFlight.Itineraries[0].Segments[^1].Arrival.IataCode
+                        <strong>Return:</strong> @ReturnFlight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().DepartureAirport to
+                        @ReturnFlight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().ArrivalAirport
                         <div class="summary-detail">
-                            <span>Departs: @ReturnFlight.Itineraries[0].Segments[0].Departure.At.ToString("HH:mm (yyyy-MM-dd)")</span>
-                            <span>@ReturnFlight.Price.Total @ReturnFlight.Price.Currency</span>
+                            <span>Departs: @ReturnFlight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().DepartureTime.ToString("HH:mm (yyyy-MM-dd)")</span>
+                            <span>@ReturnFlight.TotalPrice @ReturnFlight.Currency</span>
                         </div>
                     </div>
                 }
@@ -40,7 +40,7 @@
                 <div class="summary-section">
                     <h5>Selected Hotel</h5>
                     <div class="summary-item">
-                        <strong>@Hotel.Hotel.Name</strong>
+                        <strong>@Hotel.Name</strong>
                         <div class="summary-detail">
                             <span>
                                 Period: @Hotel.Offers?.FirstOrDefault()?.CheckInDate to
@@ -49,9 +49,9 @@
                             <span>
                                 @{
                                     var offer = Hotel.Offers?.FirstOrDefault();
-                                    var price = offer?.Price?.Total ?? "0";
-                                    var currency = offer?.Price?.Currency ?? "EUR";
-                                    var eurPrice = PricingService.ConvertToEUR(price, currency, HotelOffers);
+                                    var price = offer?.TotalPrice;
+                                    var currency = offer?.Currency ?? "EUR";
+                                    var eurPrice = PricingService.ConvertToEUR(price.ToString(), currency, HotelOffers);
                                 }
                                 @eurPrice EUR
                             </span>
@@ -90,14 +90,14 @@
 @code {
     [Parameter] public FlightOffer? OutboundFlight { get; set; }
     [Parameter] public FlightOffer? ReturnFlight { get; set; }
-    [Parameter] public HotelData? Hotel { get; set; }
+    [Parameter] public Hotel? Hotel { get; set; }
     [Parameter] public DateTime? DepartureDate { get; set; }
     [Parameter] public DateTime? ReturnDate { get; set; }
     [Parameter] public int Adults { get; set; }
     [Parameter] public EventCallback OnPackageCreated { get; set; }
     [Parameter] public string? PackageCreationMessage { get; set; }
     [Parameter] public bool PackageCreationSuccess { get; set; }
-    [Parameter] public HotelOfferRootModel? HotelOffers { get; set; }
+    [Parameter] public HotelOffer? HotelOffers { get; set; }
 
     private bool CanCreatePackage() =>
         OutboundFlight != null &&
