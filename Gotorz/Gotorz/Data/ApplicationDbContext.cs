@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
+using Shared.Models.DTO;
 using System.Reflection.Emit;
 
 namespace Gotorz.Data
@@ -20,7 +21,7 @@ namespace Gotorz.Data
 		public DbSet<FlightSegment> FlightSegments { get; set; }
 		public DbSet<Hotel> Hotel { get; set; }
 		public DbSet<HotelOffer> HotelOffer { get; set; }
-		public DbSet<TravelPackage> TravelPackages { get; set; }
+		public DbSet<TravelPackageDTO> TravelPackages { get; set; }
 
 
 		protected override void OnModelCreating(ModelBuilder builder)
@@ -40,10 +41,10 @@ namespace Gotorz.Data
 
 			// Hotel → HotelOffer (1-to-many)
 			builder.Entity<Hotel>()
-	.HasMany(h => h.Offers)
-	.WithOne(o => o.Hotel)
-	.HasForeignKey(o => o.HotelDbId)
-	.OnDelete(DeleteBehavior.Cascade);
+				.HasMany(h => h.Offers)
+				.WithOne()
+				.HasForeignKey(ho => ho.OfferId)
+				.OnDelete(DeleteBehavior.Cascade);
 
 			// FlightOffer → Itineraries (1-to-many)
 			builder.Entity<FlightOffer>()

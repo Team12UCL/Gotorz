@@ -30,7 +30,7 @@ namespace Shared.Models
 		public string OfferId { get; set; }          // Amadeus API ID
 
 		public int HotelDbId { get; set; }           // Foreign key to Hotel.Id
-		public Hotel Hotel { get; set; }
+		//public Hotel Hotel { get; set; }
 
 		public DateTime CheckInDate { get; set; }
 		public DateTime CheckOutDate { get; set; }

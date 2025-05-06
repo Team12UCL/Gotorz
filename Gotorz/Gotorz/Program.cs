@@ -37,8 +37,8 @@ public class Program
 
         builder.Services.AddScoped<IStripeService, StripeService>();
         builder.Services.AddSingleton<PricingService>();
-        builder.Services.AddScoped<TravelPackageService>();
-        builder.Services.AddScoped<FlightService>();
+		builder.Services.AddScoped<ITravelPackageService, TravelPackageService>();
+		builder.Services.AddScoped<FlightService>();
         builder.Services.AddScoped<HotelService>();
         builder.Services.AddSingleton<AirportService>();
 

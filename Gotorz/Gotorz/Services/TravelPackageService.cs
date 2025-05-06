@@ -1,17 +1,18 @@
 ﻿using Gotorz.Data;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
+using Shared.Models.DTO;
 
 namespace Gotorz.Services
 {
     public interface ITravelPackageService
     {
-        Task<TravelPackage> CreateAsync(TravelPackage package);
-        Task<TravelPackage?> GetByIdAsync(Guid id);
-        Task<List<TravelPackage>> GetAllAsync(int skip = 0, int take = 10);
+        Task<TravelPackageDTO> CreateAsync(TravelPackage package);
+        Task<TravelPackageDTO?> GetByIdAsync(Guid id);
+        Task<List<TravelPackageDTO>> GetAllAsync(int skip = 0, int take = 10);
         Task<TravelPackage> UpdateAsync(TravelPackage package);
         Task DeleteAsync(Guid id);
-        Task<List<TravelPackage>> GetByStatusAsync(TravelPackageStatus status);
+        Task<List<TravelPackageDTO>> GetByStatusAsync(TravelPackageStatus status);
     }
 
     public class TravelPackageService : ITravelPackageService
@@ -23,31 +24,77 @@ namespace Gotorz.Services
             _context = context;
         }
 
-        public async Task<TravelPackage> CreateAsync(TravelPackage package)
+        public async Task<TravelPackageDTO> CreateAsync(TravelPackage package)
         {
             if (package == null)
                 throw new ArgumentNullException(nameof(package));
 
-            await _context.TravelPackages.AddAsync(package);
+			// Check if the outbound flight, return flight, and hotel are already in the database
+			//var existingOutboundFlight = await _context.FlightOffer
+			//	.FirstOrDefaultAsync(f => f.OfferId == package.OutboundFlightId.ToString());
+
+			//if (existingOutboundFlight == null)
+			//{
+			//	_context.FlightOffer.Add(package.OutboundFlight);
+			//}
+   //         if (package.ReturnFlightId != null)
+   //         {
+
+			//	var existingReturnFlight = await _context.FlightOffer
+			//	.FirstOrDefaultAsync(f => f.OfferId == package.ReturnFlightId.ToString());
+
+			//	if (existingReturnFlight == null)
+			//	{
+			//		_context.FlightOffer.Add(package.ReturnFlight);
+			//	}
+			//}
+
+			//var existingHotel = await _context.Hotel
+			//	.FirstOrDefaultAsync(h => h.ExternalHotelId == package.HotelId.ToString());
+			//if (existingHotel == null)
+			//{
+			//	_context.Hotel.Add(package.Hotel);
+			//}
+
+
+			// convert the package to a DTO
+			var TavelPackageDTO = new TravelPackageDTO()
+            {
+				TravelPackageId = package.TravelPackageId,
+				OutboundFlightId = package.OutboundFlightId,
+				ReturnFlightId = package.ReturnFlightId,
+				HotelId = package.HotelId,
+				DepartureDate = package.DepartureDate,
+				ReturnDate = package.ReturnDate,
+				Adults = package.Adults,
+				OriginCity = package.OriginCity,
+				DestinationCity = package.DestinationCity,
+				Name = package.Name,
+				Description = package.Description,
+				Status = package.Status
+			};
+
+
+			await _context.TravelPackages.AddAsync(TavelPackageDTO);
             await _context.SaveChangesAsync();
-            return package;
+            return TavelPackageDTO;
         }
 
-        public async Task<TravelPackage?> GetByIdAsync(Guid id)
+        public async Task<TravelPackageDTO?> GetByIdAsync(Guid id)
         {
             return await _context.TravelPackages
-                .Include(tp => tp.OutboundFlight)
-                .Include(tp => tp.ReturnFlight)
-                .Include(tp => tp.Hotel)
+                .Include(tp => tp.OutboundFlightId)
+                .Include(tp => tp.ReturnFlightId)
+                .Include(tp => tp.HotelId)
                 .FirstOrDefaultAsync(tp => tp.TravelPackageId == id);
         }
 
-        public async Task<List<TravelPackage>> GetAllAsync(int skip = 0, int take = 10)
+        public async Task<List<TravelPackageDTO>> GetAllAsync(int skip = 0, int take = 10)
         {
             return await _context.TravelPackages
-                .Include(tp => tp.OutboundFlight)
-                .Include(tp => tp.ReturnFlight)
-                .Include(tp => tp.Hotel)
+                .Include(tp => tp.OutboundFlightId)
+                .Include(tp => tp.ReturnFlightId)
+                .Include(tp => tp.HotelId)
                 .Skip(skip)
                 .Take(take)
                 .ToListAsync();
@@ -79,12 +126,12 @@ namespace Gotorz.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<TravelPackage>> GetByStatusAsync(TravelPackageStatus status)
+        public async Task<List<TravelPackageDTO>> GetByStatusAsync(TravelPackageStatus status)
         {
             return await _context.TravelPackages
-                .Include(tp => tp.OutboundFlight)
-                .Include(tp => tp.ReturnFlight)
-                .Include(tp => tp.Hotel)
+                .Include(tp => tp.OutboundFlightId)
+                .Include(tp => tp.ReturnFlightId)
+                .Include(tp => tp.HotelId)
                 .Where(tp => tp.Status == status)
                 .ToListAsync();
         }

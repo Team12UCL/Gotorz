@@ -93,7 +93,7 @@
 	protected override async Task OnInitializedAsync()
 	{
 		// Simulate asynchronous loading to demonstrate streaming rendering
-		travelPackages = await HttpClient.GetFromJsonAsync<List<TravelPackage>>("api/travelpackage/getall");
+		travelPackages = await HttpClient.GetFromJsonAsync<List<TravelPackage>>("api/travelpackage/GetAll");
 	}
 
 	private IEnumerable<TravelPackage> FilteredPackages =>
