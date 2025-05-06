@@ -1,11 +1,16 @@
-﻿@page "/bookingdetails/"
+﻿@page "/bookingdetails/{PackageId:guid}"
+@inject NavigationManager NavManager
 @using Shared.Models
 @inject HttpClient Http
 @rendermode InteractiveWebAssembly
 
-<h3>BookingDetails</h3>
+<h3>Booking Details</h3>
 
-@if (travelPackage == null)
+@if (errorMessage != null)
+{
+	<p class="error-message">@errorMessage</p>
+}
+else if (travelPackage == null)
 {
 	<p>Loading...</p>
 }
@@ -21,19 +26,32 @@ else
 			<h5>Traveler @(i + 1)</h5>
 			<input placeholder="Full name" @bind="travelers[i].FullName" />
 			<input placeholder="Passport number" @bind="travelers[i].PassportNumber" />
+			<label>Date of birth</label>
 			<input type="date" @bind="travelers[i].DateOfBirth" />
 			<input placeholder="Nationality" @bind="travelers[i].Nationality" />
 		</div>
 	}
 
+	<br />
+
 	<button @onclick="ContinueToPayment">Continue to Payment</button>
 }
 
 @code {
-	[Parameter] public Guid PackageId { get; set; }
+	[Parameter]
+	public Guid PackageId { get; set; }
+
+	[Parameter]
+	[SupplyParameterFromQuery]
+	public int Adults { get; set; } = 1;
+
+	[Parameter]
+	[SupplyParameterFromQuery]
+	public int Children { get; set; } = 0;
 
 	private TravelPackage? travelPackage;
 	private List<PassengerInfo> travelers = new();
+	private string? errorMessage;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -41,21 +59,20 @@ else
 		{
 			travelPackage = await Http.GetFromJsonAsync<TravelPackage>($"api/travelpackage/{PackageId}");
 
-			// Midlertidigt: antag altid 2 rejsende (kan senere forbedres)
-			for (int i = 0; i < 2; i++)
+			for (int i = 0; i < Adults + Children; i++)
 			{
 				travelers.Add(new PassengerInfo());
 			}
 		}
 		catch (Exception ex)
 		{
-			Console.WriteLine($"Fejl under hentning: {ex.Message}");
+			errorMessage = $"Fejl under hentning: {ex.Message}";
 		}
 	}
 
 	private void ContinueToPayment()
 	{
-		Console.WriteLine("Ready for payment...");
+		//Stripe
 	}
 
 	public class PassengerInfo

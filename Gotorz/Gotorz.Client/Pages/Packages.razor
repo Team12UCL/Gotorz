@@ -5,6 +5,7 @@
 @inject PricingService PricingService
 @rendermode InteractiveWebAssembly
 @inject HttpClient HttpClient
+@inject NavigationManager NavManager
 
 <h3>Find din rejse</h3>
 
@@ -86,7 +87,11 @@
 				);
 			}
 			@price EUR		<br />
-			<button class="summary-button">Book</button>
+			<button class="summary-button"
+			@onclick="() => GoToBooking(pkg)">
+				
+				Book
+				</button>
 		</div>
 	}
 }
@@ -171,6 +176,10 @@
 			: 0;
 	}
 
+	private void GoToBooking(TravelPackage pkg)
+	{
+		NavManager.NavigateTo($"/bookingdetails/{pkg.TravelPackageId}?adults={adults}&children={children}");
+	}
 
 }
 
