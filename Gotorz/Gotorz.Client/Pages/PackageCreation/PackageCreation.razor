@@ -162,7 +162,10 @@
 			var package = new TravelPackage
 				{
 					OutboundFlight = selectedOutboundFlight,
+					OutboundFlightId = selectedOutboundFlight.Id,
 					ReturnFlight = selectedReturnFlight,
+					ReturnFlightId = selectedReturnFlight.Id,
+					HotelId = selectedHotel.Id,
 					Hotel = selectedHotel,
 					DepartureDate = departureDate.Value,
 					ReturnDate = returnDate ?? DateTime.MinValue,

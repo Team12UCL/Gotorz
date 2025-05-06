@@ -13,7 +13,7 @@ namespace Gotorz.Data
         {
         }
 
-		public DbSet<Booking> Bookings { get; set; }
+		//public DbSet<Booking> Bookings { get; set; }
 		public DbSet<ActivityLog> ActivityLogs { get; set; }
 		public DbSet<ChatMessage> ChatMessages { get; set; } = default!;
 		public DbSet<FlightOffer> FlightOffer { get; set; }
@@ -21,7 +21,7 @@ namespace Gotorz.Data
 		public DbSet<FlightSegment> FlightSegments { get; set; }
 		public DbSet<Hotel> Hotel { get; set; }
 		public DbSet<HotelOffer> HotelOffer { get; set; }
-		public DbSet<TravelPackageDTO> TravelPackages { get; set; }
+		public DbSet<TravelPackage> TravelPackages { get; set; }
 
 
 		protected override void OnModelCreating(ModelBuilder builder)
@@ -43,21 +43,21 @@ namespace Gotorz.Data
 			builder.Entity<Hotel>()
 				.HasMany(h => h.Offers)
 				.WithOne()
-				.HasForeignKey(ho => ho.OfferId)
+				.HasForeignKey(ho => ho.HotelDbId)
 				.OnDelete(DeleteBehavior.Cascade);
 
 			// FlightOffer → Itineraries (1-to-many)
 			builder.Entity<FlightOffer>()
-				.HasMany(f => f.Itineraries)
-				.WithOne()
-				.HasForeignKey(i => i.FlightOfferId)
-				.OnDelete(DeleteBehavior.Cascade);
+	.HasMany(f => f.Itineraries)
+	.WithOne()
+	.HasForeignKey(i => i.FlightOfferId)
+	.OnDelete(DeleteBehavior.Cascade);
 
 			// Itinerary → FlightSegments (1-to-many)
 			builder.Entity<Itinerary>()
 				.HasMany(i => i.Segments)
 				.WithOne()
-				.HasForeignKey(s => s.FlightSegmentId)
+				.HasForeignKey(s => s.ItineraryId)
 				.OnDelete(DeleteBehavior.Cascade);
 
 			builder.Entity<TravelPackage>(entity =>

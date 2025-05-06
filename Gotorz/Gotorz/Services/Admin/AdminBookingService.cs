@@ -13,14 +13,14 @@ namespace Gotorz.Services.Admin
 			_dbContext = dbContext;
 		}
 
-		public async Task<List<Booking>> GetBookingsAsync(int skip = 0, int take = 100)
-		{
-			return await _dbContext.Bookings
-				.Include(b => b.TravelPackage)
-				.OrderByDescending(b => b.BookingDate)
-				.Skip(skip)
-				.Take(take)
-				.ToListAsync();
-		}
+		//public async Task<List<Booking>> GetBookingsAsync(int skip = 0, int take = 100)
+		//{
+		//	return await _dbContext.Bookings
+		//		.Include(b => b.TravelPackage)
+		//		.OrderByDescending(b => b.BookingDate)
+		//		.Skip(skip)
+		//		.Take(take)
+		//		.ToListAsync();
+		//}
 	}
 }

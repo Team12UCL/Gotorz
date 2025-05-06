@@ -15,15 +15,13 @@ namespace Shared.Models.DTO
 			public Guid TravelPackageId { get; set; } = Guid.NewGuid();
 
 			// Outbound flight
-			public int OutboundFlightId { get; set; }
+			public Guid OutboundFlightId { get; set; }
 		
-
 			// Return flight (optional)
-			public int? ReturnFlightId { get; set; }
+			public Guid? ReturnFlightId { get; set; }
 			
-
 			// Hotel
-			public int HotelId { get; set; }
+			public Guid HotelId { get; set; }
 		
 
 			public DateTime DepartureDate { get; set; }

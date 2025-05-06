@@ -16,8 +16,8 @@ namespace Gotorz.Controllers
             _travelPackageService = travelPackageService;
         }
 
-        [HttpGet("GetAll")]
-        public async Task<IActionResult> GetAll(int skip = 0, int take = 10)
+        [HttpGet]
+        public async Task<IActionResult> Get(int skip = 0, int take = 10)
         {
             var packages = await _travelPackageService.GetAllAsync(skip, take);
             return Ok(packages);

@@ -157,18 +157,18 @@ namespace Gotorz.Controllers
 		}
 
 		// GET: api/admin/bookings
-		[HttpGet("bookings")]
-		public async Task<IActionResult> GetAllBookings([FromQuery] int skip = 0, [FromQuery] int take = 100)
-		{
-			var bookings = await _dbContext.Bookings
-				.Include(b => b.TravelPackage)
-				.OrderByDescending(b => b.BookingDate)
-				.Skip(skip)
-				.Take(take)
-				.ToListAsync();
+		//[HttpGet("bookings")]
+		//public async Task<IActionResult> GetAllBookings([FromQuery] int skip = 0, [FromQuery] int take = 100)
+		//{
+		//	var bookings = await _dbContext.Bookings
+		//		.Include(b => b.TravelPackage)
+		//		.OrderByDescending(b => b.BookingDate)
+		//		.Skip(skip)
+		//		.Take(take)
+		//		.ToListAsync();
 
-			return Ok(bookings);
-		}
+		//	return Ok(bookings);
+		//}
 
 		// GET: api/admin/activity-logs
 		[HttpGet("activity-logs")]
@@ -231,52 +231,52 @@ namespace Gotorz.Controllers
 		}
 
 		// GET: api/admin/dashboard-stats
-		[HttpGet("dashboard-stats")]
-		public async Task<IActionResult> GetDashboardStats()
-		{
+		//[HttpGet("dashboard-stats")]
+		//public async Task<IActionResult> GetDashboardStats()
+		//{
 		
-			try
-			{
-				var totalUsers = await _dbContext.Users.CountAsync();
-				var totalBookings = await _dbContext.Bookings.CountAsync();
-				var totalSalesAmount = await _dbContext.Bookings
-					.Select(b => (decimal?)b.TotalAmount)
-					.SumAsync() ?? 0m;
-				var recentBookings = await _dbContext.Bookings
-					.OrderByDescending(b => b.BookingDate)
-					.Take(5)
-					.ToListAsync();
+		//	try
+		//	{
+		//		var totalUsers = await _dbContext.Users.CountAsync();
+		//		var totalBookings = await _dbContext.Bookings.CountAsync();
+		//		var totalSalesAmount = await _dbContext.Bookings
+		//			.Select(b => (decimal?)b.TotalAmount)
+		//			.SumAsync() ?? 0m;
+		//		var recentBookings = await _dbContext.Bookings
+		//			.OrderByDescending(b => b.BookingDate)
+		//			.Take(5)
+		//			.ToListAsync();
 
-				var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
-				var activeUsersCount = await _dbContext.ActivityLogs
-					.Where(a => a.Timestamp >= thirtyDaysAgo)
-					.Select(a => a.UserId)
-					.Distinct()
-					.CountAsync();
+		//		var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+		//		var activeUsersCount = await _dbContext.ActivityLogs
+		//			.Where(a => a.Timestamp >= thirtyDaysAgo)
+		//			.Select(a => a.UserId)
+		//			.Distinct()
+		//			.CountAsync();
 
-				var dashboardData = new
-				{
-					TotalUsers = totalUsers,
-					TotalBookings = totalBookings,
-					TotalSales = totalSalesAmount,
-					ActiveUsers = activeUsersCount,
-					RecentBookings = recentBookings
-				};
+		//		var dashboardData = new
+		//		{
+		//			TotalUsers = totalUsers,
+		//			TotalBookings = totalBookings,
+		//			TotalSales = totalSalesAmount,
+		//			ActiveUsers = activeUsersCount,
+		//			RecentBookings = recentBookings
+		//		};
 
-				// Log the successful data
-				_logger.LogInformation("Successfully fetched dashboard stats: {@DashboardData}", dashboardData);
-				Console.WriteLine($"Dashboard Data: {dashboardData}");
+		//		// Log the successful data
+		//		_logger.LogInformation("Successfully fetched dashboard stats: {@DashboardData}", dashboardData);
+		//		Console.WriteLine($"Dashboard Data: {dashboardData}");
 
-				return Ok(dashboardData);
-			}
-			catch (Exception ex)
-			{
-				// Log the error
-				_logger.LogError(ex, "Error occurred while fetching dashboard stats.");
+		//		return Ok(dashboardData);
+		//	}
+		//	catch (Exception ex)
+		//	{
+		//		// Log the error
+		//		_logger.LogError(ex, "Error occurred while fetching dashboard stats.");
 
-				// Return a clean error response
-				return StatusCode(500, new { Error = "An unexpected error occurred while fetching dashboard stats." });
-			}
-		}
+		//		// Return a clean error response
+		//		return StatusCode(500, new { Error = "An unexpected error occurred while fetching dashboard stats." });
+		//	}
+		//}
 	}
 }

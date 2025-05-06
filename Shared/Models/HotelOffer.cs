@@ -10,7 +10,7 @@ namespace Shared.Models
 	public class Hotel
 	{
 		[Key]
-		public int Id { get; set; }
+		public Guid Id { get; set; } = Guid.NewGuid();
 
 		public string ExternalHotelId { get; set; }  // Amadeus API ID
 
@@ -25,11 +25,11 @@ namespace Shared.Models
 	public class HotelOffer
 	{
 		[Key]
-		public int Id { get; set; }
+		public Guid Id { get; set; } = Guid.NewGuid();
 
 		public string OfferId { get; set; }          // Amadeus API ID
 
-		public int HotelDbId { get; set; }           // Foreign key to Hotel.Id
+		public Guid HotelDbId { get; set; }           // Foreign key to Hotel.Id
 		//public Hotel Hotel { get; set; }
 
 		public DateTime CheckInDate { get; set; }

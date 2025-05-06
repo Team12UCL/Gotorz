@@ -12,7 +12,7 @@
 <div class="form-container search-panel">
 	<div>
 		<label>Fly from</label>
-		<input placeholder="e.g Copenhagen" @bind="originCityFilter"/>
+		<input placeholder="e.g Copenhagen" @bind="originCityFilter" @oninput="OnOriginCityChanged" />
 	</div>
 	<div>
 		<label>Destination</label>
@@ -47,32 +47,35 @@
 	</div>
 </div>
 
-<p>@FilteredPackages.Count() packages found:</p>
-
-
-<!-- Pakker -->
-@foreach (var pkg in FilteredPackages)
+@if (FilteredPackages?.Count() > 0)
 {
-	<div class="package-card">
-		<strong>From:</strong> @pkg.OriginCity <br />
-		<strong>Destination:</strong> @pkg.DestinationCity <br />
-		<strong>Dates:</strong> @pkg.DepartureDate.ToString("yyyy-MM-dd")
-		→ @pkg.ReturnDate.ToString("yyyy-MM-dd") <br />
-		<!-- EDIT: Use PricingService instead-->
-		<strong>Price:</strong>
-		@{
-			var price = PricingService.CalculateTotalPrice(
-			pkg.OutboundFlight,
-			pkg.ReturnFlight,
-			pkg.Hotel,
-			pkg.Hotel.Offers.FirstOrDefault()
-			//pkg.CurrencyConversionRates,
-			//travelers
-			);
-		}
-		@price EUR		<br />
-		<button class="summary-button">Book</button>
-	</div>
+
+	<p>@FilteredPackages.Count() packages found:</p>
+
+
+	<!-- Pakker -->
+	@foreach (var pkg in FilteredPackages)
+	{
+		<div class="package-card">
+			<strong>From:</strong> @pkg.OriginCity <br />
+			<strong>Destination:</strong> @pkg.DestinationCity <br />
+			<strong>Dates:</strong> @pkg.DepartureDate.ToString("yyyy-MM-dd")
+			→ @pkg.ReturnDate.ToString("yyyy-MM-dd") <br />
+			<!-- EDIT: Use PricingService instead-->
+			<strong>Price:</strong>
+			@{
+				var offer = pkg.Hotel?.Offers?.FirstOrDefault();
+				var price = PricingService.CalculateTotalPrice(
+				pkg.OutboundFlight,
+				pkg.ReturnFlight,
+				pkg.Hotel,
+				offer
+				);
+			}
+			@price EUR		<br />
+			<button class="summary-button">Book</button>
+		</div>
+	}
 }
 
 
@@ -89,14 +92,30 @@
 	private List<TravelPackage>? travelPackages = new();
 	private TravelPackage? selectedPackage;
 
+	private string errorMessage;
+	private bool isLoading = false;
+
+
 
 	protected override async Task OnInitializedAsync()
 	{
-		// Simulate asynchronous loading to demonstrate streaming rendering
-		travelPackages = await HttpClient.GetFromJsonAsync<List<TravelPackage>>("api/travelpackage/GetAll");
+		try
+		{
+			isLoading = true;
+			travelPackages = await HttpClient.GetFromJsonAsync<List<TravelPackage>>("api/travelpackage");
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Failed to load travel packages: {ex.Message}";
+		}
+		finally
+		{
+			isLoading = false;
+		}
 	}
 
-	private IEnumerable<TravelPackage> FilteredPackages =>
+	private IEnumerable<TravelPackage>? FilteredPackages =>
+
 	travelPackages.Where(p =>
 		(!departureDate.HasValue ||
 	(p.DepartureDate >= departureDate.Value.AddDays(-dateFlexibilityDays) &&
@@ -111,6 +130,12 @@
 		(string.IsNullOrWhiteSpace(destinationCityFilter) ||
 			p.DestinationCity?.Contains(destinationCityFilter, StringComparison.OrdinalIgnoreCase) == true)
 	);
+
+	private void OnOriginCityChanged(ChangeEventArgs e)
+	{
+		originCityFilter = e.Value?.ToString();
+		
+	}
 
 	private decimal CalculatePackagePrice(TravelPackage pkg)
 	{

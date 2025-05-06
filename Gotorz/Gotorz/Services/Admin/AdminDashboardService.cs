@@ -16,12 +16,12 @@ namespace Gotorz.Services.Admin
 		public async Task<DashboardStats> GetDashboardStatsAsync()
 		{
 			var totalUsers = await _dbContext.Users.CountAsync();
-			var totalBookings = await _dbContext.Bookings.CountAsync();
-			var totalSales = await _dbContext.Bookings.SumAsync(b => (decimal?)b.TotalAmount) ?? 0m;
-			var recentBookings = await _dbContext.Bookings
-				.OrderByDescending(b => b.BookingDate)
-				.Take(5)
-				.ToListAsync();
+			//var totalBookings = await _dbContext.Bookings.CountAsync();
+			//var totalSales = await _dbContext.Bookings.SumAsync(b => (decimal?)b.TotalAmount) ?? 0m;
+			//var recentBookings = await _dbContext.Bookings
+			//	.OrderByDescending(b => b.BookingDate)
+			//	.Take(5)
+			//	.ToListAsync();
 			var activeUsers = await _dbContext.ActivityLogs
 				.Where(a => a.Timestamp >= DateTime.UtcNow.AddDays(-30))
 				.Select(a => a.UserId)
@@ -31,10 +31,10 @@ namespace Gotorz.Services.Admin
 			return new DashboardStats
 			{
 				TotalUsers = totalUsers,
-				TotalBookings = totalBookings,
-				TotalSales = totalSales,
+				TotalBookings = 0,
+				TotalSales = 0,
 				ActiveUsers = activeUsers,
-				RecentBookings = recentBookings
+				RecentBookings = new List<Booking>()
 			};
 		}
 	}

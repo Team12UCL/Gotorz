@@ -7,12 +7,12 @@ namespace Gotorz.Services
 {
     public interface ITravelPackageService
     {
-        Task<TravelPackageDTO> CreateAsync(TravelPackage package);
-        Task<TravelPackageDTO?> GetByIdAsync(Guid id);
-        Task<List<TravelPackageDTO>> GetAllAsync(int skip = 0, int take = 10);
+        Task<TravelPackage> CreateAsync(TravelPackage package);
+        Task<TravelPackage?> GetByIdAsync(Guid id);
+        Task<List<TravelPackage>> GetAllAsync(int skip = 0, int take = 10);
         Task<TravelPackage> UpdateAsync(TravelPackage package);
         Task DeleteAsync(Guid id);
-        Task<List<TravelPackageDTO>> GetByStatusAsync(TravelPackageStatus status);
+        Task<List<TravelPackage>> GetByStatusAsync(TravelPackageStatus status);
     }
 
     public class TravelPackageService : ITravelPackageService
@@ -24,7 +24,7 @@ namespace Gotorz.Services
             _context = context;
         }
 
-        public async Task<TravelPackageDTO> CreateAsync(TravelPackage package)
+        public async Task<TravelPackage> CreateAsync(TravelPackage package)
         {
             if (package == null)
                 throw new ArgumentNullException(nameof(package));
@@ -58,29 +58,29 @@ namespace Gotorz.Services
 
 
 			// convert the package to a DTO
-			var TavelPackageDTO = new TravelPackageDTO()
-            {
-				TravelPackageId = package.TravelPackageId,
-				OutboundFlightId = package.OutboundFlightId,
-				ReturnFlightId = package.ReturnFlightId,
-				HotelId = package.HotelId,
-				DepartureDate = package.DepartureDate,
-				ReturnDate = package.ReturnDate,
-				Adults = package.Adults,
-				OriginCity = package.OriginCity,
-				DestinationCity = package.DestinationCity,
-				Name = package.Name,
-				Description = package.Description,
-				Status = package.Status
-			};
+			//var TavelPackageDTO = new TravelPackageDTO()
+   //         {
+			//	TravelPackageId = package.TravelPackageId,
+			//	OutboundFlightId = package.OutboundFlightId,
+			//	ReturnFlightId = package.ReturnFlightId,
+			//	HotelId = package.Hotel.Id,
+			//	DepartureDate = package.DepartureDate,
+			//	ReturnDate = package.ReturnDate,
+			//	Adults = package.Adults,
+			//	OriginCity = package.OriginCity,
+			//	DestinationCity = package.DestinationCity,
+			//	Name = package.Name,
+			//	Description = package.Description,
+			//	Status = package.Status
+			//};
 
 
-			await _context.TravelPackages.AddAsync(TavelPackageDTO);
+			await _context.TravelPackages.AddAsync(package);
             await _context.SaveChangesAsync();
-            return TavelPackageDTO;
+            return package;
         }
 
-        public async Task<TravelPackageDTO?> GetByIdAsync(Guid id)
+        public async Task<TravelPackage?> GetByIdAsync(Guid id)
         {
             return await _context.TravelPackages
                 .Include(tp => tp.OutboundFlightId)
@@ -89,12 +89,12 @@ namespace Gotorz.Services
                 .FirstOrDefaultAsync(tp => tp.TravelPackageId == id);
         }
 
-        public async Task<List<TravelPackageDTO>> GetAllAsync(int skip = 0, int take = 10)
+        public async Task<List<TravelPackage>> GetAllAsync(int skip = 0, int take = 10)
         {
             return await _context.TravelPackages
-                .Include(tp => tp.OutboundFlightId)
-                .Include(tp => tp.ReturnFlightId)
-                .Include(tp => tp.HotelId)
+                .Include(tp => tp.OutboundFlight)
+                .Include(tp => tp.ReturnFlight)
+                .Include(tp => tp.Hotel)
                 .Skip(skip)
                 .Take(take)
                 .ToListAsync();
@@ -126,7 +126,7 @@ namespace Gotorz.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<TravelPackageDTO>> GetByStatusAsync(TravelPackageStatus status)
+        public async Task<List<TravelPackage>> GetByStatusAsync(TravelPackageStatus status)
         {
             return await _context.TravelPackages
                 .Include(tp => tp.OutboundFlightId)

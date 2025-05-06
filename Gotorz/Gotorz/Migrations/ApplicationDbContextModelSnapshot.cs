@@ -4,7 +4,6 @@ using Gotorz.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -12,11 +11,9 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Gotorz.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250504155810_newFlightAdnHotel")]
-    partial class newFlightAdnHotel
+    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -275,117 +272,6 @@ namespace Gotorz.Migrations
                     b.ToTable("ActivityLogs");
                 });
 
-            modelBuilder.Entity("Shared.Models.Booking", b =>
-                {
-                    b.Property<Guid>("BookingId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("BookingDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("BookingReference")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ContactInfoId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PaymentStatus")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("TravelEndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("TravelPackageId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("TravelStartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("BookingId");
-
-                    b.HasIndex("ContactInfoId");
-
-                    b.HasIndex("TravelPackageId");
-
-                    b.ToTable("Bookings");
-                });
-
-            modelBuilder.Entity("Shared.Models.BookingAddon", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<Guid?>("BookingId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsSelected")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.ToTable("BookingAddon");
-                });
-
-            modelBuilder.Entity("Shared.Models.BookingNote", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<Guid?>("BookingId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsInternal")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.ToTable("BookingNote");
-                });
-
             modelBuilder.Entity("Shared.Models.ChatMessage", b =>
                 {
                     b.Property<int>("Id")
@@ -414,54 +300,11 @@ namespace Gotorz.Migrations
                     b.ToTable("ChatMessages");
                 });
 
-            modelBuilder.Entity("Shared.Models.ContactInformation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PostalCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ContactInformation");
-                });
-
             modelBuilder.Entity("Shared.Models.FlightOffer", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AirlineCode")
                         .IsRequired()
@@ -491,11 +334,9 @@ namespace Gotorz.Migrations
 
             modelBuilder.Entity("Shared.Models.FlightSegment", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AircraftCode")
                         .IsRequired()
@@ -533,23 +374,24 @@ namespace Gotorz.Migrations
                     b.Property<int>("FlightSegmentId")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("ItineraryId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Stops")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FlightSegmentId");
+                    b.HasIndex("ItineraryId");
 
                     b.ToTable("FlightSegments");
                 });
 
             modelBuilder.Entity("Shared.Models.Hotel", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CityCode")
                         .IsRequired()
@@ -576,11 +418,9 @@ namespace Gotorz.Migrations
 
             modelBuilder.Entity("Shared.Models.HotelOffer", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("BasePrice")
                         .HasColumnType("decimal(18,2)");
@@ -607,8 +447,8 @@ namespace Gotorz.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("HotelDbId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("HotelDbId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("NumberOfBeds")
                         .HasColumnType("int");
@@ -637,78 +477,22 @@ namespace Gotorz.Migrations
 
             modelBuilder.Entity("Shared.Models.Itinerary", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Duration")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("FlightOfferId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ItineraryId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("FlightOfferId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("FlightOfferId");
 
                     b.ToTable("Itineraries");
-                });
-
-            modelBuilder.Entity("Shared.Models.Passenger", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<Guid?>("BookingId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("DateOfBirth")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsLeadPassenger")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PassportCountry")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("PassportExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PassportNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SpecialRequirements")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.ToTable("Passenger");
                 });
 
             modelBuilder.Entity("Shared.Models.TravelPackage", b =>
@@ -729,8 +513,8 @@ namespace Gotorz.Migrations
                     b.Property<string>("DestinationCity")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("HotelId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("HotelId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
@@ -738,14 +522,14 @@ namespace Gotorz.Migrations
                     b.Property<string>("OriginCity")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("OutboundFlightId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("OutboundFlightId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("ReturnDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("ReturnFlightId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ReturnFlightId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -812,57 +596,22 @@ namespace Gotorz.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Shared.Models.Booking", b =>
-                {
-                    b.HasOne("Shared.Models.ContactInformation", "ContactInfo")
-                        .WithMany()
-                        .HasForeignKey("ContactInfoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Shared.Models.TravelPackage", "TravelPackage")
-                        .WithMany()
-                        .HasForeignKey("TravelPackageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ContactInfo");
-
-                    b.Navigation("TravelPackage");
-                });
-
-            modelBuilder.Entity("Shared.Models.BookingAddon", b =>
-                {
-                    b.HasOne("Shared.Models.Booking", null)
-                        .WithMany("Addons")
-                        .HasForeignKey("BookingId");
-                });
-
-            modelBuilder.Entity("Shared.Models.BookingNote", b =>
-                {
-                    b.HasOne("Shared.Models.Booking", null)
-                        .WithMany("Notes")
-                        .HasForeignKey("BookingId");
-                });
-
             modelBuilder.Entity("Shared.Models.FlightSegment", b =>
                 {
                     b.HasOne("Shared.Models.Itinerary", null)
                         .WithMany("Segments")
-                        .HasForeignKey("FlightSegmentId")
+                        .HasForeignKey("ItineraryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
             modelBuilder.Entity("Shared.Models.HotelOffer", b =>
                 {
-                    b.HasOne("Shared.Models.Hotel", "Hotel")
+                    b.HasOne("Shared.Models.Hotel", null)
                         .WithMany("Offers")
                         .HasForeignKey("HotelDbId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Hotel");
                 });
 
             modelBuilder.Entity("Shared.Models.Itinerary", b =>
@@ -872,13 +621,6 @@ namespace Gotorz.Migrations
                         .HasForeignKey("FlightOfferId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Shared.Models.Passenger", b =>
-                {
-                    b.HasOne("Shared.Models.Booking", null)
-                        .WithMany("Passengers")
-                        .HasForeignKey("BookingId");
                 });
 
             modelBuilder.Entity("Shared.Models.TravelPackage", b =>
@@ -898,22 +640,14 @@ namespace Gotorz.Migrations
                     b.HasOne("Shared.Models.FlightOffer", "ReturnFlight")
                         .WithMany()
                         .HasForeignKey("ReturnFlightId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Hotel");
 
                     b.Navigation("OutboundFlight");
 
                     b.Navigation("ReturnFlight");
-                });
-
-            modelBuilder.Entity("Shared.Models.Booking", b =>
-                {
-                    b.Navigation("Addons");
-
-                    b.Navigation("Notes");
-
-                    b.Navigation("Passengers");
                 });
 
             modelBuilder.Entity("Shared.Models.FlightOffer", b =>
