@@ -15,6 +15,24 @@ namespace Gotorz.Client.Services
             return total;
         }
 
+        //overload metode for calculating adults and children
+        public decimal CalculateTotalPrice(FlightOffer? outboundFlight, FlightOffer? returnFlight, Hotel? hotel, HotelOffer? hotelOffers, int adults, int children)
+        {
+            decimal total = 0;
+            decimal multiplier = adults + (children * 0.5m);
+
+            
+            total += ConvertToEUR(outboundFlight?.TotalPrice.ToString(), outboundFlight?.Currency, hotelOffers) * multiplier;
+            total += ConvertToEUR(returnFlight?.TotalPrice.ToString(), returnFlight?.Currency, hotelOffers) * multiplier;
+
+            
+            total += ConvertToEUR(hotel?.Offers?.FirstOrDefault()?.TotalPrice.ToString(),
+                                  hotel?.Offers?.FirstOrDefault()?.Currency, hotelOffers);
+
+            return Math.Round(total, 2);
+        }
+
+
         // Method overload for packages.razor that uses the stored conversion rates in TravelPackage.cs (since it doesn't have the hotel offers)
         //public decimal CalculateTotalPrice(FlightOffer? outboundFlight,
         //                            FlightOffer? returnFlight,
