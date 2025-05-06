@@ -193,11 +193,11 @@
                                 <td>
                                     @{
                                         var offer = hotel.Offers?.FirstOrDefault();
-                                        var price = offer?.TotalPrice.ToString() ?? "0";
+                                        var price = offer?.TotalPrice ?? 0;
                                         var currency = offer?.Currency ?? "EUR";
-                                        var eurPrice = PricingService.ConvertToEUR(price, currency, hotel.Offers.FirstOrDefault());
+                                        var eurPrice = PricingService.ConvertToEUR(price, currency, offer);
                                     }
-                                    @price @currency (@eurPrice EUR)
+                                    @eurPrice EUR (@price @currency)
                                 </td>
                                 <td>
                                     @if (offer?.Description != null)

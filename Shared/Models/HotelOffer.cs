@@ -42,7 +42,8 @@ namespace Shared.Models
 		public decimal BasePrice { get; set; }
 		public decimal TotalPrice { get; set; }
 		public string Currency { get; set; }
-		public string CancellationPolicy { get; set; }
+        public decimal? ConversionRate { get; set; }
+        public string CancellationPolicy { get; set; }
 	}
 
 

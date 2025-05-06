@@ -1,5 +1,6 @@
 ﻿using Shared.Models;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -59,20 +60,24 @@ namespace Server.Services
 					return null;
 				}
 
-				// Read the response
-				var content = await response.Content.ReadAsStringAsync();
+                // Read the response
+                var content = await response.Content.ReadAsStringAsync();
 				var root = JsonDocument.Parse(content).RootElement;
 				var flightOffers = new List<FlightOffer>();
 
-				foreach (var offer in root.GetProperty("data").EnumerateArray())
+                Debug.WriteLine($"🏨 Response: {content}");
+
+                foreach (var offer in root.GetProperty("data").EnumerateArray())
 				{
 					var flightOffer = new FlightOffer
 					{
 						OfferId = offer.GetProperty("id").GetString(),
 						AirlineCode = offer.GetProperty("validatingAirlineCodes")[0].GetString(),
-						TotalPrice = decimal.Parse(offer.GetProperty("price").GetProperty("total").GetString()),
-						BasePrice = decimal.Parse(offer.GetProperty("price").GetProperty("base").GetString()),
-						Currency = offer.GetProperty("price").GetProperty("currency").GetString(),
+                        TotalPrice = decimal.Parse(offer.GetProperty("price").GetProperty("total").GetString(),
+                             NumberStyles.Number, CultureInfo.InvariantCulture),
+                        BasePrice = decimal.Parse(offer.GetProperty("price").GetProperty("base").GetString(),
+                            NumberStyles.Number, CultureInfo.InvariantCulture),
+                        Currency = offer.GetProperty("price").GetProperty("currency").GetString(),
 						AvailableSeats = offer.GetProperty("numberOfBookableSeats").GetInt32(),
 						Itineraries = new List<Itinerary>()
 					};
