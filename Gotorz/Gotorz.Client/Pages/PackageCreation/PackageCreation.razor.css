@@ -1,0 +1,42 @@
+﻿/* Home.razor.css */
+.booking-container {
+	display: flex;
+	flex-direction: column;
+	gap: 2rem;
+	padding: 1rem;
+	width: 100%;
+	max-width: 1400px; /* Adjust as needed */
+	margin: 0 auto;
+}
+
+.top-row {
+	display: flex;
+	gap: 2rem;
+	width: 100%;
+}
+
+.search-panel-container {
+	flex: 2;
+	min-width: 400px; /* Changed from max-width to min-width */
+}
+
+.search-summary-wrapper {
+	flex: 1;
+	min-width: 300px;
+	max-width: 450px;
+}
+
+.summary-container {
+	border: 1px solid #ccc;
+	padding: 1rem;
+	border-radius: 8px;
+	background-color: #f9f9f9;
+	position: sticky;
+	top: 20px; /* Adjust based on your header height */
+	height: fit-content;
+}
+
+.results-container {
+	width: 100%;
+	margin-top: 1rem;
+}

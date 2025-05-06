@@ -1,5 +1,9 @@
 ﻿@page "/packages"
 @using Shared.Models
+@using Shared.Models.AmadeusCityResponse
+@using Gotorz.Client.Services
+@inject Client.Services.TravelPackageService PackageService
+@inject PricingService PricingService
 @rendermode InteractiveWebAssembly
 @inject HttpClient HttpClient
 
@@ -55,10 +59,17 @@
 		<strong>Destination:</strong> @pkg.DestinationCity <br />
 		<strong>Dates:</strong> @pkg.DepartureDate.ToString("yyyy-MM-dd")
 		→ @pkg.ReturnDate.ToString("yyyy-MM-dd") <br />
+		<!-- EDIT: Use PricingService instead-->
 		<strong>Price:</strong>
-		<strong>Price:</strong>
-		@CalculatePackagePrice(pkg) @(pkg.OutboundFlight?.Currency ?? "EUR")
-		<br />
+		@{
+			var price = PricingService.CalculateTotalPrice(
+			pkg.OutboundFlight,
+			pkg.ReturnFlight,
+			pkg.Hotel,
+			pkg.CurrencyConversionRates,
+			travelers);
+		}
+		@price EUR		<br />
 		<button class="summary-button">Book</button>
 	</div>
 }
@@ -109,15 +120,15 @@
 		return total;
 	}
 
-	private decimal TryParsePrice(string? price)
-	{
-		return decimal.TryParse(price,
-			System.Globalization.NumberStyles.Any,
-			System.Globalization.CultureInfo.InvariantCulture,
-			out var result)
-			? result
-			: 0;
-	}
+	// private decimal TryParsePrice(string? price)
+	// {
+	// 	return decimal.TryParse(price,
+	// 		System.Globalization.NumberStyles.Any,
+	// 		System.Globalization.CultureInfo.InvariantCulture,
+	// 		out var result)
+	// 		? result
+	// 		: 0;
+	// }
 
 
 }

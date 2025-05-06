@@ -1,0 +1,302 @@
+﻿@using Shared.Models
+@using Shared.Models.AmadeusCityResponse
+@using System.Diagnostics
+@inject HttpClient HttpClient
+@inject ILogger<SearchPanel> Logger
+
+<div class="search-panel">
+    <!-- Airport Search Section -->
+    <div class="autocomplete-container">
+        <label for="origin">Origin:</label>
+        <input type="text" id="origin" placeholder="Enter origin airport"
+        class="autocomplete-input"
+        @bind="OriginSearchQuery"
+               @oninput="async e => await OnSearchQueryChanged(e, true)" />
+        <div class="autocomplete-dropdown" style="display:@(OriginAirportSuggestions.Any() ? "block" : "none")">
+            @foreach (var airport in OriginAirportSuggestions)
+            {
+                <div class="autocomplete-item"
+                @onclick="@(() => SetAirport(airport, true))">
+                    @airport.Country - @airport.Name (@airport.IataCode)
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="autocomplete-container">
+        <label for="destination">Destination:</label>
+        <input type="text" id="destination" placeholder="Enter destination airport"
+        class="autocomplete-input"
+        @bind="DestinationSearchQuery"
+        @oninput="async e => await OnSearchQueryChanged(e, false)" />
+        <div class="autocomplete-dropdown" style="display:@(DestinationAirportSuggestions.Any() ? "block" : "none")">
+            @foreach (var airport in DestinationAirportSuggestions)
+            {
+                <div class="autocomplete-item"
+                @onclick="@(() => SetAirport(airport, false))">
+                    @airport.Country - @airport.Name (@airport.IataCode)
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- City Search Section -->
+    <div class="autocomplete-container">
+        <label for="city">City:</label>
+        <input type="text" id="city" placeholder="Enter city"
+        class="autocomplete-input"
+        @bind="HotelCitySearch"
+        @oninput="async e => await OnCitySearchQueryChanged(e)" />
+        <div class="autocomplete-dropdown" style="display:@(HotelCitySuggestions.Any() ? "block" : "none")">
+            @foreach (var city in HotelCitySuggestions)
+            {
+                <div class="autocomplete-item"
+                @onclick="@(() => SetCity(city))">
+                    @city.Name (@city.Address.CountryCode)
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Date and Passenger Selection -->
+    <div class="form-container">
+        <div>
+            <label for="departureDate">Departure Date:</label>
+            <input type="date" id="departureDate" min="@MinDepartureDate"
+            @bind="DepartureDate" />
+        </div>
+        <div>
+            <label for="returnDate">Return Date:</label>
+            <input type="date" id="returnDate" min="@MinReturnDate"
+            @bind="ReturnDate" />
+        </div>
+        <div>
+            <label for="adults">Number of Adults:</label>
+            <input type="number" id="adults" min="1" max="10"
+            @bind="Adults" />
+        </div>
+    </div>
+
+    <!-- Search Buttons -->
+    <div class="action-buttons">
+        <button @onclick="async () => await OnSearchFlights.InvokeAsync()"
+        disabled="@(!CanSearchFlights || IsSearchingFlights)">
+            @if (IsSearchingFlights)
+            {
+                <span>Searching...</span>
+            }
+            else
+            {
+                <span>Search Flights</span>
+            }
+        </button>
+
+        <button @onclick="async () => await OnSearchHotels.InvokeAsync()"
+        disabled="@(!CanSearchHotels || IsSearchingHotels)">
+            @if (IsSearchingHotels)
+            {
+                <span>Searching...</span>
+            }
+            else
+            {
+                <span>Search Hotels</span>
+            }
+        </button>
+    </div>
+
+    @if (SearchError)
+    {
+        <div class="error-message">
+            Please fill in all required fields: Origin, Destination, City, and Dates.
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public EventCallback OnSearchFlights { get; set; }
+    [Parameter] public EventCallback OnSearchHotels { get; set; }
+    [Parameter] public EventCallback OnSelectionChanged { get; set; }
+
+    // Search parameters
+    public string OriginSearchQuery { get; set; } = string.Empty;
+    public string DestinationSearchQuery { get; set; } = string.Empty;
+    public string HotelCitySearch { get; set; } = string.Empty;
+    public DateTime? DepartureDate { get; set; }
+    public DateTime? ReturnDate { get; set; }
+    public int Adults { get; set; } = 1;
+
+    // Location codes
+    public string OriginLocationCode { get; set; } = string.Empty;
+    public string DestinationLocationCode { get; set; } = string.Empty;
+    public string DestinationCityCode { get; set; } = string.Empty;
+    public string OriginCityName { get; set; } = string.Empty;
+    public string DestinationCityName { get; set; } = string.Empty;
+
+    // Suggestions
+    private List<Airport> OriginAirportSuggestions { get; set; } = new();
+    private List<Airport> DestinationAirportSuggestions { get; set; } = new();
+    private List<CityData> HotelCitySuggestions { get; set; } = new();
+
+    // UI states
+    public bool IsUsingAutocomplete { get; set; }
+    public bool IsSearchingFlights { get; set; }
+    public bool IsSearchingHotels { get; set; }
+    public bool SearchError { get; set; }
+    private Timer? _debounceTimer;
+
+    // Computed properties
+    public string MinDepartureDate => DateTime.Now.ToString("yyyy-MM-dd");
+    public string MinReturnDate => (DepartureDate ?? DateTime.Now).AddDays(1).ToString("yyyy-MM-dd");
+
+    public bool CanSearchFlights =>
+        IsUsingAutocomplete &&
+        !string.IsNullOrWhiteSpace(OriginLocationCode) &&
+        !string.IsNullOrWhiteSpace(DestinationLocationCode) &&
+        DepartureDate.HasValue &&
+        (!ReturnDate.HasValue || ReturnDate > DepartureDate);
+
+    public bool CanSearchHotels =>
+        IsUsingAutocomplete &&
+        !string.IsNullOrWhiteSpace(DestinationCityCode) &&
+        DepartureDate.HasValue;
+
+    // Methods
+    private async Task OnSearchQueryChanged(ChangeEventArgs e, bool isOrigin)
+    {
+        var query = e.Value?.ToString() ?? string.Empty;
+        _debounceTimer?.Dispose();
+        IsUsingAutocomplete = false;
+
+        if (query.Length >= 3)
+        {
+            _debounceTimer = new Timer(async _ =>
+            {
+                try
+                {
+                    var suggestions = await FetchAirportSuggestions(query);
+                    if (isOrigin)
+                    {
+                        OriginAirportSuggestions = suggestions;
+                    }
+                    else
+                    {
+                        DestinationAirportSuggestions = suggestions;
+                    }
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error fetching airport suggestions");
+                }
+            }, null, 500, Timeout.Infinite);
+        }
+    }
+
+    private async Task OnCitySearchQueryChanged(ChangeEventArgs e)
+    {
+        var query = e.Value?.ToString() ?? string.Empty;
+        _debounceTimer?.Dispose();
+        IsUsingAutocomplete = false;
+
+        if (query.Length >= 3)
+        {
+            _debounceTimer = new Timer(async _ =>
+            {
+                try
+                {
+                    HotelCitySuggestions = await FetchCitySuggestions(query);
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error fetching city suggestions");
+                }
+            }, null, 500, Timeout.Infinite);
+        }
+    }
+
+    private async Task<List<Airport>> FetchAirportSuggestions(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return new List<Airport>();
+
+        return await HttpClient.GetFromJsonAsync<List<Airport>>($"api/airport/suggest-airports?query={query}")
+               ?? new List<Airport>();
+    }
+
+    private async Task<List<CityData>> FetchCitySuggestions(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return new List<CityData>();
+
+        return await HttpClient.GetFromJsonAsync<List<CityData>>($"api/hotel/suggest-cities?query={query}")
+               ?? new List<CityData>();
+    }
+
+    private void SetAirport(Airport airport, bool isOrigin)
+    {
+        IsUsingAutocomplete = true;
+        if (isOrigin)
+        {
+            OriginLocationCode = airport.IataCode;
+            OriginSearchQuery = $"{airport.Country} - {airport.Name} ({airport.IataCode})";
+            OriginCityName = airport.City ?? airport.Country;
+            OriginAirportSuggestions.Clear();
+        }
+        else
+        {
+            DestinationLocationCode = airport.IataCode;
+            DestinationSearchQuery = $"{airport.Country} - {airport.Name} ({airport.IataCode})";
+            DestinationCityName = airport.City ?? airport.Country;
+            DestinationAirportSuggestions.Clear();
+        }
+        OnSelectionChanged.InvokeAsync();
+    }
+
+    private void SetCity(CityData city)
+    {
+        IsUsingAutocomplete = true;
+        HotelCitySearch = $"{city.Name} ({city.Address.CountryCode})";
+        DestinationCityCode = city.IataCode;
+        HotelCitySuggestions.Clear();
+        OnSelectionChanged.InvokeAsync();
+    }
+
+    public async Task<List<FlightOffer>> FetchFlightData(bool isOutbound)
+    {
+        IsSearchingFlights = true;
+        try
+        {
+            var url = isOutbound
+                ? $"api/flight/search?originLocationCode={OriginLocationCode}&destinationLocationCode={DestinationLocationCode}&departureDate={DepartureDate:yyyy-MM-dd}&adults={Adults}"
+                : $"api/flight/search?originLocationCode={DestinationLocationCode}&destinationLocationCode={OriginLocationCode}&departureDate={ReturnDate:yyyy-MM-dd}&adults={Adults}";
+
+            var result = await HttpClient.GetFromJsonAsync<FlightOfferRootModel>(url);
+            return result?.Data ?? new List<FlightOffer>();
+        }
+        finally
+        {
+            IsSearchingFlights = false;
+        }
+    }
+
+    public async Task<HotelOfferRootModel> FetchHotelData()
+    {
+        IsSearchingHotels = true;
+        try
+        {
+            var checkInDate = DepartureDate?.ToString("yyyy-MM-dd") ?? string.Empty;
+            var checkOutDate = ReturnDate?.ToString("yyyy-MM-dd") ?? checkInDate;
+
+            return await HttpClient.GetFromJsonAsync<HotelOfferRootModel>(
+                $"api/hotel/search?cityCode={DestinationCityCode}&checkInDate={checkInDate}&checkOutDate={checkOutDate}&adults={Adults}");
+        }
+        finally
+        {
+            IsSearchingHotels = false;
+        }
+    }
+
+    // when the component is disposed (e.g. navgating away from the page), Blazor automatically calls this Dispose() method (add any other clean-up if necessary)
+    public void Dispose() => _debounceTimer?.Dispose();
+}
