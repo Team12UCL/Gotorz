@@ -6,6 +6,7 @@
 @rendermode InteractiveWebAssembly
 @inject HttpClient HttpClient
 @inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h3>Find din rejse</h3>
 
@@ -176,9 +177,20 @@
 			: 0;
 	}
 
-	private void GoToBooking(TravelPackage pkg)
+	private async Task GoToBooking(TravelPackage pkg)
 	{
-		NavManager.NavigateTo($"/bookingdetails/{pkg.TravelPackageId}?adults={adults}&children={children}");
+		//Get authentication state to check if user is logged in
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+		
+		if (isAuthenticated) //If logged in -> /BookingDetails
+		{
+			NavManager.NavigateTo($"/bookingdetails/{pkg.TravelPackageId}?adults={adults}&children={children}");
+		}
+		else // else -> go to login with /bookingdetails as returnUrl
+		{
+			NavManager.NavigateTo($"/Account/Login?returnUrl=/bookingdetails/{pkg.TravelPackageId}?adults={adults}&children={children}");
+		}
 	}
 
 }
