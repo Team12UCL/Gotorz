@@ -219,7 +219,7 @@
 			var request = new
 			{
 				ProductName = $"Travel Package",
-				Description = "Trip to {travelPackage.DestinationCity} incl. flight & hotel!",
+				Description = $"Trip to {travelPackage.DestinationCity} incl. flight & hotel!",
 				AmountInCents = (long)(PricingService.CalculateTotalPrice(
 			travelPackage.OutboundFlight,
 			travelPackage.ReturnFlight,
