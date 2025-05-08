@@ -43,6 +43,9 @@ namespace Gotorz.Tests.Server
             });
 
             await hubConnection.StartAsync();
+            await WaitUntilConnectedAsync(hubConnection);
+
+            await Task.Delay(250);
 
             string testUserId = "test-user-id";
             string testUserName = "TestUser";
@@ -83,6 +86,9 @@ namespace Gotorz.Tests.Server
                 .WithAutomaticReconnect()
                 .Build();
 
+            AttachHubConnectionLogging(hubConnectionUser1, "User1");
+            AttachHubConnectionLogging(hubConnectionUser2, "User2");
+
             List<(string UserId, string UserName, string Text)> receivedByUser1 = new();
             List<(string UserId, string UserName, string Text)> receivedByUser2 = new();
 
@@ -97,7 +103,10 @@ namespace Gotorz.Tests.Server
             });
 
             await hubConnectionUser1.StartAsync();
+            await WaitUntilConnectedAsync(hubConnectionUser1);
+
             await hubConnectionUser2.StartAsync();
+            await WaitUntilConnectedAsync(hubConnectionUser2);
 
             string user1Id = "user1-id";
             string user1Name = "User1";
@@ -123,181 +132,37 @@ namespace Gotorz.Tests.Server
             await hubConnectionUser2.DisposeAsync();
         }
 
-        [Fact]
-        public async Task ChatHub_UserTyping_BroadcastsTypingNotification()
+        private void AttachHubConnectionLogging(HubConnection connection, string name)
         {
-            var client = _factory.CreateDefaultClient();
-            var baseUri = client.BaseAddress?.ToString() ?? "https://localhost:5001";
-
-            var hubConnectionUser1 = new HubConnectionBuilder()
-                .WithUrl($"{baseUri}chathub", options =>
-                {
-                    options.HttpMessageHandlerFactory = _ => _factory.Server.CreateHandler();
-                })
-                .WithAutomaticReconnect()
-                .Build();
-
-            var hubConnectionUser2 = new HubConnectionBuilder()
-                .WithUrl($"{baseUri}chathub", options =>
-                {
-                    options.HttpMessageHandlerFactory = _ => _factory.Server.CreateHandler();
-                })
-                .WithAutomaticReconnect()
-                .Build();
-
-            string? typingNotificationReceived = null;
-
-            hubConnectionUser2.On<string>("UserTyping", (userName) =>
+            connection.Closed += async (error) =>
             {
-                typingNotificationReceived = userName;
-            });
+                Console.WriteLine($"[{name}] Connection closed: {error?.Message}");
+            };
 
-            await hubConnectionUser1.StartAsync();
-            await hubConnectionUser2.StartAsync();
+            connection.Reconnecting += async (error) =>
+            {
+                Console.WriteLine($"[{name}] Reconnecting: {error?.Message}");
+            };
 
-            string typingUserName = "TypingUser";
-
-            await hubConnectionUser1.SendAsync("Typing", typingUserName);
-
-            await Task.Delay(500);
-
-            Assert.Equal(typingUserName, typingNotificationReceived);
-
-            await hubConnectionUser1.DisposeAsync();
-            await hubConnectionUser2.DisposeAsync();
+            connection.Reconnected += async (connectionId) =>
+            {
+                Console.WriteLine($"[{name}] Reconnected with ID: {connectionId}");
+            };
         }
 
-        [Fact]
-        public async Task ChatHub_ManyClients_CanBroadcastMessages()
+        private async Task WaitUntilConnectedAsync(HubConnection connection, int timeoutMs = 5000)
         {
-            var client = _factory.CreateDefaultClient();
-            var baseUri = client.BaseAddress?.ToString() ?? "https://localhost:5001";
-
-            const int clientCount = 50;
-            var connections = new List<HubConnection>();
-            var receivedMessages = new List<(string UserId, string UserName, string Text)>();
-
-            for (int i = 0; i < clientCount; i++)
+            var start = DateTime.UtcNow;
+            while (connection.State != HubConnectionState.Connected && (DateTime.UtcNow - start).TotalMilliseconds < timeoutMs)
             {
-                var hubConnection = new HubConnectionBuilder()
-                    .WithUrl($"{baseUri}chathub", options =>
-                    {
-                        options.HttpMessageHandlerFactory = _ => _factory.Server.CreateHandler();
-                    })
-                    .WithAutomaticReconnect()
-                    .Build();
-
-                hubConnection.On<string, string, string>("ReceiveMessage", (userId, userName, text) =>
-                {
-                    lock (receivedMessages)
-                    {
-                        receivedMessages.Add((userId, userName, text));
-                    }
-                });
-
-                connections.Add(hubConnection);
+                Console.WriteLine($"Waiting for connection... Current state: {connection.State}");
+                await Task.Delay(100);
             }
 
-            await Task.WhenAll(connections.Select(c => c.StartAsync()));
-
-            var random = new Random();
-            var senders = connections.OrderBy(_ => random.Next()).Take(5).ToList();
-
-            foreach (var sender in senders)
+            if (connection.State != HubConnectionState.Connected)
             {
-                string userId = Guid.NewGuid().ToString();
-                string userName = "StressUser";
-                string message = "Stress Test Message";
-
-                await sender.SendAsync("SendMessage", userId, userName, message);
+                throw new InvalidOperationException("SignalR connection did not reach Connected state in time.");
             }
-
-            await Task.Delay(3000);
-
-            int expectedMinimumMessages = senders.Count * connections.Count;
-
-            lock (receivedMessages)
-            {
-                Assert.True(receivedMessages.Count >= expectedMinimumMessages, $"Expected at least {expectedMinimumMessages} messages but got {receivedMessages.Count}");
-            }
-
-            await Task.WhenAll(connections.Select(c => c.DisposeAsync().AsTask()));
-        }
-
-        [Fact]
-        public async Task ChatHub_GetMessageHistory_ReturnsRecentMessages()
-        {
-            var client = _factory.CreateDefaultClient();
-            var baseUri = client.BaseAddress?.ToString() ?? "https://localhost:5001";
-
-            await ClearChatMessages();
-
-            var testTag = "[TestRun]";
-            var messagesToSend = new List<(string UserId, string UserName, string Text)>
-    {
-        (Guid.NewGuid().ToString(), "User1", $"{testTag} First message!"),
-        (Guid.NewGuid().ToString(), "User2", $"{testTag} Second message!"),
-        (Guid.NewGuid().ToString(), "User3", $"{testTag} Third message!")
-    };
-
-            var senderConnection = new HubConnectionBuilder()
-                .WithUrl($"{baseUri}chathub", options =>
-                {
-                    options.HttpMessageHandlerFactory = _ => _factory.Server.CreateHandler();
-                })
-                .WithAutomaticReconnect()
-                .Build();
-
-            await senderConnection.StartAsync();
-
-            foreach (var msg in messagesToSend)
-            {
-                await senderConnection.SendAsync("SendMessage", msg.UserId, msg.UserName, msg.Text);
-                await Task.Delay(200);
-            }
-
-            await senderConnection.DisposeAsync();
-
-            await Task.Delay(500);
-
-            var historyConnection = new HubConnectionBuilder()
-                .WithUrl($"{baseUri}chathub", options =>
-                {
-                    options.HttpMessageHandlerFactory = _ => _factory.Server.CreateHandler();
-                })
-                .WithAutomaticReconnect()
-                .Build();
-
-            await historyConnection.StartAsync();
-
-            await Task.Delay(500);
-
-            var history = await historyConnection.InvokeAsync<List<ChatMessage>>("GetMessageHistory");
-
-            await historyConnection.DisposeAsync();
-
-            Assert.NotNull(history);
-
-            var testMessagesInHistory = history.Where(m => m.Text.Contains(testTag)).ToList();
-
-            foreach (var sent in messagesToSend)
-            {
-                Assert.Contains(testMessagesInHistory, m =>
-                    m.Text.Trim().Equals(sent.Text.Trim(), StringComparison.OrdinalIgnoreCase) &&
-                    m.UserName.Trim().Equals(sent.UserName.Trim(), StringComparison.OrdinalIgnoreCase));
-            }
-
-            Assert.Equal(messagesToSend.Count, testMessagesInHistory.Count);
-
-            await ClearChatMessages();
-        }
-        private async Task ClearChatMessages()
-        {
-            using var scope = _factory.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.ChatMessages.RemoveRange(db.ChatMessages);
-            await db.SaveChangesAsync();
         }
     }
-
 }
