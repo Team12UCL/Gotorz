@@ -189,7 +189,7 @@
 		}
 		else // else -> go to login with /bookingdetails as returnUrl
 		{
-			NavManager.NavigateTo($"/Account/Login?returnUrl=/bookingdetails/{pkg.TravelPackageId}?adults={adults}&children={children}");
+			NavManager.NavigateTo($"/Account/Login?=/bookingdetails/returnUrl{pkg.TravelPackageId}?adults={adults}&children={children}");
 		}
 	}
 
