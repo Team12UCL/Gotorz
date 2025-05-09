@@ -196,8 +196,7 @@
                 filterActivityType, startDate, endDate, skip, take,
                 filterIpAddress, filterUserAgent, filterResourceType);
             
-            // In a real implementation, you would also get the total count for pagination
-            // This is a simplified example
+         
             totalLogs = activityLogs.Count + skip;
             if (activityLogs.Count == take)
                 totalLogs += 1; // Indicate there might be more

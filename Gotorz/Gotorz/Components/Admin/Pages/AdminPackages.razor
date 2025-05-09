@@ -1,7 +1,9 @@
 ﻿
 @page "/admin/packages"
 @using Shared.Models
+@using Gotorz.Services
 @inject NavigationManager NavigationManager
+@inject ITravelPackageService TravelPackageService
 @attribute [Authorize(Roles = "Admin")]
 @rendermode InteractiveServer
 
@@ -79,19 +81,19 @@
                                 <td>@package.DestinationCity</td>
                                 @* <td>$@package.TotalPrice.ToString("N2")</td> *@
                                 <td>@package.Adults</td>
-                                @* <td>
-                                    <span class="badge bg-@GetStatusBadgeColor(package.Status)">@package.Status</span>
+                                <td>
+                                    <span class="badge bg-@GetStatusBadgeColor(package.Status.ToString())">@package.Status</span>
                                 </td>
                                 <td class="text-center" @onclick:stopPropagation>
                                     <div class="btn-group">
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => EditPackage(package.Id)">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => EditPackage(package.TravelPackageId)">
                                             <i class="bi bi-pencil"></i>
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePackagePrompt(package)">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
-                                </td> *@
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -159,113 +161,16 @@
     private int pageSize = 10;
     private int totalPages => (int)Math.Ceiling(filteredPackages.Count / (double)pageSize);
     
-    // Delete confirmation
+
     private bool showDeleteConfirmation = false;
     private TravelPackage packageToDelete;
 
     protected override async Task OnInitializedAsync()
     {
-        // In a real application, this would be loading from a service/API
-        await Task.Delay(500); // Simulate network delay
         
-        // Mock data
-        allPackages = new List<TravelPackage>
-        {
-            new TravelPackage
-            {
-                TravelPackageId = Guid.NewGuid(),
-                Name = "New York City Escape",
-                Description = "Experience the magic of NYC with this premium package",
-             
-                DepartureDate = DateTime.Now.AddDays(30),
-                ReturnDate = DateTime.Now.AddDays(37),
-                
-                OriginCity = "LAX",
-                DestinationCity = "JFK",
-                
-				Status = TravelPackageStatus.Available,
-            },
-            new TravelPackage
-            {
-                TravelPackageId = Guid.NewGuid(),
-                Name = "Paris Romance",
-                Description = "Romantic getaway in the city of love",
-               
-                DepartureDate = DateTime.Now.AddDays(60),
-                ReturnDate = DateTime.Now.AddDays(70),
-                
-                OriginCity = "SFO",
-                DestinationCity = "CDG",
-               
-				Status = TravelPackageStatus.Limited,
-            },
-            new TravelPackage
-            {
-                TravelPackageId = Guid.NewGuid(),
-                Name = "Tokyo Adventure",
-                Description = "Explore the vibrant culture of Tokyo",
-                
-                DepartureDate = DateTime.Now.AddDays(90),
-                ReturnDate = DateTime.Now.AddDays(104),
-                
-                OriginCity = "SEA",
-                DestinationCity = "HND",
-              
-				Status = TravelPackageStatus.Available,
-            },
-            new TravelPackage
-            {
-                TravelPackageId = Guid.NewGuid(),
-                Name = "Caribbean Cruise",
-                Description = "Relaxing beach vacation in the Caribbean",
-                
-                DepartureDate = DateTime.Now.AddDays(45),
-                ReturnDate = DateTime.Now.AddDays(52),
-               
-                OriginCity = "MIA",
-                DestinationCity = "SJU",
-                
-				Status = TravelPackageStatus.Sold_Out,
-            },
-            new TravelPackage
-            {
-                TravelPackageId = Guid.NewGuid(),
-                Name = "London Explorer",
-                Description = "Discover the history and culture of London",
-                
-                DepartureDate = DateTime.Now.AddDays(75),
-                ReturnDate = DateTime.Now.AddDays(82),
-              
-                OriginCity = "JFK",
-                DestinationCity = "LHR",
-               
-				Status = TravelPackageStatus.Available,
-            }
-        };
+        var travelPackages = await TravelPackageService.GetAllAsync();
         
-        // Generate more sample data
-        for (int i = 0; i < 20; i++)
-        {
-            var cities = new[] { "Rome", "Barcelona", "Sydney", "Dubai", "Bangkok" };
-            var airports = new[] { "FCO", "BCN", "SYD", "DXB", "BKK" };
-            var hotels = new[] { "Grand Hotel", "Luxury Resort", "City Center Hotel", "Beachfront Resort", "Boutique Hotel" };
-            var cityIndex = i % 5;
-            
-            allPackages.Add(new TravelPackage
-            {
-                    TravelPackageId = Guid.NewGuid(),
-                Name = $"{cities[cityIndex]} Getaway",
-                Description = $"Explore the beauty of {cities[cityIndex]}",
-                
-                DepartureDate = DateTime.Now.AddDays(30 + (i * 5)),
-                ReturnDate = DateTime.Now.AddDays(37 + (i * 5)),
-               
-                OriginCity = "JFK",
-                DestinationCity = airports[cityIndex],
-                
-                    Status = i % 10 == 0 ? TravelPackageStatus.Sold_Out : (i % 5 == 0 ? TravelPackageStatus.Limited : TravelPackageStatus.Available)
-            });
-        }
+		allPackages = travelPackages.ToList();
         
         FilterAndSortPackages();
         loading = false;
@@ -288,7 +193,7 @@
         {
             var term = searchTerm.ToLower();
             filteredPackages = allPackages.Where(p => 
-                p.Name.ToLower().Contains(term) || 
+                (p.Name.ToLower().Contains(term)) ||
                 p.Description.ToLower().Contains(term) ||
                 p.DestinationCity.ToLower().Contains(term) ||
                 
@@ -396,13 +301,20 @@
         packageToDelete = null;
     }
 
-    private void ConfirmDelete()
+    private async Task ConfirmDelete()
     {
         if (packageToDelete != null)
         {
-            // In a real application, this would call an API
+			var response = await TravelPackageService.DeleteAsync(packageToDelete.TravelPackageId);
+
+			if (response)
+			{
+				
             allPackages.Remove(packageToDelete);
             FilterAndSortPackages();
+			}
+			
+
         }
         
         showDeleteConfirmation = false;

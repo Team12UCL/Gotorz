@@ -381,7 +381,7 @@
     private DateTime logStartDate = DateTime.Now.AddDays(-7);
     private DateTime logEndDate = DateTime.Now;
 
-    // Mock data
+    // data
     private List<UserViewModel> allUsers = new List<UserViewModel>();
     private List<UserViewModel> filteredUsers = new List<UserViewModel>();
     private List<ActivityLog> activityLogs = new List<ActivityLog>();
@@ -443,16 +443,14 @@
 
     private async Task FilterActivityLogs()
     {
-        // In a real application, this would fetch logs from the server
-        // Here we're just filtering the mock data
+        
         activityLogs = await AdminActivityLogService.GetActivityLogsAsync();
 
     }
 
     private void ExportActivityLogs()
     {
-        // In a real application, this would generate and download a CSV file
-        // Here we just show a demo message
+        
         Console.WriteLine("Exporting activity logs...");
     }
 
@@ -466,7 +464,7 @@
         request.Status = approve ? "Approved" : "Rejected";
         request.ProcessedDate = DateTime.Now;
 
-        // In a real application, this would also trigger the appropriate data processing
+     
     }
 
     private void FilterAndSortUsers()
@@ -582,7 +580,7 @@
         user.Status = user.TempStatus;
         user.IsEditing = false;
 
-        // In a real application, this would call an API to update the user
+      
     }
 
     private void DeleteUserPrompt(UserViewModel user)
@@ -603,8 +601,7 @@
         {
             
             await AdminUserService.DeleteUserAsync(userToDelete.Id);
-            // allUsers.Remove(userToDelete);
-            // FilterAndSortUsers();
+           
         }
         
         showDeleteConfirmation = false;
@@ -627,7 +624,7 @@
     {
         if (userToResetPassword != null)
         {
-            // In a real application, this would call an API to send a password reset email
+          
             Console.WriteLine($"Password reset for {userToResetPassword.Email}");
         }
         
