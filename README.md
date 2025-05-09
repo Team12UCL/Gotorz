@@ -1,4 +1,5 @@
-Eksamensprojekt 3. Semester Team12: Gotorz .\\
+Eksamensprojekt 3. Semester Team12: Gotorz .\
+\
 Forudsætninger for at køre programmet:\
 Opret appsettings.JSON .\
 Tilføj connectionstring til database (vi bruger individuelle lokale databaser) .\
