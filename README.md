@@ -2,7 +2,7 @@ Eksamensprojekt 3. Semester Team12: Gotorz .\
 \
 Forudsætninger for at køre programmet:\
 Opret appsettings.JSON .\
-Tilføj connectionstring til database (vi bruger individuelle lokale databaser) .\
+Tilføj connectionstring til database .\
 Tilføj API-key + Secret Key til brug af Amadeus API'er .\
 \
 Denne solution består af fire projekter:\
