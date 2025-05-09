@@ -9,6 +9,7 @@ namespace Server.Services
     public class AirportService
     {
         private List<Airport> _airports;
+        // Local statis list of airports for airport suggestions
         private readonly string _jsonFilePath = "Data/airports.json";
 
         public AirportService()

@@ -1,6 +1,5 @@
 ﻿using Gotorz.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
 namespace Gotorz.Controllers
 {
@@ -15,6 +14,7 @@ namespace Gotorz.Controllers
             _stripeService = stripeService;
         }
 
+        // GET: api/stripe/create-checkout-session
         [HttpPost("create-checkout-session")]
         public async Task<IActionResult> CreateCheckoutSession([FromBody] CheckoutRequest request)
         {

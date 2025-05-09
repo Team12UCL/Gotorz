@@ -3,13 +3,15 @@
 @using Shared.Models.AmadeusCityResponse
 @inject PricingService PricingService
 
+<!-- Booking Summary -->
 <div class="booking-summary">
     <h4>Booking Summary</h4>
     <div class="summary-content">
         @if (OutboundFlight != null || ReturnFlight != null || Hotel != null)
-        {
+        {            
             <div class="summary-section">
                 <h5>Selected Flights</h5>
+                <!-- Outbound Flight -->
                 @if (OutboundFlight != null)
                 {
                     <div class="summary-item">
@@ -21,7 +23,7 @@
                         </div>
                     </div>
                 }
-
+                <!-- Return Flight -->
                 @if (ReturnFlight != null)
                 {
                     <div class="summary-item">
@@ -34,7 +36,7 @@
                     </div>
                 }
             </div>
-
+            <!-- Hotel -->
             @if (Hotel != null)
             {
                 <div class="summary-section">
@@ -59,6 +61,7 @@
                     </div>
                 </div>
             }
+            <!-- Pricing -->
             @if (CalculateTotalPrice() > 0)
             {
                 <div class="summary-total">
