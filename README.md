@@ -3,7 +3,9 @@ Eksamensprojekt 3. Semester Team12: Gotorz .\
 Forudsætninger for at køre programmet:\
 Opret appsettings.JSON .\
 Tilføj connectionstring til database .\
-Tilføj API-key + Secret Key til brug af Amadeus API'er .\
+Tilføj API-key + Secret-key til brug af Amadeus API'er .\
+Tilføj API-key + Secret-key til brug af Stripe\
+Nøgler og secrets kan findes i den tilsendte .PDF fil , database skal oprettes personligt .\
 \
 Denne solution består af fire projekter:\
 Gotorz .\
