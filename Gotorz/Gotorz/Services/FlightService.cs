@@ -71,8 +71,10 @@ namespace Server.Services
                     {
                         OfferId = offer.GetProperty("id").GetString(),
                         AirlineCode = offer.GetProperty("validatingAirlineCodes")[0].GetString(),
-                        TotalPrice = decimal.Parse(offer.GetProperty("price").GetProperty("total").GetString()),
-                        BasePrice = decimal.Parse(offer.GetProperty("price").GetProperty("base").GetString()),
+                        TotalPrice = decimal.Parse(offer.GetProperty("price").GetProperty("total").GetString(),
+                             NumberStyles.Number, CultureInfo.InvariantCulture),
+                        BasePrice = decimal.Parse(offer.GetProperty("price").GetProperty("base").GetString(),
+                            NumberStyles.Number, CultureInfo.InvariantCulture),
                         Currency = offer.GetProperty("price").GetProperty("currency").GetString(),
                         AvailableSeats = offer.GetProperty("numberOfBookableSeats").GetInt32(),
                         Itineraries = new List<Itinerary>()

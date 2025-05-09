@@ -158,24 +158,24 @@
 		
 	}
 
-	private decimal CalculatePackagePrice(TravelPackage pkg)
-	{
-		decimal total = 0;
-		total += TryParsePrice(pkg.OutboundFlight?.TotalPrice.ToString());
-		total += TryParsePrice(pkg.ReturnFlight?.TotalPrice.ToString());
-		total += TryParsePrice(pkg.Hotel?.Offers?.FirstOrDefault()?.TotalPrice.ToString());
-		return total;
-	}
+	// private decimal CalculatePackagePrice(TravelPackage pkg)
+	// {
+	// 	decimal total = 0;
+	// 	total += TryParsePrice(pkg.OutboundFlight?.TotalPrice.ToString());
+	// 	total += TryParsePrice(pkg.ReturnFlight?.TotalPrice.ToString());
+	// 	total += TryParsePrice(pkg.Hotel?.Offers?.FirstOrDefault()?.TotalPrice.ToString());
+	// 	return total;
+	// }
 
-	private decimal TryParsePrice(string? price)
-	{
-		return decimal.TryParse(price,
-			System.Globalization.NumberStyles.Any,
-			System.Globalization.CultureInfo.InvariantCulture,
-			out var result)
-			? result
-			: 0;
-	}
+	// private decimal TryParsePrice(string? price)
+	// {
+	// 	return decimal.TryParse(price,
+	// 		System.Globalization.NumberStyles.Any,
+	// 		System.Globalization.CultureInfo.InvariantCulture,
+	// 		out var result)
+	// 		? result
+	// 		: 0;
+	// }
 
 	private async Task GoToBooking(TravelPackage pkg)
 	{
@@ -189,7 +189,7 @@
 		}
 		else // else -> go to login with /bookingdetails as returnUrl
 		{
-			NavManager.NavigateTo($"/Account/Login?=/bookingdetails/returnUrl{pkg.TravelPackageId}?adults={adults}&children={children}");
+			NavManager.NavigateTo($"/Account/Login?returnUrl=/bookingdetails/{pkg.TravelPackageId}?adults={adults}&children={children}");
 		}
 	}
 
