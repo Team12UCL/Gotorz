@@ -36,16 +36,6 @@ namespace Gotorz.Controllers
 		[HttpPost("Create")]
 		public async Task<IActionResult> Create([FromBody] TravelPackage package)
         {
-			Debug.WriteLine("API CALLED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-			//if (!ModelState.IsValid)
-			//{
-			//	var errors = ModelState
-			//		.Where(e => e.Value.Errors.Count > 0)
-			//		.Select(e => new { Field = e.Key, Errors = e.Value.Errors.Select(x => x.ErrorMessage) });
-   //             Debug.WriteLine(errors);
-			//	return BadRequest(new { message = "Validation failed", errors });
-			//}
-
 			var createdPackage = await _travelPackageService.CreateAsync(package);
             return CreatedAtAction(nameof(GetById), new { id = createdPackage.TravelPackageId }, createdPackage);
         }

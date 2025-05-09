@@ -1,66 +1,88 @@
-﻿//using Xunit;
-//using Gotorz.Client.Services;
-//using Shared.Models;
-//using System;
-//using System.Collections.Generic;
+﻿using Xunit;
+using Shared.Models;
+using Microsoft.EntityFrameworkCore;
+using Gotorz.Data;
+using Gotorz.Services;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-//namespace Gotorz.Tests.Server.Services
-//{
-//    public class TravelPackageServiceTests
-//    {
-//        [Fact]
-//        public void AddPackage_ShouldStorePackageCorrectly()
-//        {
-//            var service = new TravelPackageService();
-//            var package = new TravelPackage
-//            {
-//                OutboundFlight = new FlightOffer
-//                {
-//                    Id = "Flight1",
-//                    Price = new Price { Currency = "EUR", Total = "300" }
-//                },
-//                ReturnFlight = new FlightOffer
-//                {
-//                    Id = "Flight2",
-//                    Price = new Price { Currency = "EUR", Total = "280" }
-//                },
-//                Hotel = new HotelData
-//                {
-//                    Hotel = new Hotel { Name = "Test Hotel" },
-//                    Offers = new List<HotelOffer>
-//                    {
-//                        new HotelOffer
-//                        {
-//                            Price = new HotelPrice
-//                            {
-//                                Currency = "EUR",
-//                                Total = "400"
-//                            }
-//                        }
-//                    }
-//                },
-//                DepartureDate = new DateTime(2025, 5, 1),
-//                ReturnDate = new DateTime(2025, 5, 10),
-//                Adults = 2,
-//                OriginCity = "Copenhagen",
-//                DestinationCity = "Paris"
-//            };
+namespace Gotorz.Tests.Server.Services
+{
+    public class TravelPackageServiceTests
+    {
+        private ApplicationDbContext CreateInMemoryDbContext()
+        {
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options;
 
-//            service.Packages.Add(package);
+            return new ApplicationDbContext(options);
+        }
 
-//            Assert.Single(service.Packages);
-//            Assert.Equal("Copenhagen", service.Packages[0].OriginCity);
-//            Assert.Equal("Paris", service.Packages[0].DestinationCity);
-//            Assert.Equal("Flight1", service.Packages[0].OutboundFlight.Id);
-//            Assert.Equal("Test Hotel", service.Packages[0].Hotel.Hotel.Name);
-//        }
+        [Fact]
+        public async Task CreateAsync_ShouldAddPackageToDatabase()
+        {
+            var dbContext = CreateInMemoryDbContext();
+            var service = new TravelPackageService(dbContext);
 
-//        [Fact]
-//        public void Packages_ShouldBeEmpty_OnInitialization()
-//        {
-//            var service = new TravelPackageService();
+            var package = new TravelPackage
+            {
+                OutboundFlight = new FlightOffer
+                {
+                    OfferId = "F123",
+                    AirlineCode = "LH",
+                    TotalPrice = 250,
+                    BasePrice = 220,
+                    Currency = "EUR",
+                    AvailableSeats = 5,
+                    Itineraries = new List<Itinerary>()
+                },
+                ReturnFlight = new FlightOffer
+                {
+                    OfferId = "F124",
+                    AirlineCode = "LH",
+                    TotalPrice = 240,
+                    BasePrice = 210,
+                    Currency = "EUR",
+                    AvailableSeats = 5,
+                    Itineraries = new List<Itinerary>()
+                },
+                Hotel = new Hotel
+                {
+                    Name = "Test Hotel",
+                    CityCode = "PAR",
+                    Latitude = 48.8566,
+                    Longitude = 2.3522,
+                    Offers = new List<HotelOffer>()
+                },
+                DepartureDate = new DateTime(2025, 5, 1),
+                ReturnDate = new DateTime(2025, 5, 10),
+                Adults = 2,
+                OriginCity = "Copenhagen",
+                DestinationCity = "Paris",
+                Name = "Romantic Escape",
+                Status = TravelPackageStatus.Available
+            };
 
-//            Assert.Empty(service.Packages);
-//        }
-//    }
-//}
+            var result = await service.CreateAsync(package);
+            var all = await service.GetAllAsync();
+
+            Assert.NotNull(result);
+            Assert.Single(all);
+            Assert.Equal("Romantic Escape", all[0].Name);
+            Assert.Equal("Test Hotel", all[0].Hotel.Name);
+        }
+
+        [Fact]
+        public async Task GetAllAsync_InitiallyEmpty()
+        {
+            var dbContext = CreateInMemoryDbContext();
+            var service = new TravelPackageService(dbContext);
+
+            var all = await service.GetAllAsync();
+
+            Assert.Empty(all);
+        }
+    }
+}

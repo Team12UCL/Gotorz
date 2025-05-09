@@ -8,7 +8,7 @@
 
 <h3>Find din rejse</h3>
 
-<!-- Filtersektion -->
+<!-- Filter Section -->
 <div class="form-container search-panel">
 	<div>
 		<label>Fly from</label>
@@ -53,7 +53,7 @@
 	<p>@FilteredPackages.Count() packages found:</p>
 
 
-	<!-- Pakker -->
+	<!-- Show Packages -->
 	@foreach (var pkg in FilteredPackages)
 	{
 		<div class="package-card">
@@ -61,7 +61,6 @@
 			<strong>Destination:</strong> @pkg.DestinationCity <br />
 			<strong>Dates:</strong> @pkg.DepartureDate.ToString("yyyy-MM-dd")
 			→ @pkg.ReturnDate.ToString("yyyy-MM-dd") <br />
-			<!-- EDIT: Use PricingService instead-->
 			<strong>Price:</strong>
 			@{
 				var offer = pkg.Hotel?.Offers?.FirstOrDefault();
@@ -114,6 +113,8 @@
 		}
 	}
 
+
+	<!-- Filter Logic -->
 	private IEnumerable<TravelPackage>? FilteredPackages =>
 
 	travelPackages.Where(p =>

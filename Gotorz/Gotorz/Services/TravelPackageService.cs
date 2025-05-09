@@ -29,51 +29,6 @@ namespace Gotorz.Services
             if (package == null)
                 throw new ArgumentNullException(nameof(package));
 
-			// Check if the outbound flight, return flight, and hotel are already in the database
-			//var existingOutboundFlight = await _context.FlightOffer
-			//	.FirstOrDefaultAsync(f => f.OfferId == package.OutboundFlightId.ToString());
-
-			//if (existingOutboundFlight == null)
-			//{
-			//	_context.FlightOffer.Add(package.OutboundFlight);
-			//}
-   //         if (package.ReturnFlightId != null)
-   //         {
-
-			//	var existingReturnFlight = await _context.FlightOffer
-			//	.FirstOrDefaultAsync(f => f.OfferId == package.ReturnFlightId.ToString());
-
-			//	if (existingReturnFlight == null)
-			//	{
-			//		_context.FlightOffer.Add(package.ReturnFlight);
-			//	}
-			//}
-
-			//var existingHotel = await _context.Hotel
-			//	.FirstOrDefaultAsync(h => h.ExternalHotelId == package.HotelId.ToString());
-			//if (existingHotel == null)
-			//{
-			//	_context.Hotel.Add(package.Hotel);
-			//}
-
-
-			// convert the package to a DTO
-			//var TavelPackageDTO = new TravelPackageDTO()
-   //         {
-			//	TravelPackageId = package.TravelPackageId,
-			//	OutboundFlightId = package.OutboundFlightId,
-			//	ReturnFlightId = package.ReturnFlightId,
-			//	HotelId = package.Hotel.Id,
-			//	DepartureDate = package.DepartureDate,
-			//	ReturnDate = package.ReturnDate,
-			//	Adults = package.Adults,
-			//	OriginCity = package.OriginCity,
-			//	DestinationCity = package.DestinationCity,
-			//	Name = package.Name,
-			//	Description = package.Description,
-			//	Status = package.Status
-			//};
-
 
 			await _context.TravelPackages.AddAsync(package);
             await _context.SaveChangesAsync();

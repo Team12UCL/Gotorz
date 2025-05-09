@@ -123,6 +123,16 @@ var app = builder.Build();
         app.UseCors("AllowBlazorClient");
 
         app.UseAuthentication();
+        // USED FOR TESTING SIGNALR
+        app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.StartsWithSegments("/chathub"))
+            {
+                context.Items["__AntiforgerySkipValidation__"] = true;
+            }
+            await next();
+        });
+        // TEST STUFF ENDS
         app.UseAuthorization();
 
         app.UseAntiforgery();

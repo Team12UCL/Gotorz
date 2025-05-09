@@ -25,12 +25,12 @@ namespace Server.Services
         {
             try
             {
-
+                //Authorization 
                 var token = await _authService.GetAccessTokenAsync();
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
+                
+                //Get Hotel-ID's based on citycode
                 var hotelIds = await GetHotelIdsByCityAsync(cityCode);
-                Console.WriteLine($"🏨 Found {hotelIds.Count} hotel IDs for {cityCode}");
 
                 if (hotelIds == null || hotelIds.Count == 0)
                 {
@@ -41,19 +41,18 @@ namespace Server.Services
 
                 var url = $"{_hotelOffersBaseUrl}?hotelIds={hotelIdsParam}&adults={adults}&checkInDate={checkInDate}&checkOutDate={checkOutDate}&currency=EUR";
 
+                //Get data from Amadeus API
                 var response = await _httpClient.GetAsync(url);
 
 				if (!response.IsSuccessStatusCode)
 				{
-					Console.WriteLine($"🏨 Error: {response.StatusCode}");
 					return null;
 				}
 				
 				var content = await response.Content.ReadAsStringAsync();
 				var root = JsonDocument.Parse(content).RootElement;
 				
-                Debug.WriteLine($"🏨 Response: {content}");
-
+                //Parse JSON to list of hotels 
 				var hotelData = root.GetProperty("data");
 				var hotels = new List<Hotel>();
 
