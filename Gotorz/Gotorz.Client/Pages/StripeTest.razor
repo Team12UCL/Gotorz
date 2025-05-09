@@ -62,7 +62,7 @@ else
             {
                 ProductName = "Sample Travel Package",
                 Description = "This is a sample travel package for testing Stripe payments.",
-                AmountInCents = 2000L, // $20.00
+                AmountInCents = 2000L, // Equals 20.00
                 Quantity = 1
             };
 
@@ -76,10 +76,8 @@ else
             }
             else
             {
-                // Handle error
                 var error = await response.Content.ReadAsStringAsync();
                 Console.Error.WriteLine($"Error creating checkout session: {error}");
-                // You might want to handle this with a user-friendly message
             }
         }
         catch (Exception ex)

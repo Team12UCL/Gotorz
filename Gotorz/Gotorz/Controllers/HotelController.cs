@@ -29,7 +29,6 @@ namespace Server.Controllers
             return Ok(cities);
         }
 
-
         // GET: api/hotel/search?cityCode=PAR
         [HttpGet("search")]
         public async Task<IActionResult> GetHotelOffers([FromQuery] string cityCode,

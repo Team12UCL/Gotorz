@@ -15,6 +15,7 @@ namespace Gotorz.Controllers
             _stripeService = stripeService;
         }
 
+        // POST: api/stripe/create-checkout-session
         [HttpPost("create-checkout-session")]
         public async Task<IActionResult> CreateCheckoutSession([FromBody] CheckoutRequest request)
         {

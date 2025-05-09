@@ -6,7 +6,6 @@
 @inject HttpClient HttpClient
 
 <PageTitle>Create Travel Package</PageTitle>
-<NavLink href="/stripetest">Test Stripe</NavLink>
 
 <h3>Create Travel Package</h3>
 
@@ -55,7 +54,6 @@
 </div>
 
 @code {
-	// reference to the SearchPanel component for accessing its properties and methods directly
 	private SearchPanel searchPanel;
 	private SearchMode currentSearchMode = SearchMode.None;
 
@@ -75,7 +73,7 @@
 	private DateTime? returnDate;
 	private int adults = 1;
 
-	// UI states
+	// UI
 	private bool isLoadingFlights = false;
 	private bool isLoadingHotels = false;
 	private bool flightError = false;
@@ -83,6 +81,7 @@
 	private string packageCreationMessage = null;
 	private bool packageCreationSuccess = false;
 
+	// Method to sync search panel values with this component
 	private void HandleSelectionChange()
 	{
 		departureDate = searchPanel.DepartureDate;
@@ -90,6 +89,7 @@
 		adults = searchPanel.Adults;
 	}
 
+	// Sets selected flights and hotel
 	private void SelectFlight(FlightOffer flight, bool isOutbound)
 	{
 		if (isOutbound) selectedOutboundFlight = flight;
@@ -102,7 +102,6 @@
 	{
 		if (!searchPanel.CanSearchFlights) return;
 
-		// Fix for missing return flights on first search
 		HandleSelectionChange();
 
 		currentSearchMode = SearchMode.Flights;
@@ -172,38 +171,17 @@
 					Adults = adults,
 					OriginCity = searchPanel.OriginCityName,
 					DestinationCity = searchPanel.DestinationCityName,
-					//CreatedDate = DateTime.Now
 				};
-
-			// Extract currency conversion rates from hotelOffers to store with the new package (necessary since Packages.razor doesn't have hotel references which store the rates)
-			// if (hotelOffers?.Dictionaries?.CurrencyConversionLookupRates != null)
-			// {
-			// 	foreach (var entry in hotelOffers.Dictionaries.CurrencyConversionLookupRates)
-			// 	{
-			// 		if (entry.Value.Target == "EUR" &&
-			// 			decimal.TryParse(entry.Value.Rate,
-			// 							System.Globalization.NumberStyles.Any,
-			// 							System.Globalization.CultureInfo.InvariantCulture,
-			// 							out var rate))
-			// 		{
-			// 			package.CurrencyConversionRates[entry.Key] = rate;
-			// 		}
-			// 	}
-			// }
-
-			//PackageService.Packages.Add(package);
 
 			var result = await HttpClient.PostAsJsonAsync("api/travelpackage/create", package);
 
 			if (!result.IsSuccessStatusCode)
 			{
-				// Handle error
 				packageCreationMessage = "Failed to create package";
 				packageCreationSuccess = false;
 				return;
 			}
 
-			// Set success message
 			packageCreationMessage = "Package created successfully!";
 			packageCreationSuccess = true;
 
@@ -219,10 +197,9 @@
 		catch (Exception ex)
 		{
 			// Set error message
-			packageCreationMessage = $"Failed to create package"; // add logging with {ex.Message} ?
+			packageCreationMessage = $"Failed to create package";
 			packageCreationSuccess = false;
 
-			// Auto-clear error after 8 seconds
 			_ = ClearMessageAfterDelay(8000);
 		}
 	}

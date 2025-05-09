@@ -9,6 +9,7 @@ namespace Server.Services
     public class AirportService
     {
         private List<Airport> _airports;
+        // Local static list that contains comprehensive list of airports for autocomplete suggestions to search in
         private readonly string _jsonFilePath = "Data/airports.json";
 
         public AirportService()

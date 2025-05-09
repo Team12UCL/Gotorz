@@ -36,7 +36,7 @@ namespace Server.Services
 					return null;
 				}
 
-				// Retrieve the bearer token using the auth service
+				// Retrieve the bearer token for Amadeus using the auth service
 				var token = await _authService.GetAccessTokenAsync();
 				if (token == null)
 				{
@@ -50,7 +50,7 @@ namespace Server.Services
 				// Build the full request URL
 				string requestUrl = $"{_baseUrl}?originLocationCode={originLocationCode}&destinationLocationCode={destinationLocationCode}&departureDate={departureDate}&adults={adults}";
 
-				// Make the API call
+				// Make the API call to Amadeus
 				var response = await _httpClient.GetAsync(requestUrl);
 				if (!response.IsSuccessStatusCode)
 				{
@@ -97,8 +97,8 @@ namespace Server.Services
 								FlightNumber = segment.GetProperty("number").GetString(),
 								AircraftCode = segment.GetProperty("aircraft").GetProperty("code").GetString(),
 								Stops = segment.GetProperty("numberOfStops").GetInt32(),
-								CabinClass = "ECONOMY", // You can look it up in travelerPricing if needed
-								CheckedBags = 0 // Can be set dynamically if you extract from travelerPricings
+								CabinClass = "ECONOMY",
+								CheckedBags = 0
 							});
 						}
 
