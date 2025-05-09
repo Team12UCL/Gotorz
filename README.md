@@ -15,7 +15,7 @@ Gotorz.Tests.Server .\
 \
 Gotorz er vores ASP .NET Core backend .\
 Gotorz.Client er vores Blazor WASM frontend .\
-Shared er hvor vores delte model lag .\
+Shared er vores delte model lag .\
 Gotorz.Tests.Server er vores unit og integration tests .\
 \
 I mappen /Diagrammer/ kan vores LLD artefakter findes.
