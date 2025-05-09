@@ -34,7 +34,7 @@ else
 
 	<br />
 
-	<button @onclick="ContinueToPayment">Continue to Payment</button>
+	<button class="summary-button" @onclick ="ContinueToPayment">Continue to Payment</button>
 }
 
 @code {
@@ -72,7 +72,7 @@ else
 
 	private void ContinueToPayment()
 	{
-		//Stripe
+		NavManager.NavigateTo($"/payment/{travelPackage.TravelPackageId}?adults={Adults}&children={Children}");
 	}
 
 	public class PassengerInfo

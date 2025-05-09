@@ -10,7 +10,7 @@ namespace Gotorz.Client.Services
             // Add outbound flight price
             total += ConvertToEUR(outboundFlight?.TotalPrice ?? 0, outboundFlight?.Currency);
         //overload metode for calculating adults and children
-        public decimal CalculateTotalPrice(FlightOffer? outboundFlight, FlightOffer? returnFlight, Hotel? hotel, HotelOffer? hotelOffers, int adults, int children)
+        public decimal CalculateTotalPrice(FlightOffer? outboundFlight, FlightOffer? returnFlight, Hotel? hotel, HotelOffer? hotelOffers, int adults, int children = 0)
         {
             decimal total = 0;
             decimal multiplier = adults + (children * 0.5m);
