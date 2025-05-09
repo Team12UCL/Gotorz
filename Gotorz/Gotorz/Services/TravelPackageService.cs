@@ -1,7 +1,6 @@
 ﻿using Gotorz.Data;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
-using Shared.Models.DTO;
 
 namespace Gotorz.Services
 {
@@ -11,7 +10,7 @@ namespace Gotorz.Services
         Task<TravelPackage?> GetByIdAsync(Guid id);
         Task<List<TravelPackage>> GetAllAsync(int skip = 0, int take = 10);
         Task<TravelPackage> UpdateAsync(TravelPackage package);
-        Task DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(Guid id);
         Task<List<TravelPackage>> GetByStatusAsync(TravelPackageStatus status);
     }
 
@@ -71,15 +70,26 @@ namespace Gotorz.Services
             return package;
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(Guid id)
         {
             var package = await _context.TravelPackages.FindAsync(id);
             if (package == null)
                 throw new KeyNotFoundException($"Travel package with ID {id} not found.");
 
-            _context.TravelPackages.Remove(package);
+            var res = _context.TravelPackages.Remove(package);
             await _context.SaveChangesAsync();
-        }
+
+			
+			if (res.State == EntityState.Deleted)
+			{
+                return true;
+			}
+			else
+			{
+				return false;
+			}
+
+		}
 
         public async Task<List<TravelPackage>> GetByStatusAsync(TravelPackageStatus status)
         {
