@@ -5,6 +5,8 @@
 @inject PricingService PricingService
 @rendermode InteractiveWebAssembly
 @inject HttpClient HttpClient
+@inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h3>Find din rejse</h3>
 
@@ -37,15 +39,26 @@
 	</div>
 
 	<div>
-		<label>Number of travelers</label>
-		<select @bind="travelers">
+		<label>Adults</label>
+		<select @bind="adults">
 			@for (int i = 1; i <= 10; i++)
 			{
 				<option value="@i">@i</option>
 			}
 		</select>
 	</div>
+
+	<div>
+		<label>Children</label>
+		<select @bind="children">
+			@for (int i = 0; i <= 10; i++)
+			{
+				<option value="@i">@i</option>
+			}
+		</select>
+	</div>
 </div>
+
 
 @if (FilteredPackages?.Count() > 0)
 {
@@ -69,11 +82,17 @@
 				pkg.OutboundFlight,
 				pkg.ReturnFlight,
 				pkg.Hotel,
-				offer
+				offer,
+				adults,
+				children
 				);
 			}
 			@price EUR		<br />
-			<button class="summary-button">Book</button>
+			<button class="summary-button"
+			@onclick="() => GoToBooking(pkg)">
+				
+				Book
+				</button>
 		</div>
 	}
 }
@@ -86,7 +105,9 @@
 	private string? destinationFilter;
 	private string? originCityFilter;
 	private string? destinationCityFilter;
-	private int travelers = 1;
+	// private int travelers = 1;
+	private int adults = 1;
+	private int children = 0;
 	private int dateFlexibilityDays = 0;
 
 	private List<TravelPackage>? travelPackages = new();
@@ -156,6 +177,21 @@
 			: 0;
 	}
 
+	private async Task GoToBooking(TravelPackage pkg)
+	{
+		//Get authentication state to check if user is logged in
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+		
+		if (isAuthenticated) //If logged in -> /BookingDetails
+		{
+			NavManager.NavigateTo($"/bookingdetails/{pkg.TravelPackageId}?adults={adults}&children={children}");
+		}
+		else // else -> go to login with /bookingdetails as returnUrl
+		{
+			NavManager.NavigateTo($"/Account/Login?=/bookingdetails/returnUrl{pkg.TravelPackageId}?adults={adults}&children={children}");
+		}
+	}
 
 }
 

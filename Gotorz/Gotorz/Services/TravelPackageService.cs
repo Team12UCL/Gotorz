@@ -83,9 +83,9 @@ namespace Gotorz.Services
         public async Task<TravelPackage?> GetByIdAsync(Guid id)
         {
             return await _context.TravelPackages
-                .Include(tp => tp.OutboundFlightId)
-                .Include(tp => tp.ReturnFlightId)
-                .Include(tp => tp.HotelId)
+                .Include(tp => tp.OutboundFlight)
+                .Include(tp => tp.ReturnFlight)
+                .Include(tp => tp.Hotel)
                 .FirstOrDefaultAsync(tp => tp.TravelPackageId == id);
         }
 
@@ -129,9 +129,9 @@ namespace Gotorz.Services
         public async Task<List<TravelPackage>> GetByStatusAsync(TravelPackageStatus status)
         {
             return await _context.TravelPackages
-                .Include(tp => tp.OutboundFlightId)
-                .Include(tp => tp.ReturnFlightId)
-                .Include(tp => tp.HotelId)
+                .Include(tp => tp.OutboundFlight)
+                .Include(tp => tp.ReturnFlight)
+                .Include(tp => tp.Hotel)
                 .Where(tp => tp.Status == status)
                 .ToListAsync();
         }
