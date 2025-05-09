@@ -124,14 +124,14 @@ var app = builder.Build();
 
         app.UseAuthentication();
         // USE ONLY FOR TESTING , REMOVE AFTER!!!
-        app.Use(async (context, next) =>
-        {
-            if (context.Request.Path.StartsWithSegments("/chathub"))
-            {
-                context.Items["__AntiforgerySkipValidation__"] = true;
-            }
-            await next();
-        });
+       // app.Use(async (context, next) =>
+       // {
+       //     if (context.Request.Path.StartsWithSegments("/chathub"))
+       //     {
+       //         context.Items["__AntiforgerySkipValidation__"] = true;
+       //     }
+       //     await next();
+       // });
         // TEST STUFF ENDS
         app.UseAuthorization();
 
