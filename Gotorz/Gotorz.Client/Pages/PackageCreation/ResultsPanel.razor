@@ -74,151 +74,150 @@
 				}
 			</div>
 
-			<!-- Return Flight Results and UI Feedback -->
-			<div class="return-flights">
-				<h4>✈️ Return Flights</h4>
-				@if (IsLoadingFlights)
-				{
-					<div class="loading-container">
-						<div class="spinner-border" role="status">
-							<span class="visually-hidden">Loading...</span>
-						</div>
-						<p>Searching for return flights...</p>
-					</div>
-				}
-				else if (FlightError)
-				{
-					<div class="error-message">
-						Error loading flight data. Please try again.
-					</div>
-				}
-				else if (ReturnFlights.Any())
-				{
-					<table class="results-table">
-						<thead>
-							<tr>
-								<th></th>
-								<th>Carrier</th>
-								<th>Duration</th>
-								<th>Price</th>
-								<th>Route</th>
-							</tr>
-						</thead>
-						<tbody>
-							@foreach (var flight in ReturnFlights)
-							{
-								<tr class="@(SelectedReturnFlight == flight ? "selected-row" : "")">
-									<td>
-										<input type="radio"
-											   name="returnFlight"
-											   value="@flight"
-											   @onchange="@(() => OnFlightSelected.InvokeAsync((flight, false)))"
-											   checked="@(SelectedReturnFlight == flight)" />
-									</td>
-									<td>@flight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().CarrierCode</td>
-									<td>@flight.Itineraries.FirstOrDefault().Duration.Replace("PT", "")</td>
-									<td>@flight.Currency @flight.TotalPrice</td>
-									<td>
-										@foreach (var segment in flight.Itineraries.FirstOrDefault().Segments)
-										{
-											<div>
-												@segment.DepartureAirport at @segment.DepartureTime.ToString("HH:mm (yyyy-MM-dd)") <br>
-												➝ @segment.ArrivalAirport at @segment.ArrivalTime.ToString("HH:mm (yyyy-MM-dd)")
-											</div>
-										}
-									</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				}
-				else if (ReturnFlights.Count == 0)
-				{
-					<div class="info-message">
-						@(ReturnFlights.Count == 0 ? "No return flight offers available." : "One-way trip selected (no return date).")
-					</div>
-				}
-			</div>
-		</div>
-	}
-	else if (CurrentSearchMode == SearchMode.Hotels)
-	{
-		<!-- Hotel Results and UI Feedback -->
-		<div class="hotel-results">
-			<h4>🏨 Available Hotels</h4>
-			@if (IsLoadingHotels)
-			{
-				<div class="loading-container">
-					<div class="spinner-border" role="status">
-						<span class="visually-hidden">Loading...</span>
-					</div>
-					<p>Searching for hotels...</p>
-				</div>
-			}
-			else if (HotelError)
-			{
-				<div class="error-message">
-					Error loading hotel data. Please try again.
-				</div>
-			}
-			else if (HotelData != null)
-			{
-				<table class="results-table">
-					<thead>
-						<tr>
-							<th></th>
-							<th>Hotel Name</th>
-							<th>Price</th>
-							<th>Details</th>
-						</tr>
-					</thead>
-					<tbody>
-						@foreach (var hotel in HotelData)
-						{
-							<tr class="@(SelectedHotel == hotel ? "selected-row" : "")">
-								<td>
-									<input type="radio"
-										   name="hotel"
-										   value="@hotel"
-										   @onchange="@(() => OnHotelSelected.InvokeAsync(hotel))"
-										   checked="@(SelectedHotel == hotel)" />
-								</td>
-								<td>
-									<strong>
-										<a href="https://www.google.com/search?q=@Uri.EscapeDataString(hotel.Name)"
-										   target="_blank">
-											@hotel.Name
-										</a>
-									</strong>
-								</td>
-								<td>
-									@{
-										var offer = hotel.Offers?.FirstOrDefault();
-										var price = offer?.TotalPrice.ToString() ?? "0";
-										var currency = offer?.Currency ?? "EUR";
-										var eurPrice = PricingService.ConvertToEUR(price, currency, hotel.Offers.FirstOrDefault());
-									}
-									@price @currency (@eurPrice EUR)
-								</td>
-								<td>
-									@if (offer?.Description != null)
-									{
-										<div>Description: @offer.Description</div>
-									}
-								</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			}
-			else
-			{
-				<div class="error-message">
-					No hotel offers found. Please change your search.
-				</div>
-			}
-		</div>
-	}
+            <!-- Return Flights -->
+            <div class="return-flights">
+                <h4>✈️ Return Flights</h4>
+                @if (IsLoadingFlights)
+                {
+                    <div class="loading-container">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Searching for return flights...</p>
+                    </div>
+                }
+                else if (FlightError)
+                {
+                    <div class="error-message">
+                        Error loading flight data. Please try again.
+                    </div>
+                }
+                else if (ReturnFlights.Any())
+                {
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Carrier</th>
+                                <th>Duration</th>
+                                <th>Price</th>
+                                <th>Route</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var flight in ReturnFlights)
+                            {
+                                <tr class="@(SelectedReturnFlight == flight ? "selected-row" : "")">
+                                    <td>
+                                        <input type="radio"
+                                               name="returnFlight"
+                                               value="@flight"
+                                               @onchange="@(() => OnFlightSelected.InvokeAsync((flight, false)))"
+                                               checked="@(SelectedReturnFlight == flight)" />
+                                    </td>
+                                    <td>@flight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().CarrierCode</td>
+                                    <td>@flight.Itineraries.FirstOrDefault().Duration.Replace("PT", "")</td>
+                                    <td>@flight.Currency @flight.TotalPrice</td>
+                                    <td>
+                                        @foreach (var segment in flight.Itineraries.FirstOrDefault().Segments)
+                                        {
+                                            <div>
+                                                @segment.DepartureAirport at @segment.DepartureTime.ToString("HH:mm (yyyy-MM-dd)") <br>
+                                                ➝ @segment.ArrivalAirport at @segment.ArrivalTime.ToString("HH:mm (yyyy-MM-dd)")
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else if (ReturnFlights.Count == 0)
+                {
+                    <div class="info-message">
+                        @(ReturnFlights.Count == 0 ? "No return flight offers available." : "One-way trip selected (no return date).")
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (CurrentSearchMode == SearchMode.Hotels)
+    {
+        <div class="hotel-results">
+            <h4>🏨 Available Hotels</h4>
+            @if (IsLoadingHotels)
+            {
+                <div class="loading-container">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Searching for hotels...</p>
+                </div>
+            }
+            else if (HotelError)
+            {
+                <div class="error-message">
+                    Error loading hotel data. Please try again.
+                </div>
+            }
+            else if (HotelData != null)
+            {
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Hotel Name</th>
+                            <th>Price</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var hotel in HotelData)
+                        {
+                            <tr class="@(SelectedHotel == hotel ? "selected-row" : "")">
+                                <td>
+                                    <input type="radio"
+                                           name="hotel"
+                                           value="@hotel"
+                                           @onchange="@(() => OnHotelSelected.InvokeAsync(hotel))"
+                                           checked="@(SelectedHotel == hotel)" />
+                                </td>
+                                <td>
+                                    <strong>
+                                        <a href="https://www.google.com/search?q=@Uri.EscapeDataString(hotel.Name)"
+                                           target="_blank">
+                                            @hotel.Name
+                                        </a>
+                                    </strong>
+                                </td>
+                                <td>
+                                    @{
+                                        var offer = hotel.Offers?.FirstOrDefault();
+                                        var price = offer?.TotalPrice ?? 0;
+                                        var currency = offer?.Currency ?? "EUR";
+                                        var eurPrice = PricingService.ConvertToEUR(price, currency, offer);
+                                    }
+                                    @eurPrice EUR (@price @currency)
+                                </td>
+                                <td>
+                                    @if (offer?.Description != null)
+                                    {
+                                        <div>Description: @offer.Description</div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="error-message">
+                    No hotel offers found. Please change your search.
+                </div>
+            }
+        </div>
+    }
 </div>
 
 @code {

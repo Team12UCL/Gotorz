@@ -45,15 +45,20 @@
                         <strong>@Hotel.Name</strong>
                         <div class="summary-detail">
                             <span>
-                                Period: @Hotel.Offers?.FirstOrDefault()?.CheckInDate to
-                                @Hotel.Offers?.FirstOrDefault()?.CheckOutDate
+                                Period: @Hotel.Offers?.FirstOrDefault()?.CheckInDate.ToShortDateString() to
+                                @Hotel.Offers?.FirstOrDefault()?.CheckOutDate.ToShortDateString()
                             </span>
                             <span>
                                 @{
                                     var offer = Hotel.Offers?.FirstOrDefault();
-                                    var price = offer?.TotalPrice;
+                                    var price = offer?.TotalPrice ?? 0;
                                     var currency = offer?.Currency ?? "EUR";
-                                    var eurPrice = PricingService.ConvertToEUR(price.ToString(), currency, HotelOffers);
+
+                                    // If currency is already EUR, use the price as is
+                                    // Otherwise, convert it using the correct offer object
+                                    var eurPrice = currency == "EUR"
+                                    ? price
+                                    : PricingService.ConvertToEUR(price, currency, offer);
                                 }
                                 @eurPrice EUR
                             </span>

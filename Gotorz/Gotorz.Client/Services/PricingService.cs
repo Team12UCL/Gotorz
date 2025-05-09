@@ -1,81 +1,40 @@
 ﻿using Shared.Models;
-using Shared.Models.AmadeusCityResponse;
-
 namespace Gotorz.Client.Services
 {
     public class PricingService
     {
-        public decimal CalculateTotalPrice(FlightOffer? outboundFlight, FlightOffer? returnFlight, Hotel? hotel, HotelOffer? hotelOffers)
+        public decimal CalculateTotalPrice(FlightOffer? outboundFlight, FlightOffer? returnFlight, Hotel? hotel, HotelOffer? selectedHotelOffer)
         {
             decimal total = 0;
-            total += ConvertToEUR(outboundFlight?.TotalPrice.ToString(), outboundFlight?.Currency, hotelOffers);
-            total += ConvertToEUR(returnFlight?.TotalPrice.ToString(), returnFlight?.Currency, hotelOffers);
-            total += ConvertToEUR(hotel?.Offers?.FirstOrDefault()?.TotalPrice.ToString(),
-                                hotel?.Offers?.FirstOrDefault()?.Currency, hotelOffers);
-            return total;
-        }
 
-        // Method overload for packages.razor that uses the stored conversion rates in TravelPackage.cs (since it doesn't have the hotel offers)
-        //public decimal CalculateTotalPrice(FlightOffer? outboundFlight,
-        //                            FlightOffer? returnFlight,
-        //                            Hotel? hotel, Dictionary<string, decimal>? conversionRates,
-        //                            int travelers = 1)
-        //{
-        //    decimal total = 0;
-        //    // Multiply flight prices by number of travelers
-        //    total += ConvertToEUR(outboundFlight?.Price?.Total, outboundFlight?.Price?.Currency, conversionRates) * travelers;
-        //    total += ConvertToEUR(returnFlight?.Price?.Total, returnFlight?.Price?.Currency, conversionRates) * travelers;
-        //    // Hotel price is per stay, not per person
-        //    total += ConvertToEUR(hotel?.Offers?.FirstOrDefault()?.Price?.Total,
-        //                        hotel?.Offers?.FirstOrDefault()?.Price?.Currency, conversionRates);
-        //    return total;
-        //}
+            // Add outbound flight price
+            total += ConvertToEUR(outboundFlight?.TotalPrice ?? 0, outboundFlight?.Currency);
 
-        public decimal ConvertToEUR(string? price, string? currency, HotelOffer? hotelOffers)
-        {
-            var raw = TryParsePrice(price);
+            // Add return flight price
+            total += ConvertToEUR(returnFlight?.TotalPrice ?? 0, returnFlight?.Currency);
 
-            // If currency is already EUR or missing, just return the raw amount
-            if (string.IsNullOrWhiteSpace(currency) || currency == "EUR") return raw;
-
-            // Try to get conversion rate from HotelOffers if available
-            //var conversion = hotelOffers?.Dictionaries?.CurrencyConversionLookupRates?.GetValueOrDefault(currency);
-            //if (conversion == null || conversion.Target != "EUR") return raw;
-
-            //if (decimal.TryParse(conversion.Rate, System.Globalization.NumberStyles.Any,
-            //    System.Globalization.CultureInfo.InvariantCulture, out var rate))
-            //{
-            //    return Math.Round(raw * rate, conversion.TargetDecimalPlaces);
-            //}
-
-            return raw;
-        }
-
-        // Method overload for packages.razor that uses the stored conversion rates in TravelPackage.cs (since it doesn't have the hotel offers)
-        public decimal ConvertToEUR(string? price, string? currency, Dictionary<string, decimal>? conversionRates)
-        {
-            var raw = TryParsePrice(price);
-
-            // If currency is already EUR or missing, just return the raw amount
-            if (string.IsNullOrWhiteSpace(currency) || currency == "EUR") return raw;
-
-            // Use conversion rate if available
-            if (conversionRates != null && conversionRates.TryGetValue(currency, out var rate))
+            // Add hotel price using the selected offer or first available
+            var hotelOffer = selectedHotelOffer ?? hotel?.Offers?.FirstOrDefault();
+            if (hotelOffer != null)
             {
-                return Math.Round(raw * rate, 2);
+                total += ConvertToEUR(hotelOffer.TotalPrice, hotelOffer.Currency, hotelOffer);
             }
 
-            return raw; // If conversion not available, return raw amount
+            return Math.Round(total, 2, MidpointRounding.AwayFromZero);
         }
 
-        public decimal TryParsePrice(string? price)
+        public decimal ConvertToEUR(decimal price, string? currency, HotelOffer? hotelOffer = null)
         {
-            return decimal.TryParse(price,
-                System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out var result)
-                ? result
-                : 0;
+            // If already in EUR or no currency specified, return as is
+            if (string.IsNullOrWhiteSpace(currency) || currency == "EUR")
+                return price;
+
+            // Use hotel-specific conversion rate if available
+            if (hotelOffer?.ConversionRate > 0)
+                return Math.Round(price * hotelOffer.ConversionRate.Value, 2);
+
+            // Default: return original price if no conversion available
+            return price;
         }
     }
 }
