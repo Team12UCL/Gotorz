@@ -47,11 +47,3 @@ namespace Shared.Models
         Sold_Out
 	}
 }
-
-//public class TravelPackage
-//{
-//    public FlightOffer Flight { get; set; }
-//    public HotelData Hotel { get; set; }
-//    public DateTime DepartureDate { get; set; }
-//}
-

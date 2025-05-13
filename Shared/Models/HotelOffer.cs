@@ -30,8 +30,6 @@ namespace Shared.Models
 		public string? OfferId { get; set; }          // Amadeus API ID
 
 		public Guid HotelDbId { get; set; }           // Foreign key to Hotel.Id
-		//public Hotel Hotel { get; set; }
-
 		public DateTime CheckInDate { get; set; }
 		public DateTime CheckOutDate { get; set; }
 		public string? RoomType { get; set; }
@@ -45,7 +43,6 @@ namespace Shared.Models
         public decimal? ConversionRate { get; set; }
         public string CancellationPolicy { get; set; }
 	}
-
 
 	public class CityCodeResponse    {	
 	public Guid Id { get; set; } = Guid.NewGuid();

@@ -1,7 +1,6 @@
 ﻿using Gotorz.Data;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
-using Shared.Models.DTO;
 
 namespace Gotorz.Services
 {
@@ -164,7 +163,7 @@ namespace Gotorz.Services
             return existingPackage;
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(Guid id)
         {
             _logger.LogInformation($"Deleting travel package with ID: {id}");
 
@@ -175,7 +174,7 @@ namespace Gotorz.Services
                 throw new KeyNotFoundException($"TravelPackage with ID {id} not found.");
             }
 
-            _context.TravelPackages.Remove(package);
+            var res = _context.TravelPackages.Remove(package);
             await _context.SaveChangesAsync();
 
             _logger.LogInformation($"Deleted travel package with ID: {id}");

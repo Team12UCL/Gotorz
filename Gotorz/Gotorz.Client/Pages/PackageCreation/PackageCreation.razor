@@ -105,7 +105,6 @@
 	{
 		if (!searchPanel.CanSearchFlights) return;
 
-		// Fix for missing return flights on first search
 		HandleSelectionChange();
 
 		currentSearchMode = SearchMode.Flights;
@@ -200,7 +199,8 @@
 		}
 		catch (Exception ex)
 		{
-			packageCreationMessage = $"Failed to create package"; // add logging with {ex.Message} ?
+			// Set error message
+			packageCreationMessage = $"Failed to create package";
 			packageCreationSuccess = false;
 
 			_ = ClearMessageAfterDelay(8000);

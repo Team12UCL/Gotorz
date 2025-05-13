@@ -1,0 +1,97 @@
+﻿@page "/stripetest"
+@page "/stripetest/{action}"
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@rendermode InteractiveWebAssembly
+
+<h3>Stripe Payment Test</h3>
+
+@if (Action == "success")
+{
+    <div class="alert alert-success">
+        <h4>Thanks for your order!</h4>
+        <p>
+            We appreciate your business! If you have any questions, please email
+            <a href="mailto:support@gotorz.com">support@gotorz.com</a>.
+        </p>
+    </div>
+}
+else if (Action == "cancel")
+{
+    <div class="alert alert-warning">
+        <h4>Payment Cancelled</h4>
+        <p>Your payment was cancelled. Feel free to browse other travel packages.</p>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <h5>Sample Travel Package</h5>
+            <p>This is a sample travel package for testing Stripe payments.</p>
+            <p><strong>Price: $20.00</strong></p>
+            <button class="btn btn-primary" @onclick="CreateCheckoutSession" disabled="@IsProcessing">
+                @if (IsProcessing)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Processing...</span>
+                }
+                else
+                {
+                    <span>Checkout</span>
+                }
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Action { get; set; }
+
+    private bool IsProcessing { get; set; } = false;
+
+    private async Task CreateCheckoutSession()
+    {
+        IsProcessing = true;
+
+        try
+        {
+            var request = new
+            {
+                ProductName = "Sample Travel Package",
+                Description = "This is a sample travel package for testing Stripe payments.",
+                AmountInCents = 2000L, // Equals 20.00
+                Quantity = 1
+            };
+
+            var response = await Http.PostAsJsonAsync("api/stripe/create-checkout-session", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CheckoutResult>();
+                // Redirect to Stripe Checkout
+                NavigationManager.NavigateTo(result.Url, forceLoad: true);
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.Error.WriteLine($"Error creating checkout session: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception: {ex.Message}");
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    private class CheckoutResult
+    {
+        public string Url { get; set; }
+    }
+}

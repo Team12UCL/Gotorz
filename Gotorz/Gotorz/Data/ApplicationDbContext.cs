@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Shared.Models;
-using Shared.Models.DTO;
 using System.Reflection.Emit;
 
 namespace Gotorz.Data
