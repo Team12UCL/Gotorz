@@ -20,18 +20,17 @@ else
 	<p><strong>Dates:</strong> @travelPackage.DepartureDate.ToShortDateString() - @travelPackage.ReturnDate.ToShortDateString()</p>
 
 	<h4>Traveler Information</h4>
-	@for (int i = 0; i < travelers.Count; i++)
+	@foreach (var traveler in travelers)
 	{
 		<div class="traveler-form">
-			<h5>Traveler @(i + 1)</h5>
-			<input placeholder="Full name" @bind="travelers[i].FullName" />
-			<input placeholder="Passport number" @bind="travelers[i].PassportNumber" />
+			<h5>Traveler @(travelers.IndexOf(traveler) + 1)</h5>
+			<input placeholder="Full name" @bind="traveler.FullName" />
+			<input placeholder="Passport number" @bind="traveler.PassportNumber" />
 			<label>Date of birth</label>
-			<input type="date" @bind="travelers[i].DateOfBirth" />
-			<input placeholder="Nationality" @bind="travelers[i].Nationality" />
+			<input type="date" @bind="traveler.DateOfBirth" />
+			<input placeholder="Nationality" @bind="traveler.Nationality" />
 		</div>
 	}
-
 	<br />
 
 	<button class="summary-button" @onclick ="ContinueToPayment">Continue to Payment</button>
@@ -79,7 +78,7 @@ else
 	{
 		public string FullName { get; set; } = string.Empty;
 		public string PassportNumber { get; set; } = string.Empty;
-		public DateTime DateOfBirth { get; set; }
+		public DateTime DateOfBirth { get; set; } = DateTime.Now;
 		public string Nationality { get; set; } = string.Empty;
 	}
 }
