@@ -78,7 +78,6 @@ namespace Gotorz.Services
         {
             _logger.LogInformation($"Creating travel package with hotel ID: {package.HotelId}");
 
-            // Check if the hotel already exists
             if (package.Hotel != null && package.HotelId != Guid.Empty)
             {
                 var existingHotel = await _context.Hotel
@@ -89,7 +88,6 @@ namespace Gotorz.Services
                 {
                     _logger.LogInformation($"Found existing hotel with ID {existingHotel.Id} with {existingHotel.Offers?.Count ?? 0} offers");
 
-                    // Use the existing hotel with its offers
                     _context.Entry(package.Hotel).State = EntityState.Detached;
                     package.Hotel = existingHotel;
                 }
@@ -97,13 +95,11 @@ namespace Gotorz.Services
                 {
                     _logger.LogWarning($"Hotel with ID {package.HotelId} not found in database. Creating new hotel.");
 
-                    // Make sure the hotel has its ID set properly
                     if (package.Hotel.Id == Guid.Empty)
                     {
                         package.Hotel.Id = package.HotelId;
                     }
 
-                    // Log if the hotel has offers
                     _logger.LogInformation($"New hotel has {package.Hotel.Offers?.Count ?? 0} offers");
                 }
             }
@@ -133,12 +129,8 @@ namespace Gotorz.Services
                 throw new KeyNotFoundException($"TravelPackage with ID {package.TravelPackageId} not found.");
             }
 
-            // Update scalar properties
             _context.Entry(existingPackage).CurrentValues.SetValues(package);
 
-            // Handle navigation properties updates
-
-            // Update Hotel if it changed
             if (package.HotelId != existingPackage.HotelId || package.Hotel != null)
             {
                 if (package.Hotel != null)
@@ -154,8 +146,6 @@ namespace Gotorz.Services
                     }
                 }
             }
-
-            // Similar handling for flights if needed
 
             await _context.SaveChangesAsync();
             _logger.LogInformation($"Updated travel package with ID: {package.TravelPackageId}");
@@ -177,7 +167,16 @@ namespace Gotorz.Services
             var res = _context.TravelPackages.Remove(package);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation($"Deleted travel package with ID: {id}");
+            if (res.State == EntityState.Deleted)
+            {
+                return true;
+                _logger.LogInformation($"Deleted travel package with ID: {id}");
+
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 }
