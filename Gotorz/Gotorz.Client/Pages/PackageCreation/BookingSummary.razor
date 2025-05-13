@@ -54,8 +54,6 @@
                                     var price = offer?.TotalPrice ?? 0;
                                     var currency = offer?.Currency ?? "EUR";
 
-                                    // If currency is already EUR, use the price as is
-                                    // Otherwise, convert it using the correct offer object
                                     var eurPrice = currency == "EUR"
                                     ? price
                                     : PricingService.ConvertToEUR(price, currency, offer);

@@ -166,7 +166,7 @@
 
 	private string TotalPriceFormatted => travelPackage == null
 	? string.Empty
-	: PricingService.CalculateTotalPrice(
+	: PricingService.CalculateTotalPriceWithPassengers(
 	travelPackage.OutboundFlight,
 	travelPackage.ReturnFlight,
 	travelPackage.Hotel,
@@ -220,7 +220,7 @@
 			{
 				ProductName = $"Travel Package",
 				Description = $"Trip to {travelPackage.DestinationCity} incl. flight & hotel!",
-				AmountInCents = (long)(PricingService.CalculateTotalPrice(
+				AmountInCents = (long)(PricingService.CalculateTotalPriceWithPassengers(
 			travelPackage.OutboundFlight,
 			travelPackage.ReturnFlight,
 			travelPackage.Hotel,

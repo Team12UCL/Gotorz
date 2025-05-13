@@ -7,6 +7,7 @@
 @inject HttpClient HttpClient
 @inject NavigationManager NavManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<Packages> _logger
 
 <h3>Find din rejse</h3>
 
@@ -78,7 +79,12 @@
 			<strong>Price:</strong>
 			@{
 				var offer = pkg.Hotel?.Offers?.FirstOrDefault();
-				var price = PricingService.CalculateTotalPrice(
+				if (offer == null && pkg.Hotel != null)
+				{
+					_logger.LogCritical($"No hotel offer found for hotel ID: {pkg.Hotel.Id}");
+				}
+
+				var price = PricingService.CalculateTotalPriceWithPassengers(
 				pkg.OutboundFlight,
 				pkg.ReturnFlight,
 				pkg.Hotel,

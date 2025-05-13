@@ -9,9 +9,9 @@ namespace Gotorz.Controllers
     [Route("api/[controller]")]
     public class TravelPackageController : ControllerBase
     {
-        private readonly ITravelPackageService _travelPackageService;
+        private readonly TravelPackageService _travelPackageService;
 
-        public TravelPackageController(ITravelPackageService travelPackageService)
+        public TravelPackageController(TravelPackageService travelPackageService)
         {
             _travelPackageService = travelPackageService;
         }

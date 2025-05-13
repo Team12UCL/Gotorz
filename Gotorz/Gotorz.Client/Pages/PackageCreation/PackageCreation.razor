@@ -4,10 +4,13 @@
 @using Client.Services
 @rendermode InteractiveWebAssembly
 @inject HttpClient HttpClient
+@inject ILogger<PackageCreation> Logger
 
 <PageTitle>Create Travel Package</PageTitle>
 
 <h3>Create Travel Package</h3>
+
+<Navbar> </Navbar>
 
 <div class="booking-container">
 	<!-- Top Row: Search Panel and Booking Summary -->
@@ -191,6 +194,9 @@
 			selectedReturnFlight = null;
 			selectedHotel = null;
 			currentSearchMode = SearchMode.None;
+
+			Logger.LogCritical("New package's hotel total price is " + package.Hotel.Offers.FirstOrDefault().TotalPrice);
+			Logger.LogCritical("New package's hotel base price is " + package.Hotel.Offers.FirstOrDefault().BasePrice);
 
 			// Auto-clear message after 5 seconds
 			_ = ClearMessageAfterDelay();
