@@ -41,7 +41,8 @@
 						<tbody>
 							@foreach (var flight in OutboundFlights)
 							{
-								<tr class="@(SelectedOutboundFlight == flight ? "selected-row" : "")">
+								<tr class="@(SelectedOutboundFlight == flight ? "selected-row" : "")"
+                                    @onclick=@(() => OnFlightSelected.InvokeAsync((flight, true)))>
 									<td>
 										<input type="radio"
 											   name="outboundFlight"
@@ -107,7 +108,8 @@
                         <tbody>
                             @foreach (var flight in ReturnFlights)
                             {
-                                <tr class="@(SelectedReturnFlight == flight ? "selected-row" : "")">
+                                <tr class="@(SelectedReturnFlight == flight ? "selected-row" : "")"
+                                    @onclick=@(() => OnFlightSelected.InvokeAsync((flight, false)))>
                                     <td>
                                         <input type="radio"
                                                name="returnFlight"
@@ -175,7 +177,8 @@
                     <tbody>
                         @foreach (var hotel in HotelData)
                         {
-                            <tr class="@(SelectedHotel == hotel ? "selected-row" : "")">
+                            <tr class="@(SelectedHotel == hotel ? "selected-row" : "")"
+                                @onclick="@(() => OnHotelSelected.InvokeAsync(hotel))">
                                 <td>
                                     <input type="radio"
                                            name="hotel"
