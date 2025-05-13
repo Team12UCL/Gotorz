@@ -64,6 +64,7 @@ namespace Gotorz.Data
             {
                 entity.HasKey(tp => tp.TravelPackageId);
 
+
                 entity.HasOne(tp => tp.OutboundFlight)
                     .WithMany()
                     .HasForeignKey(tp => tp.OutboundFlightId)

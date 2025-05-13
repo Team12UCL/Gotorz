@@ -78,7 +78,7 @@
 			<!-- EDIT: Use PricingService instead-->
 			<strong>Price:</strong>
 			@{
-				var offer = pkg.Hotel?.Offers?.FirstOrDefault();
+				var offer = pkg.Hotel?.Offers?.FirstOrDefault(); 
 				if (offer == null && pkg.Hotel != null)
 				{
 					_logger.LogCritical($"No hotel offer found for hotel ID: {pkg.Hotel.Id}");
