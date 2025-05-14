@@ -1,5 +1,4 @@
 name: Build and deploy ASP.Net Core app to Azure Web App - Gotorz20250514095933
-
 on:
   push:
     branches:
@@ -11,33 +10,29 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0'
-
+          dotnet-version: '8.0.x'
+          
       - name: Restore dependencies
-        run: dotnet restore Gotorz/Gotorz/Gotorz.csproj
-
+        run: dotnet restore Gotorz.sln
+        
       - name: Build with dotnet
-        run: dotnet build Gotorz/Gotorz/Gotorz.csproj --configuration Release
-
-      - name: Publish to folder
-        run: dotnet publish Gotorz/Gotorz/Gotorz.csproj -c Release -o ./publish --no-cache
-
-      - name: 📂 List contents of ./publish
-        run: ls -R ./publish
-
+        run: dotnet build Gotorz.sln --configuration Release --no-restore
+        
+      - name: Publish Server Project
+        run: dotnet publish Gotorz/Gotorz/Gotorz.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
+        
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: net-app
-          path: ./publish
-
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
+          
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -47,27 +42,23 @@ jobs:
     permissions:
       id-token: write
       contents: read
-
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: net-app
-
-      - name: 📂 Show downloaded folder structure
-        run: ls -R .
-
+          name: .net-app
+          
       - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_32A648A5DB6348958D4C6A3F81A973F9 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9761B4AD937C4133BD539B18EFD586A6 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F38C5E8DE28D45EE8FA85ED065D6F1A0 }}
-
+          
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'Gotorz20250514095933'
           slot-name: 'Production'
-          package: ./net-app
+          package: .
