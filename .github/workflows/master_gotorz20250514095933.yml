@@ -21,13 +21,13 @@ jobs:
           dotnet-version: '8.0'
  
       - name: Restore dependencies
-        run: dotnet restore Gotorz.csproj
+        run: dotnet restore Gotorz/Gotorz/Gotorz.csproj
  
       - name: Build with dotnet
-        run: dotnet build Gotorz.csproj --configuration Release
+        run: dotnet build Gotorz/Gotorz/Gotorz.csproj --configuration Release
  
       - name: dotnet publish
-        run: dotnet publish Gotorz.csproj -c Release -o ./publish --no-cache
+        run: dotnet publish Gotorz/Gotorz/Gotorz.csproj -c Release -o ./publish --no-cache
  
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
