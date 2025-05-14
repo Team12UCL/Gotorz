@@ -20,20 +20,23 @@ jobs:
         with:
           dotnet-version: '8.0'
  
+      - name: Navigate to the Server Project
+        run: cd Gotorz
+ 
       - name: Restore dependencies
-        run: dotnet restore Gotorz/Gotorz/Gotorz.csproj
+        run: dotnet restore Gotorz.csproj
  
       - name: Build with dotnet
-        run: dotnet build Gotorz/Gotorz/Gotorz.csproj --configuration Release
+        run: dotnet build Gotorz.csproj --configuration Release
  
       - name: dotnet publish
-        run: dotnet publish Gotorz/Gotorz/Gotorz.csproj -c Release -o ./publish --no-cache
+        run: dotnet publish Gotorz.csproj -c Release -o ../publish --no-cache
  
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ./publish
+          path: ../publish
  
   deploy:
     runs-on: ubuntu-latest
@@ -63,4 +66,4 @@ jobs:
         with:
           app-name: 'Gotorz20250514095933'
           slot-name: 'Production'
-          package: .
+          package: ../publish
