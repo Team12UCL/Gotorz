@@ -81,7 +81,10 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_32A648A5DB6348958D4C6A3F81A973F9 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9761B4AD937C4133BD539B18EFD586A6 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F38C5E8DE28D45EE8FA85ED065D6F1A0 }}
-          
+
+      - name: List downloaded artifact contents
+        run: ls -R
+        
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
