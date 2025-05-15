@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Components;
 using Gotorz.Services.Admin;
 using Gotorz.Client.Services;
 using Azure.Identity;
-using Azure.Identity;
 
 public class Program
 {
@@ -82,7 +81,7 @@ builder.Services.AddScoped<AdminDashboardService>();
 
 
 
-        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+        var connectionString = builder.Configuration.GetConnectionString("ConnectionString");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
