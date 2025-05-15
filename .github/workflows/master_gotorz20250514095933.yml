@@ -83,3 +83,5 @@ jobs:
           app-name: 'Gotorz20250514095933'
           slot-name: 'Production'
           package: .
+          publish-profile: ${{ secrets.YOUR_PUBLISH_PROFILE }}  # Optional if using service principal
+          startup-command: "dotnet Gotorz.dll"  # Try adding this
