@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Shared.Models;
@@ -51,8 +52,12 @@ namespace Server.Services
 				
 				var content = await response.Content.ReadAsStringAsync();
 				var root = JsonDocument.Parse(content).RootElement;
-				
-                //Parse JSON to list of hotels 
+
+                // Extract the conversion rate using a helper method
+                decimal conversionRate = await GetCurrencyConversionRate(root);
+
+                Debug.WriteLine($"🏨 Response: {content}");
+
 				var hotelData = root.GetProperty("data");
 				var hotels = new List<Hotel>();
 
@@ -90,10 +95,11 @@ namespace Server.Services
 								BedType = roomEst.TryGetProperty("bedType", out var bedType) ? bedType.GetString() : null,
 								NumberOfBeds = roomEst.TryGetProperty("beds", out var beds) ? beds.GetInt32() : 0,
 								Description = room.TryGetProperty("description", out var desc) && desc.TryGetProperty("text", out var descText) ? descText.GetString() : null,
-								BasePrice = price.TryGetProperty("base", out var basePrice) && decimal.TryParse(basePrice.GetString(), out var baseVal) ? baseVal : 0,
-								TotalPrice = price.TryGetProperty("total", out var totalPrice) && decimal.TryParse(totalPrice.GetString(), out var totalVal) ? totalVal : 0,
-								Currency = price.TryGetProperty("currency", out var currency) ? currency.GetString() : null,
-								CancellationPolicy = policies.TryGetProperty("cancellations", out var cancelArr) && cancelArr.GetArrayLength() > 0 &&
+                                BasePrice = price.TryGetProperty("base", out var basePrice) && decimal.TryParse(basePrice.GetString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var baseVal) ? baseVal : 0,
+                                TotalPrice = price.TryGetProperty("total", out var totalPrice) && decimal.TryParse(totalPrice.GetString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var totalVal) ? totalVal : 0,
+                                Currency = price.TryGetProperty("currency", out var currency) ? currency.GetString() : null,
+                                ConversionRate = conversionRate,
+                                CancellationPolicy = policies.TryGetProperty("cancellations", out var cancelArr) && cancelArr.GetArrayLength() > 0 &&
 													 cancelArr[0].TryGetProperty("description", out var cancelDesc) &&
 													 cancelDesc.TryGetProperty("text", out var cancelText)
 													 ? cancelText.GetString()
@@ -101,6 +107,8 @@ namespace Server.Services
 							});
 						}
 					}
+
+                    Debug.WriteLine("The currency conversion rate is " + conversionRate);
 
 					hotels.Add(hotel);
 				}
@@ -118,6 +126,21 @@ namespace Server.Services
                 return null;
             }
         }
+
+        private async Task<decimal> GetCurrencyConversionRate(JsonElement root)
+        {
+            var rate = root
+                .GetProperty("dictionaries")
+                .GetProperty("currencyConversionLookupRates")
+                .EnumerateObject()
+                .First()
+                .Value
+                .GetProperty("rate")
+                .GetString();
+
+            return decimal.Parse(rate, CultureInfo.InvariantCulture);
+        }
+
         public async Task<List<CityData>> GetCitySuggestionsAsync(string query)
         {
             var token = await _authService.GetAccessTokenAsync();

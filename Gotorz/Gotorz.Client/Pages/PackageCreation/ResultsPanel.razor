@@ -5,74 +5,75 @@
 @inject PricingService PricingService
 
 <div class="results-area">
-    @if (CurrentSearchMode == SearchMode.Flights)
-    {
-        <div class="flight-results">
-            <!-- Outbound Flights -->
-            <div class="outbound-flights">
-                <h4>✈️ Outbound Flights</h4>
-                @if (IsLoadingFlights)
-                {
-                    <div class="loading-container">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p>Searching for outbound flights...</p>
-                    </div>
-                }
-                else if (FlightError)
-                {
-                    <div class="error-message">
-                        Error loading flight data. Please try again.
-                    </div>
-                }
-                else if (OutboundFlights.Any())
-                {
-                    <table class="results-table">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Carrier</th>
-                                <th>Duration</th>
-                                <th>Price</th>
-                                <th>Route</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var flight in OutboundFlights)
-                            {
-                                <tr class="@(SelectedOutboundFlight == flight ? "selected-row" : "")">
-                                    <td>
-                                        <input type="radio"
-                                               name="outboundFlight"
-                                               value="@flight"
-                                               @onchange="@(() => OnFlightSelected.InvokeAsync((flight, true)))"
-                                               checked="@(SelectedOutboundFlight == flight)" />
-                                    </td>
-                                    <td>@flight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().CarrierCode</td>
-                                    <td>@flight.Itineraries.FirstOrDefault().Duration.Replace("PT", "")</td>
-                                    <td>@flight.Currency @flight.TotalPrice</td>
-                                    <td>
-                                        @foreach (var segment in flight.Itineraries.FirstOrDefault().Segments)
-                                        {
-                                            <div>
-                                                @segment.DepartureAirport at @segment.DepartureTime.ToString("HH:mm (yyyy-MM-dd)") <br>
-                                                ➝ @segment.ArrivalAirport at @segment.ArrivalTime.ToString("HH:mm (yyyy-MM-dd)")
-                                            </div>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <div class="error-message">
-                        No flight offers found. Please change your search.
-                    </div>
-                }
-            </div>
+	@if (CurrentSearchMode == SearchMode.Flights)
+	{
+		<div class="flight-results">
+			<!-- Outbound Flight Results and UI Feedback -->
+			<div class="outbound-flights">
+				<h4>✈️ Outbound Flights</h4>
+				@if (IsLoadingFlights)
+				{
+					<div class="loading-container">
+						<div class="spinner-border" role="status">
+							<span class="visually-hidden">Loading...</span>
+						</div>
+						<p>Searching for outbound flights...</p>
+					</div>
+				}
+				else if (FlightError)
+				{
+					<div class="error-message">
+						Error loading flight data. Please try again.
+					</div>
+				}
+				else if (OutboundFlights.Any())
+				{
+					<table class="results-table">
+						<thead>
+							<tr>
+								<th></th>
+								<th>Carrier</th>
+								<th>Duration</th>
+								<th>Price</th>
+								<th>Route</th>
+							</tr>
+						</thead>
+						<tbody>
+							@foreach (var flight in OutboundFlights)
+							{
+								<tr class="@(SelectedOutboundFlight == flight ? "selected-row" : "")"
+                                    @onclick=@(() => OnFlightSelected.InvokeAsync((flight, true)))>
+									<td>
+										<input type="radio"
+											   name="outboundFlight"
+											   value="@flight"
+											   @onchange="@(() => OnFlightSelected.InvokeAsync((flight, true)))"
+											   checked="@(SelectedOutboundFlight == flight)" />
+									</td>
+									<td>@flight.Itineraries.FirstOrDefault().Segments.FirstOrDefault().CarrierCode</td>
+									<td>@flight.Itineraries.FirstOrDefault().Duration.Replace("PT", "")</td>
+									<td>@flight.Currency @flight.TotalPrice</td>
+									<td>
+										@foreach (var segment in flight.Itineraries.FirstOrDefault().Segments)
+										{
+											<div>
+												@segment.DepartureAirport at @segment.DepartureTime.ToString("HH:mm (yyyy-MM-dd)") <br>
+												➝ @segment.ArrivalAirport at @segment.ArrivalTime.ToString("HH:mm (yyyy-MM-dd)")
+											</div>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+				else
+				{
+					<div class="error-message">
+						No flight offers found. Please change your search.
+					</div>
+				}
+			</div>
 
             <!-- Return Flights -->
             <div class="return-flights">
@@ -107,7 +108,8 @@
                         <tbody>
                             @foreach (var flight in ReturnFlights)
                             {
-                                <tr class="@(SelectedReturnFlight == flight ? "selected-row" : "")">
+                                <tr class="@(SelectedReturnFlight == flight ? "selected-row" : "")"
+                                    @onclick=@(() => OnFlightSelected.InvokeAsync((flight, false)))>
                                     <td>
                                         <input type="radio"
                                                name="returnFlight"
@@ -175,7 +177,8 @@
                     <tbody>
                         @foreach (var hotel in HotelData)
                         {
-                            <tr class="@(SelectedHotel == hotel ? "selected-row" : "")">
+                            <tr class="@(SelectedHotel == hotel ? "selected-row" : "")"
+                                @onclick="@(() => OnHotelSelected.InvokeAsync(hotel))">
                                 <td>
                                     <input type="radio"
                                            name="hotel"
@@ -194,11 +197,11 @@
                                 <td>
                                     @{
                                         var offer = hotel.Offers?.FirstOrDefault();
-                                        var price = offer?.TotalPrice.ToString() ?? "0";
+                                        var price = offer?.TotalPrice ?? 0;
                                         var currency = offer?.Currency ?? "EUR";
-                                        var eurPrice = PricingService.ConvertToEUR(price, currency, hotel.Offers.FirstOrDefault());
+                                        var eurPrice = PricingService.ConvertToEUR(price, currency, offer);
                                     }
-                                    @price @currency (@eurPrice EUR)
+                                    @eurPrice EUR (@price @currency)
                                 </td>
                                 <td>
                                     @if (offer?.Description != null)
@@ -222,17 +225,17 @@
 </div>
 
 @code {
-    [Parameter] public SearchMode CurrentSearchMode { get; set; }
-    [Parameter] public List<FlightOffer> OutboundFlights { get; set; } = new();
-    [Parameter] public List<FlightOffer> ReturnFlights { get; set; } = new();
-    [Parameter] public List<Hotel>? HotelData { get; set; }
-    [Parameter] public FlightOffer? SelectedOutboundFlight { get; set; }
-    [Parameter] public FlightOffer? SelectedReturnFlight { get; set; }
-    [Parameter] public Hotel? SelectedHotel { get; set; }
-    [Parameter] public EventCallback<(FlightOffer flight, bool isOutbound)> OnFlightSelected { get; set; }
-    [Parameter] public EventCallback<Hotel> OnHotelSelected { get; set; }
-    [Parameter] public bool IsLoadingFlights { get; set; }
-    [Parameter] public bool IsLoadingHotels { get; set; }
-    [Parameter] public bool FlightError { get; set; }
-    [Parameter] public bool HotelError { get; set; }
+	[Parameter] public SearchMode CurrentSearchMode { get; set; }
+	[Parameter] public List<FlightOffer> OutboundFlights { get; set; } = new();
+	[Parameter] public List<FlightOffer> ReturnFlights { get; set; } = new();
+	[Parameter] public List<Hotel>? HotelData { get; set; }
+	[Parameter] public FlightOffer? SelectedOutboundFlight { get; set; }
+	[Parameter] public FlightOffer? SelectedReturnFlight { get; set; }
+	[Parameter] public Hotel? SelectedHotel { get; set; }
+	[Parameter] public EventCallback<(FlightOffer flight, bool isOutbound)> OnFlightSelected { get; set; }
+	[Parameter] public EventCallback<Hotel> OnHotelSelected { get; set; }
+	[Parameter] public bool IsLoadingFlights { get; set; }
+	[Parameter] public bool IsLoadingHotels { get; set; }
+	[Parameter] public bool FlightError { get; set; }
+	[Parameter] public bool HotelError { get; set; }
 }

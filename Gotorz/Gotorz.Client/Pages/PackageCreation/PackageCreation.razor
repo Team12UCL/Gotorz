@@ -4,10 +4,13 @@
 @using Client.Services
 @rendermode InteractiveWebAssembly
 @inject HttpClient HttpClient
+@inject ILogger<PackageCreation> Logger
 
 <PageTitle>Create Travel Package</PageTitle>
 
 <h3>Create Travel Package</h3>
+
+<Navbar> </Navbar>
 
 <div class="booking-container">
 	<!-- Top Row: Search Panel and Booking Summary -->
@@ -57,18 +60,18 @@
 	private SearchPanel searchPanel;
 	private SearchMode currentSearchMode = SearchMode.None;
 
-	// Flight data
+	// Flight Data
 	private List<FlightOffer> outboundFlights = new();
 	private List<FlightOffer> returnFlights = new();
 	private FlightOffer? selectedOutboundFlight;
 	private FlightOffer? selectedReturnFlight;
 
-	// Hotel data
+	// Hotel Data
 	private List<Hotel>? hotels;
 	private HotelOffer? hotelOffers;
 	private Hotel? selectedHotel;
 
-	// Search parameters
+	// Search Parameters
 	private DateTime? departureDate;
 	private DateTime? returnDate;
 	private int adults = 1;
