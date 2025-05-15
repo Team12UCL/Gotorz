@@ -37,7 +37,7 @@ public class Program
 
         builder.Services.AddScoped<IStripeService, StripeService>();
         builder.Services.AddSingleton<PricingService>();
-		builder.Services.AddScoped<ITravelPackageService, TravelPackageService>();
+		builder.Services.AddScoped<TravelPackageService>();
 		builder.Services.AddScoped<FlightService>();
         builder.Services.AddScoped<HotelService>();
         builder.Services.AddSingleton<AirportService>();
@@ -46,10 +46,9 @@ public class Program
         {
             options.AddPolicy("AllowBlazorClient",
                 policy => policy
-                    .WithOrigins("https://localhost:7216")
+                    .AllowAnyOrigin() // For production deployment, consider restricting this to your actual domain
                     .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .SetIsOriginAllowed(origin => true));
+                    .AllowAnyHeader());
         });
 
         builder.Services.AddAuthentication(options =>

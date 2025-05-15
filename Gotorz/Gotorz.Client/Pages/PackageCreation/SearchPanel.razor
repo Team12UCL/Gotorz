@@ -118,7 +118,7 @@
     [Parameter] public EventCallback OnSearchHotels { get; set; }
     [Parameter] public EventCallback OnSelectionChanged { get; set; }
 
-    // Search parameters
+    // Search Parameters
     public string OriginSearchQuery { get; set; } = string.Empty;
     public string DestinationSearchQuery { get; set; } = string.Empty;
     public string HotelCitySearch { get; set; } = string.Empty;
@@ -126,14 +126,14 @@
     public DateTime? ReturnDate { get; set; }
     public int Adults { get; set; } = 1;
 
-    // Location codes
+    // Location Codes
     public string OriginLocationCode { get; set; } = string.Empty;
     public string DestinationLocationCode { get; set; } = string.Empty;
     public string DestinationCityCode { get; set; } = string.Empty;
     public string OriginCityName { get; set; } = string.Empty;
     public string DestinationCityName { get; set; } = string.Empty;
 
-    // Search Suggestions (Airports for flights and Cities for hotel)
+	// Search Suggestions (Airports for flights and Cities for hotel)
     private List<Airport> OriginAirportSuggestions { get; set; } = new();
     private List<Airport> DestinationAirportSuggestions { get; set; } = new();
     private List<CityData> HotelCitySuggestions { get; set; } = new();
@@ -170,7 +170,7 @@
 
         if (query.Length >= 3)
         {
-            // Debouncer to limit API calls (requires 500ms pause in typing before calling API)
+			// Debouncer to limit API calls (requires 500ms pause in typing before calling API)
             _debounceTimer = new Timer(async _ =>
             {
                 try
@@ -229,7 +229,7 @@
                ?? new List<Airport>();
     }
 
-    // Method to fetch city suggestions (directly from Amadeus API)
+	// Method to fetch city suggestions (directly from Amadeus API)
     private async Task<List<CityData>> FetchCitySuggestions(string query)
     {
         if (string.IsNullOrWhiteSpace(query))
@@ -239,7 +239,7 @@
                ?? new List<CityData>();
     }
 
-    // Method to set the selected airport (origin or destination) and update the UI
+	// Method to set the selected airport (origin or destination) and update the UI
     private void SetAirport(Airport airport, bool isOrigin)
     {
         IsUsingAutocomplete = true;
@@ -270,7 +270,7 @@
         OnSelectionChanged.InvokeAsync();
     }
 
-    // Method to fetch flight data (outbound or return) based on the selected parameters
+	// Method to fetch flight data (outbound or return) based on the selected parameters
     public async Task<List<FlightOffer>> FetchFlightData(bool isOutbound)
     {
         IsSearchingFlights = true;
@@ -289,7 +289,7 @@
         }
     }
 
-    // Method to fetch hotel data based on the selected parameters
+	// Method to fetch hotel data based on the selected parameters
     public async Task<List<Hotel>> FetchHotelData()
     {
         IsSearchingHotels = true;

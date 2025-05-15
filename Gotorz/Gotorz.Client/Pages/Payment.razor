@@ -1,0 +1,534 @@
+﻿@page "/payment/{PackageId:guid}"
+@page "/stripetest/{action}"
+@using Gotorz.Client.Services
+@using Shared.Models
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject PricingService PricingService
+@rendermode InteractiveWebAssembly
+
+<div class="payment-page">
+	<h3>Complete Your Booking</h3>
+
+	@if (Action == "success")
+	{
+		<div class="payment-result success">
+			<div class="icon-container">
+				<i class="payment-icon success-icon">✓</i>
+			</div>
+			<h4>Thanks for your order!</h4>
+			<p>
+				We appreciate your business! If you have any questions, please email
+				<a href="mailto:support@gotorz.com">support@gotorz.com</a>.
+			</p>
+			<button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo("/"))">
+				Return to Home
+			</button>
+		</div>
+	}
+	else if (Action == "cancel")
+	{
+		<div class="payment-result cancelled">
+			<div class="icon-container">
+				<i class="payment-icon cancel-icon">✕</i>
+			</div>
+			<h4>Payment Cancelled</h4>
+			<p>Your payment was cancelled. Feel free to browse other travel packages.</p>
+			<button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo("/packages"))">
+				Return to Packages
+			</button>
+		</div>
+	}
+	else if (isLoading)
+	{
+		<div class="loading-container">
+			<div class="loading-spinner"></div>
+			<p>Loading your booking details...</p>
+		</div>
+	}
+	else if (errorMessage != null)
+	{
+		<div class="error-container">
+			<div class="icon-container">
+				<i class="payment-icon error-icon">!</i>
+			</div>
+			<h4>Error</h4>
+			<p>@errorMessage</p>
+			<button class="btn btn-secondary" @onclick="@(() => NavigationManager.NavigateTo("/packages"))">
+				Return to Packages
+			</button>
+		</div>
+	}
+	else if (travelPackage != null)
+	{
+		<div class="payment-card">
+			<div class="card-header">
+				<h4>Your booking details</h4>
+			</div>
+
+			<div class="card-body">
+				<div class="booking-summary">
+					<div class="summary-section">
+						@* <p><strong>Package ID:</strong> <span class="value">@travelPackage.TravelPackageId</span></p> *@
+						<p><strong>Destination:</strong> <span class="value">@travelPackage.Hotel.CityCode</span></p>
+						<p><strong>Travelers:</strong> <span class="value">@Adults adult(s)@(Children > 0 ? $", {Children} child(ren)" : "")</span></p>
+					</div>
+
+					<div class="summary-section">
+						<h5>Flight Details</h5>
+						@if (travelPackage.OutboundFlight != null)
+						{
+							<p>
+								<strong>Outbound:</strong> @travelPackage.OriginCity to @travelPackage.DestinationCity
+								on @travelPackage.DepartureDate.ToString("dd MMM yyyy")
+							</p>
+						}
+
+						@if (travelPackage.ReturnFlight != null)
+						{
+							<p>
+								<strong>Return:</strong> @travelPackage.DestinationCity to @travelPackage.OriginCity
+								on @travelPackage.ReturnDate.ToString("dd MMM yyyy")
+							</p>
+						}
+					</div>
+
+					@if (travelPackage.Hotel != null)
+					{
+						<div class="summary-section">
+							<h5>Accommodation</h5>
+							<p>
+								<strong>Hotel:</strong> <span class="value">@travelPackage.Hotel.Name in @travelPackage.Hotel.CityCode </span>
+							</p>
+							<p>
+								<strong>Stay duration:</strong> <span class="value">@StayDuration night(s)</span>
+							</p>
+						</div>
+					}
+
+					<div class="summary-section total-section">
+						<h5>Payment Summary</h5>
+						<p class="price"><span>Total price:</span> <span class="total-price">€@TotalPriceFormatted </span></p>
+					</div>
+				</div>
+
+				<div class="checkout-actions">
+					<button class="checkout-button" @onclick="CreateCheckoutSession" disabled="@IsProcessing">
+						@if (IsProcessing)
+						{
+							<span class="spinner" role="status" aria-hidden="true"></span>
+							<span> Processing...</span>
+						}
+						else
+						{
+							<span>Proceed to Checkout</span>
+						}
+					</button>
+				</div>
+			</div>
+		</div>
+	}
+	else
+	{
+		<div class="no-booking-container">
+			<div class="icon-container">
+				<i class="payment-icon info-icon">i</i>
+			</div>
+			<h4>No Booking Selected</h4>
+			<p>Please select a travel package before proceeding to payment.</p>
+			<button class="btn btn-primary" @onclick="@(() => NavigationManager.NavigateTo("/packages"))">
+				Browse Travel Packages
+			</button>
+		</div>
+	}
+</div>
+
+@code {
+	[Parameter]
+	public Guid PackageId { get; set; }
+
+	[Parameter]
+	[SupplyParameterFromQuery]
+	public int Adults { get; set; } = 1;
+
+	[Parameter]
+	[SupplyParameterFromQuery]
+	public int Children { get; set; } = 0;
+
+	[Parameter]
+	public string Action { get; set; }
+
+	private TravelPackage? travelPackage;
+	private string? errorMessage;
+	private bool IsProcessing { get; set; } = false;
+	private bool isLoading { get; set; } = true;
+
+	private string TotalPriceFormatted => travelPackage == null
+	? string.Empty
+	: PricingService.CalculateTotalPriceWithPassengers(
+	travelPackage.OutboundFlight,
+	travelPackage.ReturnFlight,
+	travelPackage.Hotel,
+	travelPackage.Hotel?.Offers?.FirstOrDefault(),
+	Adults,
+	Children
+	).ToString();
+
+	private int StayDuration => (travelPackage?.ReturnDate - travelPackage?.DepartureDate)?.Days ?? 0;
+
+	protected override async Task OnInitializedAsync()
+	{
+		isLoading = true;
+
+		try
+		{
+			if (PackageId != Guid.Empty)
+			{
+				travelPackage = await Http.GetFromJsonAsync<TravelPackage>($"api/travelpackage/{PackageId}");
+
+				if (travelPackage == null)
+				{
+					errorMessage = "Could not retrieve travel package details. The package may no longer be available.";
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Error when retrieving package details: {ex.Message}";
+			Console.Error.WriteLine($"Error loading travel package: {ex}");
+		}
+		finally
+		{
+			isLoading = false;
+		}
+	}
+
+	private async Task CreateCheckoutSession()
+	{
+		if (travelPackage == null)
+		{
+			errorMessage = "Cannot create checkout session: Travel package details not available.";
+			return;
+		}
+
+		IsProcessing = true;
+
+		try
+		{
+			var request = new
+			{
+				ProductName = $"Travel Package",
+				Description = $"Trip to {travelPackage.DestinationCity} incl. flight & hotel!",
+				AmountInCents = (long)(PricingService.CalculateTotalPriceWithPassengers(
+			travelPackage.OutboundFlight,
+			travelPackage.ReturnFlight,
+			travelPackage.Hotel,
+			travelPackage.Hotel?.Offers?.FirstOrDefault(),
+			Adults,
+			Children
+			) * 100)
+			};
+
+			var response = await Http.PostAsJsonAsync("api/stripe/create-checkout-session", request);
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<CheckoutResult>();
+				if (result?.Url != null)
+				{
+					NavigationManager.NavigateTo(result.Url, forceLoad: true);
+				}
+				else
+				{
+					errorMessage = "Invalid response from payment service.";
+				}
+			}
+			else
+			{
+				errorMessage = $"Payment service error: {await response.Content.ReadAsStringAsync()}";
+				Console.Error.WriteLine($"Error creating checkout session: {await response.Content.ReadAsStringAsync()}");
+			}
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Payment processing error: {ex.Message}";
+			Console.Error.WriteLine($"Exception during checkout: {ex}");
+		}
+		finally
+		{
+			IsProcessing = false;
+		}
+	}
+
+	private class CheckoutResult
+	{
+		public string Url { get; set; } = string.Empty;
+	}
+}
+
+<style>
+
+	.payment-page {
+		max-width: 800px;
+		margin: 0 auto;
+		padding: 20px;
+	}
+
+		.payment-page h3 {
+			color: #333;
+			margin-bottom: 25px;
+			border-bottom: 2px solid #f0f0f0;
+			padding-bottom: 10px;
+		}
+
+	/* Card styling */
+	.payment-card {
+		border: 1px solid #ddd;
+		border-radius: 8px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+		overflow: hidden;
+		background-color: white;
+	}
+
+	.card-header {
+		background-color: #f8f9fa;
+		padding: 15px 20px;
+		border-bottom: 1px solid #eee;
+	}
+
+		.card-header h4 {
+			margin: 0;
+			color: #333;
+		}
+
+	.card-body {
+		padding: 20px;
+	}
+
+	/* Summary sections */
+	.booking-summary {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.summary-section {
+		padding-bottom: 15px;
+		border-bottom: 1px solid #eee;
+	}
+
+		.summary-section h5 {
+			font-size: 16px;
+			color: #333;
+			margin-bottom: 10px;
+		}
+
+		.summary-section p {
+			margin-bottom: 8px;
+			display: flex;
+			justify-content: space-between;
+		}
+
+			.summary-section p strong {
+				color: #555;
+				width: 140px;
+			}
+
+		.summary-section .value {
+			color: #222;
+			font-weight: 500;
+		}
+
+	/* Total price section */
+	.total-section {
+		margin-top: 15px;
+		border-bottom: none;
+		padding: 15px;
+		background-color: #f8f9fa;
+		border-radius: 6px;
+	}
+
+	.price {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 18px;
+	}
+
+	.total-price {
+		font-weight: bold;
+		color: #2c7be5;
+		font-size: 22px;
+	}
+
+	/* Checkout button */
+	.checkout-actions {
+		margin-top: 25px;
+		text-align: center;
+	}
+
+	.checkout-button {
+		background-color: #2c7be5;
+		color: white;
+		padding: 12px 30px;
+		border: none;
+		border-radius: 6px;
+		font-size: 16px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background-color 0.2s;
+		width: 100%;
+	}
+
+		.checkout-button:hover:not(:disabled) {
+			background-color: #1a68d1;
+		}
+
+		.checkout-button:disabled {
+			background-color: #a0bce0;
+			cursor: not-allowed;
+		}
+
+	/* Loading spinner */
+	.loading-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 40px;
+		text-align: center;
+	}
+
+	.loading-spinner {
+		border: 4px solid #f3f3f3;
+		border-top: 4px solid #2c7be5;
+		border-radius: 50%;
+		width: 40px;
+		height: 40px;
+		margin-bottom: 20px;
+		animation: spin 1s linear infinite;
+	}
+
+	{
+		transform: rotate(0deg);
+	}
+
+	100% {
+		transform: rotate(360deg);
+	}
+
+	}
+
+	.spinner {
+		display: inline-block;
+		width: 15px;
+		height: 15px;
+		border: 2px solid rgba(255,255,255,.3);
+		border-radius: 50%;
+		border-top-color: #fff;
+		animation: spin 1s ease-in-out infinite;
+		margin-right: 5px;
+	}
+
+	/* Status containers */
+	.payment-result,
+	.error-container,
+	.no-booking-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 40px 20px;
+		text-align: center;
+		border-radius: 8px;
+		margin-bottom: 20px;
+	}
+
+	.success {
+		background-color: #edfbf0;
+		border: 1px solid #d1e7dd;
+	}
+
+	.cancelled {
+		background-color: #fff9ed;
+		border: 1px solid #ffecb5;
+	}
+
+	.error-container {
+		background-color: #feebef;
+		border: 1px solid #f5c2c7;
+	}
+
+	.no-booking-container {
+		background-color: #f0f2f5;
+		border: 1px solid #dee2e6;
+	}
+
+	/* Icons */
+	.icon-container {
+		width: 60px;
+		height: 60px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 20px;
+	}
+
+	.payment-icon {
+		font-style: normal;
+		font-size: 30px;
+		font-weight: bold;
+	}
+
+	.success .icon-container {
+		background-color: #d1e7dd;
+		color: #146c43;
+	}
+
+	.cancelled .icon-container {
+		background-color: #ffecb5;
+		color: #997404;
+	}
+
+	.error-container .icon-container {
+		background-color: #f5c2c7;
+		color: #b02a37;
+	}
+
+	.no-booking-container .icon-container {
+		background-color: #dee2e6;
+		color: #3a5175;
+	}
+
+	/* Buttons for result pages */
+	.btn {
+		padding: 10px 20px;
+		border-radius: 6px;
+		font-weight: 600;
+		cursor: pointer;
+		border: none;
+		margin-top: 15px;
+		transition: background-color 0.2s;
+	}
+
+	.btn-primary {
+		background-color: #2c7be5;
+		color: white;
+	}
+
+		.btn-primary:hover {
+			background-color: #1a68d1;
+		}
+
+	.btn-secondary {
+		background-color: #6c757d;
+		color: white;
+	}
+
+		.btn-secondary:hover {
+			background-color: #5a6268;
+		}
+
+</style>

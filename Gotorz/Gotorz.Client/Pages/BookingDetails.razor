@@ -1,0 +1,84 @@
+﻿@page "/bookingdetails/{PackageId:guid}"
+@inject NavigationManager NavManager
+@using Shared.Models
+@inject HttpClient Http
+@rendermode InteractiveWebAssembly
+
+<h3>Booking Details</h3>
+
+@if (errorMessage != null)
+{
+	<p class="error-message">@errorMessage</p>
+}
+else if (travelPackage == null)
+{
+	<p>Loading...</p>
+}
+else
+{
+	<p><strong>Destination:</strong> @travelPackage.DestinationCity</p>
+	<p><strong>Dates:</strong> @travelPackage.DepartureDate.ToShortDateString() - @travelPackage.ReturnDate.ToShortDateString()</p>
+
+	<h4>Traveler Information</h4>
+	@foreach (var traveler in travelers)
+	{
+		<div class="traveler-form">
+			<h5>Traveler @(travelers.IndexOf(traveler) + 1)</h5>
+			<input placeholder="Full name" @bind="traveler.FullName" />
+			<input placeholder="Passport number" @bind="traveler.PassportNumber" />
+			<label>Date of birth</label>
+			<input type="date" @bind="traveler.DateOfBirth" />
+			<input placeholder="Nationality" @bind="traveler.Nationality" />
+		</div>
+	}
+	<br />
+
+	<button class="summary-button" @onclick ="ContinueToPayment">Continue to Payment</button>
+}
+
+@code {
+	[Parameter]
+	public Guid PackageId { get; set; }
+
+	[Parameter]
+	[SupplyParameterFromQuery]
+	public int Adults { get; set; } = 1;
+
+	[Parameter]
+	[SupplyParameterFromQuery]
+	public int Children { get; set; } = 0;
+
+	private TravelPackage? travelPackage;
+	private List<PassengerInfo> travelers = new();
+	private string? errorMessage;
+
+	protected override async Task OnInitializedAsync()
+	{
+		try
+		{
+			travelPackage = await Http.GetFromJsonAsync<TravelPackage>($"api/travelpackage/{PackageId}");
+
+			for (int i = 0; i < Adults + Children; i++)
+			{
+				travelers.Add(new PassengerInfo());
+			}
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Fejl under hentning: {ex.Message}";
+		}
+	}
+
+	private void ContinueToPayment()
+	{
+		NavManager.NavigateTo($"/payment/{travelPackage.TravelPackageId}?adults={Adults}&children={Children}");
+	}
+
+	public class PassengerInfo
+	{
+		public string FullName { get; set; } = string.Empty;
+		public string PassportNumber { get; set; } = string.Empty;
+		public DateTime DateOfBirth { get; set; } = DateTime.Now;
+		public string Nationality { get; set; } = string.Empty;
+	}
+}

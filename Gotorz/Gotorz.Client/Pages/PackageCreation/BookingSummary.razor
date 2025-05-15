@@ -3,13 +3,15 @@
 @using Shared.Models.AmadeusCityResponse
 @inject PricingService PricingService
 
+<!-- Booking Summary -->
 <div class="booking-summary">
     <h4>Booking Summary</h4>
     <div class="summary-content">
         @if (OutboundFlight != null || ReturnFlight != null || Hotel != null)
-        {
+        {            
             <div class="summary-section">
                 <h5>Selected Flights</h5>
+                <!-- Outbound Flight -->
                 @if (OutboundFlight != null)
                 {
                     <div class="summary-item">
@@ -21,7 +23,7 @@
                         </div>
                     </div>
                 }
-
+                <!-- Return Flight -->
                 @if (ReturnFlight != null)
                 {
                     <div class="summary-item">
@@ -34,7 +36,7 @@
                     </div>
                 }
             </div>
-
+            <!-- Hotel -->
             @if (Hotel != null)
             {
                 <div class="summary-section">
@@ -43,15 +45,18 @@
                         <strong>@Hotel.Name</strong>
                         <div class="summary-detail">
                             <span>
-                                Period: @Hotel.Offers?.FirstOrDefault()?.CheckInDate to
-                                @Hotel.Offers?.FirstOrDefault()?.CheckOutDate
+                                Period: @Hotel.Offers?.FirstOrDefault()?.CheckInDate.ToShortDateString() to
+                                @Hotel.Offers?.FirstOrDefault()?.CheckOutDate.ToShortDateString()
                             </span>
                             <span>
                                 @{
                                     var offer = Hotel.Offers?.FirstOrDefault();
-                                    var price = offer?.TotalPrice;
+                                    var price = offer?.TotalPrice ?? 0;
                                     var currency = offer?.Currency ?? "EUR";
-                                    var eurPrice = PricingService.ConvertToEUR(price.ToString(), currency, HotelOffers);
+
+                                    var eurPrice = currency == "EUR"
+                                    ? price
+                                    : PricingService.ConvertToEUR(price, currency, offer);
                                 }
                                 @eurPrice EUR
                             </span>
@@ -59,6 +64,7 @@
                     </div>
                 </div>
             }
+            <!-- Pricing -->
             @if (CalculateTotalPrice() > 0)
             {
                 <div class="summary-total">

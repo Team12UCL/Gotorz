@@ -1,4 +1,3 @@
-
 using Gotorz.Client;
 using Gotorz.Client.Services;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -9,11 +8,12 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 //builder.Services.AddSingleton<TravelPackageService>();
 builder.Services.AddSingleton<PricingService>();
 
-builder.Services.AddScoped(sp => new HttpClient
+// Get base address from configuration or use relative path
+builder.Services.AddScoped(sp =>
 {
-    BaseAddress = new Uri("https://localhost:7063") // Server port
+    // In production, use relative URLs that will resolve to the same domain
+    return new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
 });
-
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
