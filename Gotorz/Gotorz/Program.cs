@@ -20,8 +20,13 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
-        builder.Services.AddRazorComponents()
+		if (builder.Environment.IsDevelopment())
+		{
+			builder.Configuration.AddUserSecrets<Program>();
+		}
+
+		// Add services to the container.
+		builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents()
             .AddInteractiveWebAssemblyComponents();
 
@@ -70,7 +75,7 @@ builder.Services.AddScoped<AdminDashboardService>();
 
 
 
-        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=tcp:gustavazuresql.database.windows.net,1433;Initial Catalog=Gotorz;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication='Active Directory Default';";
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddControllers();
