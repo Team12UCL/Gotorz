@@ -78,6 +78,7 @@ builder.Services.AddScoped<AdminDashboardService>();
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+
 builder.Services.AddControllers();
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -138,7 +139,10 @@ var app = builder.Build();
             await next();
         });
         // TEST STUFF ENDS
-        app.UseAuthorization();
+
+        
+
+		app.UseAuthorization();
 
         app.UseAntiforgery();
 
@@ -152,6 +156,13 @@ var app = builder.Build();
         app.MapControllers();
         app.MapHub<ChatHub>("/chathub");
 
-        app.Run();
+		// Migrate the database
+		using (var scope = app.Services.CreateScope())
+		{
+			var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+			db.Database.Migrate();
+		}
+
+		app.Run();
     }
 }
