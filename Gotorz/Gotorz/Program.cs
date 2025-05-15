@@ -70,7 +70,7 @@ builder.Services.AddScoped<AdminDashboardService>();
 
 
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Server=tcp:gustavazuresql.database.windows.net,1433;Initial Catalog=Gotorz;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication='Active Directory Default';";
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddControllers();
