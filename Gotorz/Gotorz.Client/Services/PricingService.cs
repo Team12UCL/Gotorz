@@ -24,12 +24,18 @@ namespace Gotorz.Client.Services
             decimal total = 0;
 
             // Add outbound flight price
+            _logger.LogInformation($"Adding outbound flight price: {outboundFlight?.TotalPrice} {outboundFlight?.Currency}");
             total += AddFlightPrice(outboundFlight, selectedHotelOffer);
+
             // Add return flight price
+            _logger.LogInformation($"Adding return flight price: {returnFlight?.TotalPrice} {returnFlight?.Currency}");
             total += AddFlightPrice(returnFlight, selectedHotelOffer);
+
             // Add hotel price
+            _logger.LogInformation($"Adding hotel price");
             total += AddHotelPrice(hotel, selectedHotelOffer);
 
+            _logger.LogInformation($"Total calculated price (before rounding): {total}");
             return Math.Round(total, 2, MidpointRounding.AwayFromZero);
         }
 
@@ -44,24 +50,23 @@ namespace Gotorz.Client.Services
             int? adults = 1,
             int? children = 0)
         {
-            // Calculate base total price
             decimal baseTotal = CalculateTotalPrice(outboundFlight, returnFlight, hotel, selectedHotelOffer);
+            _logger.LogInformation($"Base total price: {baseTotal}");
 
-            // If just 1 adult and no children, return the base price
             if ((adults ?? 1) == 1 && (children ?? 0) == 0)
                 return baseTotal;
 
-            // Calculate passenger multiplier
             decimal multiplier = (adults ?? 1) + ((children ?? 0) * 0.5m);
+            _logger.LogInformation($"Passenger multiplier applied: {multiplier}");
 
-            // Recalculate flight portions with the multiplier
             decimal total = 0;
             total += AddFlightPriceWithMultiplier(outboundFlight, selectedHotelOffer, multiplier);
             total += AddFlightPriceWithMultiplier(returnFlight, selectedHotelOffer, multiplier);
 
-            // Add hotel price (not multiplied by passengers)
+            _logger.LogInformation($"Total after multiplier application: {total}");
             total += AddHotelPrice(hotel, selectedHotelOffer);
 
+            _logger.LogInformation($"Final total price (before rounding): {total}");
             return Math.Round(total, 2, MidpointRounding.AwayFromZero);
         }
 
@@ -69,6 +74,7 @@ namespace Gotorz.Client.Services
         {
             if (flight?.TotalPrice > 0)
             {
+                _logger.LogInformation($"Converting flight price: {flight.TotalPrice} {flight.Currency}");
                 return ConvertToEUR(flight.TotalPrice, flight.Currency, selectedHotelOffer);
             }
             return 0;
@@ -79,6 +85,7 @@ namespace Gotorz.Client.Services
             if (flight?.TotalPrice > 0)
             {
                 decimal basePrice = ConvertToEUR(flight.TotalPrice, flight.Currency, selectedHotelOffer);
+                _logger.LogInformation($"Price after conversion and multiplier application: {basePrice} * {multiplier}");
                 return basePrice * multiplier;
             }
             return 0;
@@ -88,34 +95,53 @@ namespace Gotorz.Client.Services
         {
             if (selectedHotelOffer != null)
             {
+                _logger.LogInformation($"Adding selected hotel price: {selectedHotelOffer.TotalPrice} {selectedHotelOffer.Currency}");
                 return ConvertToEUR(selectedHotelOffer.TotalPrice, selectedHotelOffer.Currency, selectedHotelOffer);
             }
 
-            // If no selected hotel offer, fallback to the first hotel offer
             if (hotel?.Offers?.Any() == true)
             {
                 var fallbackHotelOffer = hotel.Offers.First();
+                _logger.LogInformation($"Adding fallback hotel price: {fallbackHotelOffer.TotalPrice} {fallbackHotelOffer.Currency}");
                 return ConvertToEUR(fallbackHotelOffer.TotalPrice, fallbackHotelOffer.Currency, fallbackHotelOffer);
             }
 
             return 0;
         }
 
-        /// <summary>
-        /// Converts price to EUR based on currency and conversion rate
-        /// </summary>
+        private readonly Dictionary<string, decimal> _conversionCache = new Dictionary<string, decimal>();
+
         public decimal ConvertToEUR(decimal price, string? currency, HotelOffer? hotelOffer = null)
         {
             if (price <= 0 || string.IsNullOrWhiteSpace(currency) || currency == "EUR")
                 return price;
 
-            if (hotelOffer?.ConversionRate > 0)
+            string cacheKey = $"{price}-{currency}";
+
+            // ✅ Check if it's already converted
+            if (_conversionCache.ContainsKey(cacheKey))
             {
-                return Math.Round(price * hotelOffer.ConversionRate.Value, 2);
+                _logger.LogInformation($"✅ Using cached conversion for {price} {currency}: {_conversionCache[cacheKey]} EUR");
+                return _conversionCache[cacheKey];
             }
 
-            // Default conversion if no specific rate is available
-            return price;
+            decimal convertedPrice;
+
+            // ✅ Perform conversion
+            if (hotelOffer?.ConversionRate > 0)
+            {
+                convertedPrice = Math.Round(price * hotelOffer.ConversionRate.Value, 2);
+            }
+            else
+            {
+                convertedPrice = price;
+            }
+
+            // ✅ Store in cache
+            _conversionCache[cacheKey] = convertedPrice;
+            _logger.LogInformation($"💶 Converted {price} {currency} to {convertedPrice} EUR");
+
+            return convertedPrice;
         }
     }
 }
