@@ -21,18 +21,18 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-		if (builder.Environment.IsProduction())
-		{
-			var keyVaultName = builder.Configuration["gotorz"];
-			var keyVaultUrl = $"https://{keyVaultName}.vault.azure.net/";
+        if (builder.Environment.IsProduction())
+        {
+            var keyVaultName = builder.Configuration["gotorz"];
+            var keyVaultUrl = $"https://{keyVaultName}.vault.azure.net/";
 
-			builder.Configuration.AddAzureKeyVault(
-				new Uri(keyVaultUrl),
-				new DefaultAzureCredential());
-		}
+            builder.Configuration.AddAzureKeyVault(
+                new Uri(keyVaultUrl),
+                new DefaultAzureCredential());
+        }
 
-		// Add services to the container.
-		builder.Services.AddRazorComponents()
+        // Add services to the container.
+        builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents()
             .AddInteractiveWebAssemblyComponents();
 
@@ -48,8 +48,8 @@ public class Program
 
         builder.Services.AddScoped<IStripeService, StripeService>();
         builder.Services.AddSingleton<PricingService>();
-		builder.Services.AddScoped<ITravelPackageService, TravelPackageService>();
-		builder.Services.AddScoped<FlightService>();
+        builder.Services.AddScoped<ITravelPackageService, TravelPackageService>();
+        builder.Services.AddScoped<FlightService>();
         builder.Services.AddScoped<HotelService>();
         builder.Services.AddSingleton<AirportService>();
 
@@ -71,17 +71,20 @@ public class Program
         .AddIdentityCookies();
 
 
-builder.Services.AddScoped<RoleManagementService>();
+        builder.Services.AddScoped<RoleManagementService>();
 
-builder.Services.AddScoped<AdminUserService>();
-builder.Services.AddScoped<AdminRoleService>();
-builder.Services.AddScoped<AdminBookingService>();
-builder.Services.AddScoped<AdminActivityLogService>();
-builder.Services.AddScoped<AdminDashboardService>();
+        builder.Services.AddScoped<AdminUserService>();
+        builder.Services.AddScoped<AdminRoleService>();
+        builder.Services.AddScoped<AdminBookingService>();
+        builder.Services.AddScoped<AdminActivityLogService>();
+        builder.Services.AddScoped<AdminDashboardService>();
 
+        var connectionString = builder.Configuration["ConnectionStrings:DefaultConnection"];
+		if (builder.Environment.IsProduction())
+        {
+			connectionString = builder.Configuration["ConnectionString"];
 
-
-        var connectionString = builder.Configuration.GetConnectionString("ConnectionString");
+        }
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
@@ -101,19 +104,7 @@ builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, Additio
 		builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Logging.AddConsole();
 
-builder.Services.ConfigureApplicationCookie(options =>
-{
-	options.Events.OnRedirectToLogin = context =>
-	{
-		context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-		return Task.CompletedTask;
-	};
-	options.Events.OnRedirectToAccessDenied = context =>
-	{
-		context.Response.StatusCode = StatusCodes.Status403Forbidden;
-		return Task.CompletedTask;
-	};
-});
+
 
 var app = builder.Build();
 
@@ -162,12 +153,16 @@ var app = builder.Build();
         app.MapControllers();
         app.MapHub<ChatHub>("/chathub");
 
-		// Migrate the database
-		using (var scope = app.Services.CreateScope())
+		if (builder.Environment.IsProduction())
+        {
+
+			// Migrate the database
+			using (var scope = app.Services.CreateScope())
 		{
 			var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 			db.Database.Migrate();
 		}
+        }
 
 		app.Run();
     }
