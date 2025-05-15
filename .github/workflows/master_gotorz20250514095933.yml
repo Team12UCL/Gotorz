@@ -4,7 +4,6 @@ on:
     branches:
       - master
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,30 +17,43 @@ jobs:
         with:
           dotnet-version: '8.0.x'
           
-      - name: Update client BaseAddress
-        run: |
-          sed -i 's|BaseAddress = new Uri("https://localhost:7063")|BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)|' Gotorz/Gotorz.Client/Program.cs
-          cat Gotorz/Gotorz.Client/Program.cs
-      
-      - name: Update CORS policy
-        run: |
-          sed -i 's|.WithOrigins("https://localhost:7216")|.AllowAnyOrigin()|' Gotorz/Gotorz/Program.cs
-          cat Gotorz/Gotorz/Program.cs | grep -A 5 "AddCors"
+      # Diagnostic step to understand the current client setup
+      - name: Print Client Program.cs contents
+        run: cat Gotorz/Gotorz.Client/Program.cs
+          
+      # No need to modify BaseAddress since it's already set correctly
+          
+      # Diagnostic step to understand CORS config
+      - name: Print Server CORS config
+        run: cat Gotorz/Gotorz/Program.cs | grep -A 10 "AddCors"
           
       - name: Restore dependencies
         run: dotnet restore Gotorz.sln
-        
+          
       - name: Build with dotnet
         run: dotnet build Gotorz.sln --configuration Release --no-restore
-        
-      - name: Publish Server Project
+          
+      - name: Publish Server Project (including WebAssembly resources)
         run: dotnet publish Gotorz/Gotorz/Gotorz.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
-        
+          
       - name: Enable logging in web.config
         run: |
           sed -i 's/stdoutLogEnabled="false"/stdoutLogEnabled="true"/' ${{env.DOTNET_ROOT}}/myapp/web.config
+          sed -i 's/stdoutLogFile=".\logs\stdout"/stdoutLogFile="D:\home\LogFiles\stdout"/' ${{env.DOTNET_ROOT}}/myapp/web.config
           cat ${{env.DOTNET_ROOT}}/myapp/web.config
-        
+          
+      # Diagnostic step to see what files are being published
+      - name: List published files
+        run: |
+          echo "Root directory:"
+          ls -la ${{env.DOTNET_ROOT}}/myapp
+          echo "wwwroot directory:"
+          ls -la ${{env.DOTNET_ROOT}}/myapp/wwwroot
+          echo "Client resources (_content directory):"
+          ls -la ${{env.DOTNET_ROOT}}/myapp/wwwroot/_content || echo "_content directory not found"
+          echo "_framework directory:"
+          ls -la ${{env.DOTNET_ROOT}}/myapp/wwwroot/_framework || echo "_framework directory not found"
+          
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -77,3 +89,10 @@ jobs:
           app-name: 'Gotorz20250514095933'
           slot-name: 'Production'
           package: .
+          
+      # Add Azure App Settings for production environment
+      - name: Configure Azure App Settings
+        run: |
+          az webapp config appsettings set --name Gotorz20250514095933 \
+            --resource-group $(az webapp show --name Gotorz20250514095933 --query resourceGroup --output tsv) \
+            --settings ASPNETCORE_ENVIRONMENT=Production
