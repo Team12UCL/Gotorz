@@ -13,6 +13,8 @@ using Gotorz.Services;
 using Microsoft.AspNetCore.Components;
 using Gotorz.Services.Admin;
 using Gotorz.Client.Services;
+using Azure.Identity;
+using Azure.Identity;
 
 public class Program
 {
@@ -20,9 +22,14 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-		if (builder.Environment.IsDevelopment())
+		if (builder.Environment.IsProduction())
 		{
-			builder.Configuration.AddUserSecrets<Program>();
+			var keyVaultName = builder.Configuration["gotorz"];
+			var keyVaultUrl = $"https://{keyVaultName}.vault.azure.net/";
+
+			builder.Configuration.AddAzureKeyVault(
+				new Uri(keyVaultUrl),
+				new DefaultAzureCredential());
 		}
 
 		// Add services to the container.
