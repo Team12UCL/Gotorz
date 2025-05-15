@@ -1,18 +1,13 @@
-using Gotorz.Client.Pages;
-
-using Shared.Models;
-using Gotorz.Components;
+using Gotorz.Client.Services;
 using Gotorz.Components.Account;
+using Gotorz.Components;
 using Gotorz.Data;
+using Gotorz.Services.Admin;
+using Gotorz.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Server.Services;
-using Microsoft.AspNetCore.SignalR;
-using Gotorz.Services;
-using Microsoft.AspNetCore.Components;
-using Gotorz.Services.Admin;
-using Gotorz.Client.Services;
 
 public class Program
 {
@@ -25,26 +20,22 @@ public class Program
             .AddInteractiveServerComponents()
             .AddInteractiveWebAssemblyComponents();
 
-        // Temporarily comment out authentication state that depends on Identity
         builder.Services.AddCascadingAuthenticationState();
-        // builder.Services.AddScoped<IdentityUserAccessor>();
-        // builder.Services.AddScoped<IdentityRedirectManager>();
-        // builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
+        builder.Services.AddScoped<IdentityUserAccessor>();
+        builder.Services.AddScoped<IdentityRedirectManager>();
+        builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 
-        // These services likely don't depend on the database
         builder.Services.AddHttpClient("AmadeusClient");
         builder.Logging.SetMinimumLevel(LogLevel.Information);
+
         builder.Services.AddHttpClient<AmadeusAuthService>();
 
-        // Services that might not directly depend on database
         builder.Services.AddScoped<IStripeService, StripeService>();
         builder.Services.AddSingleton<PricingService>();
+        builder.Services.AddScoped<TravelPackageService>();
+        builder.Services.AddScoped<FlightService>();
+        builder.Services.AddScoped<HotelService>();
         builder.Services.AddSingleton<AirportService>();
-
-        // Comment out services that likely depend on database access
-        // builder.Services.AddScoped<TravelPackageService>();
-        // builder.Services.AddScoped<FlightService>();
-        // builder.Services.AddScoped<HotelService>();
 
         builder.Services.AddCors(options =>
         {
@@ -55,60 +46,63 @@ public class Program
                     .AllowAnyHeader());
         });
 
-        // Simplified authentication setup without database/identity
-        builder.Services.AddAuthentication();
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = IdentityConstants.ApplicationScheme;
+            options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+        })
+        .AddIdentityCookies();
 
-        // Comment out admin services that depend on database
-        // builder.Services.AddScoped<RoleManagementService>();
-        // builder.Services.AddScoped<AdminUserService>();
-        // builder.Services.AddScoped<AdminRoleService>();
-        // builder.Services.AddScoped<AdminBookingService>();
-        // builder.Services.AddScoped<AdminActivityLogService>();
-        // builder.Services.AddScoped<AdminDashboardService>();
 
-        // COMMENTED OUT: Database connection and configuration
-        // var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-        // builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        //     options.UseSqlServer(connectionString));
+        builder.Services.AddScoped<RoleManagementService>();
 
+        builder.Services.AddScoped<AdminUserService>();
+        builder.Services.AddScoped<AdminRoleService>();
+        builder.Services.AddScoped<AdminBookingService>();
+        builder.Services.AddScoped<AdminActivityLogService>();
+        builder.Services.AddScoped<AdminDashboardService>();
+
+
+
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(connectionString));
         builder.Services.AddControllers();
-        // builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+        builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-        // COMMENTED OUT: Identity configuration
-        // builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
-        //     .AddRoles<IdentityRole>()
-        //     .AddEntityFrameworkStores<ApplicationDbContext>()
-        //     .AddSignInManager()
-        //     .AddDefaultTokenProviders();
+        builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            .AddRoles<IdentityRole>()
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddSignInManager()
+            .AddDefaultTokenProviders();
 
-        // builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, AdditionalUserClaimsPrincipalFactory>();
-        // builder.Services.AddScoped<ActivityLogService>();
-        // builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+        builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, AdditionalUserClaimsPrincipalFactory>();
 
+        builder.Services.AddScoped<ActivityLogService>();
+
+        builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
         builder.Logging.AddConsole();
 
-        // Comment out cookie authentication configuration
-        // builder.Services.ConfigureApplicationCookie(options =>
-        // {
-        //     options.Events.OnRedirectToLogin = context =>
-        //     {
-        //         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        //         return Task.CompletedTask;
-        //     };
-        //     options.Events.OnRedirectToAccessDenied = context =>
-        //     {
-        //         context.Response.StatusCode = StatusCodes.Status403Forbidden;
-        //         return Task.CompletedTask;
-        //     };
-        // });
+        builder.Services.ConfigureApplicationCookie(options =>
+        {
+            options.Events.OnRedirectToLogin = context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            };
+        });
 
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment())
         {
             app.UseWebAssemblyDebugging();
-            // Comment out migrations middleware
-            // app.UseMigrationsEndPoint();
+            app.UseMigrationsEndPoint();
         }
         else
         {
@@ -122,9 +116,7 @@ public class Program
         app.UseRouting();
         app.UseCors("AllowBlazorClient");
 
-        // Use basic authentication middleware but functionality will be limited
         app.UseAuthentication();
-
         // USED FOR TESTING SIGNALR
         app.Use(async (context, next) =>
         {
@@ -135,8 +127,8 @@ public class Program
             await next();
         });
         // TEST STUFF ENDS
-
         app.UseAuthorization();
+
         app.UseAntiforgery();
 
         app.MapRazorComponents<App>()
@@ -144,8 +136,7 @@ public class Program
             .AddInteractiveWebAssemblyRenderMode()
             .AddAdditionalAssemblies(typeof(Gotorz.Client._Imports).Assembly);
 
-        // Comment out identity endpoints as they depend on database
-        // app.MapAdditionalIdentityEndpoints();
+        app.MapAdditionalIdentityEndpoints();
 
         app.MapControllers();
         app.MapHub<ChatHub>("/chathub");
