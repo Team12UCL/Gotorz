@@ -18,23 +18,29 @@ jobs:
         with:
           dotnet-version: '8.0.x'
           
+      - name: Update client BaseAddress
+        run: |
+          sed -i 's|BaseAddress = new Uri("https://localhost:7063")|BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)|' Gotorz/Gotorz.Client/Program.cs
+          cat Gotorz/Gotorz.Client/Program.cs
+      
+      - name: Update CORS policy
+        run: |
+          sed -i 's|.WithOrigins("https://localhost:7216")|.AllowAnyOrigin()|' Gotorz/Gotorz/Program.cs
+          cat Gotorz/Gotorz/Program.cs | grep -A 5 "AddCors"
+          
       - name: Restore dependencies
         run: dotnet restore Gotorz.sln
         
       - name: Build with dotnet
         run: dotnet build Gotorz.sln --configuration Release --no-restore
         
-      - name: List directory structure before publish
-        run: find . -type f -name "*.csproj" | sort
-        
       - name: Publish Server Project
         run: dotnet publish Gotorz/Gotorz/Gotorz.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
         
-      - name: List output directory structure
-        run: find ${{env.DOTNET_ROOT}}/myapp -type f | grep -v ".dll" | sort
-        
-      - name: Check for web.config
-        run: cat ${{env.DOTNET_ROOT}}/myapp/web.config || echo "web.config not found!"
+      - name: Enable logging in web.config
+        run: |
+          sed -i 's/stdoutLogEnabled="false"/stdoutLogEnabled="true"/' ${{env.DOTNET_ROOT}}/myapp/web.config
+          cat ${{env.DOTNET_ROOT}}/myapp/web.config
         
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -57,9 +63,6 @@ jobs:
         with:
           name: .net-app
           
-      - name: List files to be deployed
-        run: find . -type f | grep -v ".dll" | sort
-        
       - name: Login to Azure
         uses: azure/login@v2
         with:
