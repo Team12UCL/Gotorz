@@ -46,10 +46,9 @@ public class Program
         {
             options.AddPolicy("AllowBlazorClient",
                 policy => policy
-                    .WithOrigins("https://localhost:7216")
+                    .AllowAnyOrigin() // For production deployment, consider restricting this to your actual domain
                     .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .SetIsOriginAllowed(origin => true));
+                    .AllowAnyHeader());
         });
 
         builder.Services.AddAuthentication(options =>
