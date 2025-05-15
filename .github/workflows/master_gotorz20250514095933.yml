@@ -21,12 +21,6 @@ jobs:
       - name: Print Client Program.cs contents
         run: cat Gotorz/Gotorz.Client/Program.cs
           
-      # No need to modify BaseAddress since it's already set correctly
-          
-      # Diagnostic step to understand CORS config
-      - name: Print Server CORS config
-        run: cat Gotorz/Gotorz/Program.cs | grep -A 10 "AddCors"
-          
       - name: Restore dependencies
         run: dotnet restore Gotorz.sln
           
@@ -81,10 +75,7 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_32A648A5DB6348958D4C6A3F81A973F9 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9761B4AD937C4133BD539B18EFD586A6 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F38C5E8DE28D45EE8FA85ED065D6F1A0 }}
-
-      - name: List downloaded artifact contents
-        run: ls -R
-        
+          
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -92,10 +83,3 @@ jobs:
           app-name: 'Gotorz20250514095933'
           slot-name: 'Production'
           package: .
-          
-      # Add Azure App Settings for production environment
-      - name: Configure Azure App Settings
-        run: |
-          az webapp config appsettings set --name Gotorz20250514095933 \
-            --resource-group $(az webapp show --name Gotorz20250514095933 --query resourceGroup --output tsv) \
-            --settings ASPNETCORE_ENVIRONMENT=Production
