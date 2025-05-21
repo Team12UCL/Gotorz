@@ -41,7 +41,7 @@ public class Program
         {
             options.AddPolicy("AllowBlazorClient",
                 policy => policy
-                    .WithOrigins("gotorz20250514095933.azurewebsites.net") 
+                    .WithOrigins("https://gotorz20250514095933.azurewebsites.net")
                     .AllowAnyMethod()
                     .AllowAnyHeader()
                     .AllowCredentials());
