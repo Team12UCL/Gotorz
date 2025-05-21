@@ -41,9 +41,10 @@ public class Program
         {
             options.AddPolicy("AllowBlazorClient",
                 policy => policy
-                    .AllowAnyOrigin() // For production deployment, consider restricting this to your actual domain
+                    .WithOrigins("gotorz20250514095933.azurewebsites.net") 
                     .AllowAnyMethod()
-                    .AllowAnyHeader());
+                    .AllowAnyHeader()
+                    .AllowCredentials());
         });
 
         builder.Services.AddAuthentication(options =>
