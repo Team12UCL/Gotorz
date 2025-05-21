@@ -83,19 +83,19 @@ public class Program
         builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
         builder.Logging.AddConsole();
 
-        builder.Services.ConfigureApplicationCookie(options =>
-        {
-            options.Events.OnRedirectToLogin = context =>
-            {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return Task.CompletedTask;
-            };
-            options.Events.OnRedirectToAccessDenied = context =>
-            {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                return Task.CompletedTask;
-            };
-        });
+        //builder.Services.ConfigureApplicationCookie(options =>
+        //{
+        //    options.Events.OnRedirectToLogin = context =>
+        //    {
+        //        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        //        return Task.CompletedTask;
+        //    };
+        //    options.Events.OnRedirectToAccessDenied = context =>
+        //    {
+        //        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        //        return Task.CompletedTask;
+        //    };
+        //});
 
         var app = builder.Build();
 
