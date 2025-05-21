@@ -77,7 +77,7 @@ else
               ?? "";
 
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("https://localhost:7063/chathub"))
+            .WithUrl("/chathub")
             .WithAutomaticReconnect()
             .Build();
 
