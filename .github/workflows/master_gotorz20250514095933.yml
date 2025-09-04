@@ -1,4 +1,4 @@
-name: Build and deploy .NET Core application to Web App TodokiServer with API Management Service TodokiServerapi-TodokiServer
+name: Build and deploy .NET Core app to Azure Web App - TodokiServer
 
 on:
   push:
@@ -17,7 +17,7 @@ env:
   API_IMPORT_SPECIFICATION_PATH: Todoki/Server/publish/swagger.json
   CONFIGURATION: Release
   DOTNET_CORE_VERSION: 8.0.x
-  PROJECT_PATH: Todoki/Server/Todoki.Server.csproj
+  WORKING_DIRECTORY: Todoki/Server
 
 jobs:
   build:
@@ -30,21 +30,20 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
 
-      - name: Restore dependencies
-        run: dotnet restore ${{ env.PROJECT_PATH }}
+      - name: Restore
+        run: dotnet restore ${{ env.WORKING_DIRECTORY }}
 
       - name: Build
-        run: dotnet build ${{ env.PROJECT_PATH }} --configuration ${{ env.CONFIGURATION }} --no-restore
+        run: dotnet build ${{ env.WORKING_DIRECTORY }} --configuration ${{ env.CONFIGURATION }} --no-restore
 
       - name: Test
-        run: dotnet test ${{ env.PROJECT_PATH }} --no-build
+        run: dotnet test ${{ env.WORKING_DIRECTORY }} --no-build
 
       - name: Publish
-        run: dotnet publish ${{ env.PROJECT_PATH }} --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+        run: dotnet publish ${{ env.WORKING_DIRECTORY }} --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
 
       - name: Generate Swagger JSON at runtime
         run: |
-          # Run the app in the background with a dummy connection string & JWT
           dotnet ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/Todoki.Server.dll &
           APP_PID=$!
           sleep 5
@@ -58,10 +57,10 @@ jobs:
           path: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest   # Use Windows runner like Azure template
     needs: build
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: webapp
@@ -70,15 +69,15 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          auth-type: SERVICE_PRINCIPAL
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure WebApp
-        uses: azure/webapps-deploy@v2
+        uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          slot-name: Production
           package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
 
       - name: Import API into Azure API Management
