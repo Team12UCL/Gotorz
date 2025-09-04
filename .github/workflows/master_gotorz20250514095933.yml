@@ -1,96 +1,87 @@
-name: Build and deploy .NET Core app to Azure Web App - TodokiServer
-
+name: Build and deploy ASP.Net Core app to Azure Web App - Gotorz20250514095933
 on:
   push:
     branches:
       - master
   workflow_dispatch:
-
-env:
-  AZURE_WEBAPP_NAME: TodokiServer
-  AZURE_WEBAPP_PACKAGE_PATH: Todoki/Server/publish
-  AZURE_APIM_RESOURCE_PATH: /
-  AZURE_APIM_RESOURCEGROUP: MichaelR
-  AZURE_APIM_SERVICENAME: TodokiServerapi
-  AZURE_APIM_API_ID: TodokiServer
-  AZURE_APIM_APPSERVICEURL: https://todokiserver.azurewebsites.net
-  API_IMPORT_SPECIFICATION_PATH: Todoki/Server/publish/swagger.json
-  CONFIGURATION: Release
-  DOTNET_CORE_VERSION: 8.0.x
-  WORKING_DIRECTORY: Todoki/Server
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup .NET SDK
+      
+      - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
-
-      - name: Restore
-        run: dotnet restore ${{ env.WORKING_DIRECTORY }}
-
-      - name: Build
-        run: dotnet build ${{ env.WORKING_DIRECTORY }} --configuration ${{ env.CONFIGURATION }} --no-restore
-
-      - name: Test
-        run: dotnet test ${{ env.WORKING_DIRECTORY }} --no-build
-
-      - name: Publish
-        run: dotnet publish ${{ env.WORKING_DIRECTORY }} --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-
-      - name: Generate Swagger JSON at runtime
+          dotnet-version: '8.0.x'
+          
+      # Diagnostic step to understand the current client setup
+      - name: Print Client Program.cs contents
+        run: cat Gotorz/Gotorz.Client/Program.cs
+          
+      - name: Restore dependencies
+        run: dotnet restore Gotorz.sln
+          
+      - name: Build with dotnet
+        run: dotnet build Gotorz.sln --configuration Release --no-restore
+          
+      - name: Publish Server Project (including WebAssembly resources)
+        run: dotnet publish Gotorz/Gotorz/Gotorz.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
+          
+      - name: Enable logging in web.config
         run: |
-          dotnet ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}/Todoki.Server.dll &
-          APP_PID=$!
-          sleep 5
-          curl -s http://localhost:5000/swagger/v1/swagger.json -o ${{ env.API_IMPORT_SPECIFICATION_PATH }}
-          kill $APP_PID
-
-      - name: Publish Artifacts
+          sed -i 's/stdoutLogEnabled="false"/stdoutLogEnabled="true"/' ${{env.DOTNET_ROOT}}/myapp/web.config
+          sed -i 's/stdoutLogFile=".\logs\stdout"/stdoutLogFile="D:\home\LogFiles\stdout"/' ${{env.DOTNET_ROOT}}/myapp/web.config
+          cat ${{env.DOTNET_ROOT}}/myapp/web.config
+          
+      # Diagnostic step to see what files are being published
+      - name: List published files
+        run: |
+          echo "Root directory:"
+          ls -la ${{env.DOTNET_ROOT}}/myapp
+          echo "wwwroot directory:"
+          ls -la ${{env.DOTNET_ROOT}}/myapp/wwwroot
+          echo "Client resources (_content directory):"
+          ls -la ${{env.DOTNET_ROOT}}/myapp/wwwroot/_content || echo "_content directory not found"
+          echo "_framework directory:"
+          ls -la ${{env.DOTNET_ROOT}}/myapp/wwwroot/_framework || echo "_framework directory not found"
+          
+      - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: webapp
-          path: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
+          
   deploy:
-    runs-on: windows-latest   # Use Windows runner like Azure template
+    runs-on: ubuntu-latest
     needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - name: Download artifact
+      - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: webapp
-          path: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-
+          name: .net-app
+          
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy to Azure WebApp
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_32A648A5DB6348958D4C6A3F81A973F9 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9761B4AD937C4133BD539B18EFD586A6 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F38C5E8DE28D45EE8FA85ED065D6F1A0 }}
+          
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          slot-name: Production
-          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-
-      - name: Import API into Azure API Management
-        run: |
-          az apim api import \
-            --path "${{ env.AZURE_APIM_RESOURCE_PATH }}" \
-            --resource-group "${{ env.AZURE_APIM_RESOURCEGROUP }}" \
-            --service-name "${{ env.AZURE_APIM_SERVICENAME }}" \
-            --api-id "${{ env.AZURE_APIM_API_ID }}" \
-            --service-url "${{ env.AZURE_APIM_APPSERVICEURL }}" \
-            --specification-path "${{ env.API_IMPORT_SPECIFICATION_PATH }}" \
-            --specification-format OpenApi \
-            --subscription-required false
-
-      - name: Logout
-        run: az logout
+          app-name: 'Gotorz20250514095933'
+          slot-name: 'Production'
+          package: .
+          publish-profile: ${{ secrets.YOUR_PUBLISH_PROFILE }}  # Optional if using service principal
+          startup-command: "dotnet Gotorz.dll"  # Try adding this
